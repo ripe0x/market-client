@@ -1,0 +1,3 @@
+[submodule "contracts/market"]
+	path = contracts/market
+	url = https://github.com/ripe0x/market

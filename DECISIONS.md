@@ -51,11 +51,13 @@ Review order: start with the ones marked **Revisit first**.
 | --- | --- | --- |
 | D27 | **Sepolia first, mainnet later, one chain per deployment** (`sepolia.<domain>`, later `<domain>`), each with its own indexer. No chain switcher. Mainnet only after the protocol's human audit and your mainnet deployment. | Decided |
 | D28 | **Contract addresses: you redeploy Sepolia** from the protocol repo per `DEPLOYMENT.md` (`Market`, `FeeConfig`, `NFTSale`, `NFTBid`). I don't deploy. Until then all work runs on local Anvil, where the protocol's `Deploy.s.sol` gives the same planned addresses. | **Needs you** before M12: the deployment, then send me the block number. |
-| D29 | **Hosting: Vercel for the web app, Railway for Ponder and Postgres.** | Decided. **Needs you** before M12: accounts. Nothing is deployed without your go-ahead. |
+| D29 | **Hosting: Netlify for the web app, Fly.io for Ponder and Postgres** (owner's choice, 2026-11-16). No Vercel, no Railway. | Decided by you. **Needs you** before M12: accounts. Nothing is deployed without your go-ahead. |
 | D30 | **NFT data: Alchemy NFT API** behind one adapter (metadata, media, wallet holdings, Items, Owners), with `tokenURI` resolution as fallback. Key server-side only. Media served only through our proxy as `<img>`/`<video>`. | Decided. **Needs you** before M5 against Sepolia: an Alchemy key. Local work uses `tokenURI` resolution. |
-| D31 | **RPC: Tenderly public gateways for dev, tests, fork work and scripts. Production indexer and server reads use a keyed provider (Alchemy, same account as D30).** This is an exception to your global rule that mainnet RPC is always Tenderly's public gateway, and only for the production indexer and the app's server reads. | Decided. **Revisit first:** confirm the exception before mainnet. Sepolia can start on Tenderly's public gateway and switch if it rate-limits. |
+| D31 | **RPC: Tenderly's public gateways only, everywhere** (owner's choice, 2026-11-16): `https://sepolia.gateway.tenderly.co`, `https://mainnet.gateway.tenderly.co`, in the browser, the web server and the indexer. No keyed RPC provider. Polling is batched through Multicall3 and kept to the lanes in `PLAN.md` §4.6 to stay within public rate limits. | Decided by you. Risk: a public gateway may rate-limit the indexer under load; watch the lag alert. |
 | D32 | **WalletConnect:** local and early milestones use injected wallets only (RainbowKit without WalletConnect). | **Needs you** before M12: a Reown project ID, domain-restricted. |
 
 ## Changes
 
 - 2026-11-16: all of the above set on the owner's instruction "make the decisions for me". No owner review yet.
+- 2026-11-16: owner: "Only use tenderly public rpc url. Dont use vercel or railway. Use netlify and fly.io." D29 and D31 replaced accordingly. D30 (Alchemy NFT API for metadata and holdings) is not RPC and stays.
+- 2026-11-16: owner: "Complete the full work without asking me any more questions." Build proceeds M0 to M11 locally; M12 (Sepolia) still waits on the protocol redeploy and accounts.

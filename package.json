@@ -1,0 +1,16 @@
+{
+  "name": "market-client",
+  "private": true,
+  "packageManager": "pnpm@9.4.0",
+  "engines": { "node": ">=22.12" },
+  "scripts": {
+    "build:contracts": "cd contracts/market && forge build && cd ../test-collections && forge build",
+    "gen": "pnpm --filter @market/protocol gen",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@types/node": "22.20.5"
+  }
+}

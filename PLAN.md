@@ -23,7 +23,7 @@ A Next.js (App Router) web app, a Ponder indexer on Postgres, and a shared TypeS
 | Q3 | **Chains.** | (a) Sepolia now, mainnet later, one chain per deployment (b) one app switching chains | **(a)**: `sepolia.<domain>` and later `<domain>`, each with its own indexer. No chain switcher in V1. |
 | Q4 | **Contract addresses.** Sepolia must be redeployed (`STATUS.md`): `Market`, `FeeConfig`, `NFTSale`, `NFTBid`. Planned CREATE2 addresses: Market `0x7c91…1FD4`, FeeConfig `0x9A18…06fF`, NFTSale `0xfEf3…c2c8`, NFTBid `0x8dbB…017E`. | Who deploys and when? | You deploy from the protocol repo per `DEPLOYMENT.md` (I will not). Until then all work runs on local Anvil, where `Deploy.s.sol` produces the same addresses. I need the Sepolia deployment block for `startBlock`. |
 | Q5 | **Production RPC.** Your global rule says Tenderly's public gateway for mainnet. A production indexer needs reliable `eth_getLogs` and polling volume a public gateway may rate-limit. | (a) Tenderly public everywhere (b) Tenderly public for dev, tests and scripts; a keyed provider (Alchemy, same account as Q2) for the production indexer and server reads | **(b)**, if you approve the exception for production. Dev, tests and fork work use `https://sepolia.gateway.tenderly.co` / `https://mainnet.gateway.tenderly.co`. |
-| Q6 | **Hosting.** | (a) Vercel (web) + Railway (Ponder + Postgres) (b) Fly.io for all (c) your own infra (`ripe-infra`?) | **(a)**: least ops. Ponder needs a long-running process and Postgres, so not Vercel. |
+| Q6 | **Hosting.** | (a) Netlify (web) + Fly.io (Ponder + Postgres) (b) Fly.io for all (c) your own infra (`ripe-infra`?) | **(a)**: least ops. Ponder needs a long-running process and Postgres, so not Netlify. |
 | Q7 | **NFT metadata and media.** | (a) Alchemy metadata + cached media URLs, served through our own image route (b) resolve `tokenURI` ourselves (IPFS/Arweave/data URIs) | **(a)** with (b) as fallback for tokens Alchemy has not indexed. Media rendered only as `<img>` through our proxy, never inline SVG/HTML (§8). |
 | Q8 | **Royalty limit default** (`maxRoyaltyBps`). | (a) exactly the collection's current rate (b) current + margin (c) fixed 10% | **(a)**: `ceil` of the bps implied by `royaltyOf` at both the start and end price. Dropdown: "Collection asks X%" (default), 0%, 2.5%, 5%, 7.5%, 10%, "No limit" (10,000). No ERC2981: default 0% labelled "Collection asks none". |
 | Q9 | **Listing expiry options.** Design: Never / 30D / 90D, default Never. Offers: 1D / 3D / 7D / 30D / Never. | Default offer expiry? | Keep design options. **Offer default 7D** (an offer holding ETH forever is rarely intended). Confirm. |
@@ -100,7 +100,7 @@ All at `d6b2073`. File references are in the protocol repo.
 
 ```
                           ┌───────────────────────────────────────────┐
- Browser                  │ Next.js app (Vercel)                       │
+ Browser                  │ Next.js app (Netlify)                       │
  ┌───────────────────┐    │  RSC pages ─────────────► Indexer REST API │
  │ React client      │◄──►│  /api/media/[...] image proxy (cache)      │
  │  RainbowKit/wagmi │    │  /api/nfts/*  NFT API adapter (key here)   │
@@ -109,7 +109,7 @@ All at `d6b2073`. File references are in the protocol repo.
  └───┬───────────┬───┘                    ▼
      │ reads,    │ GET /api/*        ┌──────────────┐
      │ txs       └──────────────────►│ Ponder       │ realtime + backfill
-     ▼                               │ (Railway)    │ eth_getLogs, multicall
+     ▼                               │ (Fly.io)    │ eth_getLogs, multicall
  ┌──────────┐   wallet signs         │  handlers    │◄──────────────┐
  │ Wallet   │──────────────────────► │  /api/* Hono │               │
  └──────────┘   to Ethereum          └──────┬───────┘               │
@@ -128,9 +128,9 @@ What runs where:
 
 | Piece | Runs | Responsibility |
 | --- | --- | --- |
-| `apps/web` | Vercel | Pages, wallet, live reads (`quote`, `ownerOf`, balances, approvals), simulation, writes, media proxy, NFT-API adapter. No database, no protocol state of its own. |
-| `apps/indexer` | Railway, one per chain | Ponder: events, polling, derived state, REST API. |
-| Postgres | Railway | Ponder's tables and RPC cache only. |
+| `apps/web` | Netlify | Pages, wallet, live reads (`quote`, `ownerOf`, balances, approvals), simulation, writes, media proxy, NFT-API adapter. No database, no protocol state of its own. |
+| `apps/indexer` | Fly.io, one per chain | Ponder: events, polling, derived state, REST API. |
+| Postgres | Fly.io | Ponder's tables and RPC cache only. |
 | `packages/protocol` | library, used by both | ABIs, addresses + expected code hashes, `priceAt`, config codecs, fee/royalty split math, error decoding and copy keys, transaction builders, `verifyOrder`. |
 | `contracts/market` | git submodule, pinned to `d6b2073` | Read-only: ABIs via `@wagmi/cli` foundry plugin, and `Deploy.s.sol` for local Anvil. Never modified. |
 
@@ -474,8 +474,8 @@ PR checks run the affected layer's tests only. The full suite, fork compatibilit
 | Env | Chain | Indexer | Web | Contracts |
 | --- | --- | --- | --- | --- |
 | Local | Anvil (`scripts/chain.sh`: anvil, protocol `Deploy.s.sol` from the submodule, test collections, seed scenario) | `ponder dev` on Docker Postgres | `next dev` | Same CREATE2 addresses as planned for Sepolia |
-| Sepolia | 11155111 | Railway Ponder + Postgres | Vercel `sepolia.<domain>` | Redeployed by you (Q4) |
-| Mainnet | 1 | Separate Railway project | Vercel `<domain>` | After protocol audit and your deployment. App readiness: code-hash check passes, Sepolia rehearsal with real wallets done, then a capped canary period with a small set of real users. |
+| Sepolia | 11155111 | Fly.io Ponder + Postgres | Netlify `sepolia.<domain>` | Redeployed by you (Q4) |
+| Mainnet | 1 | Separate Fly.io project | Netlify `<domain>` | After protocol audit and your deployment. App readiness: code-hash check passes, Sepolia rehearsal with real wallets done, then a capped canary period with a small set of real users. |
 
 Addresses, start blocks and expected code hashes are committed data in `packages/protocol/addresses.ts`, reviewed in PRs, the same code path for every environment.
 
@@ -515,7 +515,7 @@ Each is one reviewable PR (some may split), verified with the checks named, comm
 | M9 | Accept offer | Accept panel/page, approval step, revoke, eligibility from wallet holdings | E2E per-token approve + sell, approve-all skip, revoke; `BelowMinProceeds` and `InsufficientFunds` states |
 | M10 | Positions | Listings/Offers/Activity tabs, cancel/withdraw all cases in §6.5, Add funds, Approvals row | E2E every row state; round trips return all assets |
 | M11 | Hardening | Mainnet-fork compatibility suite, MetaMask smoke, monitoring, a11y pass (`web-design-guidelines`), security headers review, independent review of money/approval code paths | All green on a frozen candidate |
-| M12 | Sepolia | After your redeploy: addresses + start block, Railway + Vercel deploy (with your approval), rehearsal with real wallets | Full lifecycle on Sepolia from the deployed app, recorded |
+| M12 | Sepolia | After your redeploy: addresses + start block, Fly.io + Netlify deploy (with your approval), rehearsal with real wallets | Full lifecycle on Sepolia from the deployed app, recorded |
 
 ---
 
