@@ -2,12 +2,15 @@
   "name": "market-client",
   "private": true,
   "packageManager": "pnpm@9.4.0",
-  "engines": { "node": ">=22.12" },
+  "engines": {
+    "node": ">=22.12"
+  },
   "scripts": {
     "build:contracts": "cd contracts/market && forge build && cd ../test-collections && forge build",
     "gen": "pnpm --filter @market/protocol gen",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test"
+    "test": "pnpm -r test",
+    "dev:chain": "pnpm --filter @market/protocol exec tsx devchain/cli.ts"
   },
   "devDependencies": {
     "typescript": "5.9.3",

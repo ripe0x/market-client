@@ -4,7 +4,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./devchain": "./devchain/index.ts"
+    "./devchain": "./devchain/index.ts",
+    "./devchain/seed": "./devchain/seed.ts"
   },
   "scripts": {
     "gen": "tsx scripts/gen-abis.ts && tsx scripts/codehashes.ts",

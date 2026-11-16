@@ -1,10 +1,4 @@
-import {
-  BaseError,
-  ContractFunctionRevertedError,
-  decodeErrorResult,
-  UserRejectedRequestError,
-  type Hex,
-} from "viem";
+import { decodeErrorResult, type Hex } from "viem";
 import { erc721ErrorsAbi, marketAbi, nftBidAbi, nftSaleAbi, orderAbi } from "./abis";
 import { eth, pct, when } from "./format";
 
@@ -18,28 +12,36 @@ export type Revert =
   | { name: string; args: readonly unknown[] }
   | { name: "Unknown"; message: string; data?: Hex };
 
-/** Find the revert reason in any viem error (simulation, estimate, write or receipt). */
-export function decodeRevert(err: unknown): Revert {
-  if (err instanceof BaseError) {
-    if (err.walk((e) => e instanceof UserRejectedRequestError)) return { name: "UserRejected" };
-    const r = err.walk((e) => e instanceof ContractFunctionRevertedError);
-    if (r instanceof ContractFunctionRevertedError) {
-      if (r.data?.errorName) return { name: r.data.errorName, args: r.data.args ?? [] };
-      const raw = r.raw;
-      if (raw && raw !== "0x") {
-        try {
-          const d = decodeErrorResult({ abi: revertAbi, data: raw });
-          return { name: d.errorName, args: d.args ?? [] };
-        } catch {
-          return { name: "Unknown", message: r.reason ?? r.shortMessage, data: raw };
-        }
-      }
-      return { name: "Unknown", message: r.reason ?? r.shortMessage };
-    }
-    if (/user rejected|denied/i.test(err.message)) return { name: "UserRejected" };
-    return { name: "Unknown", message: err.shortMessage };
+/** Walk an error's `cause` chain. By name, not `instanceof`: Ponder and wallets may bundle
+ * their own copy of viem, whose error classes are different objects. */
+function find(err: unknown, name: string): Record<string, unknown> | null {
+  for (let e = err as Record<string, unknown> | undefined, i = 0; e && i < 20; e = e.cause as Record<string, unknown>, i++) {
+    if (e.name === name) return e;
   }
-  return { name: "Unknown", message: err instanceof Error ? err.message : String(err) };
+  return null;
+}
+
+/** Find the revert reason in any viem error (simulation, estimate, write, multicall). */
+export function decodeRevert(err: unknown): Revert {
+  if (find(err, "UserRejectedRequestError")) return { name: "UserRejected" };
+  const r = find(err, "ContractFunctionRevertedError") as
+    | { data?: { errorName?: string; args?: readonly unknown[] }; raw?: Hex; reason?: string; shortMessage?: string }
+    | null;
+  if (r) {
+    if (r.data?.errorName) return { name: r.data.errorName, args: r.data.args ?? [] };
+    if (r.raw && r.raw !== "0x") {
+      try {
+        const d = decodeErrorResult({ abi: revertAbi, data: r.raw });
+        return { name: d.errorName, args: d.args ?? [] };
+      } catch {
+        return { name: "Unknown", message: r.reason ?? r.shortMessage ?? "", data: r.raw };
+      }
+    }
+    return { name: "Unknown", message: r.reason ?? r.shortMessage ?? "" };
+  }
+  const message = err instanceof Error ? ((err as { shortMessage?: string }).shortMessage ?? err.message) : String(err);
+  if (/user rejected|user denied|rejected the request/i.test(message)) return { name: "UserRejected" };
+  return { name: "Unknown", message };
 }
 
 export type ErrorContext = {

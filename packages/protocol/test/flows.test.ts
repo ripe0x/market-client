@@ -10,7 +10,7 @@ import { fixedSchedule } from "../src/schedule";
 import { split } from "../src/split";
 import * as tx from "../src/tx";
 import { ACCOUNTS, mint, ROYALTY_TO, startChain, type Chain } from "../devchain";
-import { balances, createdOrder, now, send, sendValue } from "./helpers";
+import { balances, createdOrder, now, send, sendValue } from "../devchain/send";
 
 const FEE_TO: Address = "0xD4ba7cA95f3983514DDa317C4428CDb8F59c7e72";
 const [, SELLER, BUYER, BIDDER, HOLDER] = ACCOUNTS;

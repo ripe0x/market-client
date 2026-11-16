@@ -9,6 +9,7 @@ import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {ERC2981} from "@openzeppelin/contracts/token/common/ERC2981.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 /// ERC721 with an ERC2981 royalty anyone can change, and open minting.
 contract TestNFT is ERC721, ERC2981 {
@@ -35,6 +36,20 @@ contract TestNFT is ERC721, ERC2981 {
 
     function _baseURI() internal view override returns (string memory) {
         return baseURI;
+    }
+
+    /// With an empty base URI, onchain JSON with a small monochrome SVG so local pages show art.
+    function tokenURI(uint256 id) public view override returns (string memory) {
+        if (bytes(baseURI).length != 0) return super.tokenURI(id);
+        _requireOwned(id);
+        string memory n = Strings.toString(id);
+        string memory r = Strings.toString((id * 37) % 90);
+        return string.concat(
+            "data:application/json;utf8,{\"name\":\"", name(), " #", n, "\",\"image\":\"data:image/svg+xml;utf8,",
+            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/>",
+            "<g fill='none' stroke='white' stroke-width='1.5'><rect x='25' y='25' width='50' height='50' transform='rotate(", r,
+            " 50 50)'/><line x1='25' y1='25' x2='75' y2='75' transform='rotate(", r, " 50 50)'/></g></svg>\"}"
+        );
     }
 
     function supportsInterface(bytes4 id) public view override(ERC721, ERC2981) returns (bool) {

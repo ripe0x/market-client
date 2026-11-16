@@ -121,9 +121,11 @@ async function deployCollections(pub: Pub, w: Wallet) {
   const refusing = await deploy(pub, w, A.RefusingReceiver);
   return {
     /** ERC721 + ERC2981 at 5% to ROYALTY_TO. */
-    driftlines: await deploy(pub, w, A.TestNFT, ["Driftlines", "DRFT", ROYALTY_TO, 500n, "data:application/json,"]),
+    driftlines: await deploy(pub, w, A.TestNFT, ["Driftlines", "DRFT", ROYALTY_TO, 500n, ""]),
     /** ERC721 + ERC2981 at 2.5%. */
-    meridian: await deploy(pub, w, A.TestNFT, ["Meridian", "MRDN", ROYALTY_TO, 250n, "data:application/json,"]),
+    meridian: await deploy(pub, w, A.TestNFT, ["Meridian", "MRDN", ROYALTY_TO, 250n, ""]),
+    /** ERC721 + ERC2981 at 7.5%. */
+    tessellate: await deploy(pub, w, A.TestNFT, ["Tessellate", "TSL", ROYALTY_TO, 750n, ""]),
     /** ERC721 without ERC2981. */
     plain: await deploy(pub, w, A.PlainNFT),
     lockable: await deploy(pub, w, A.LockableNFT),
@@ -147,3 +149,4 @@ export async function mint(c: Chain, nft: Address, to: Address, count = 1n): Pro
 
 export const ETH = (s: string) => parseEther(s);
 export { A as artifacts };
+export * from "./send";

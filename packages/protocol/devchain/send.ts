@@ -1,7 +1,7 @@
 import { decodeEventLog, type Address, type Hex, type TransactionReceipt } from "viem";
 import { marketAbi } from "../src/abis";
 import { gasWithHeadroom } from "../src/tx";
-import type { Chain } from "../devchain";
+import type { Chain } from "./index";
 
 /** Simulate, send, wait. Returns the receipt and the ETH the sender paid for gas. */
 export async function send(c: Chain, from: Address, call: { address: Address; abi: readonly unknown[]; functionName: string; args?: readonly unknown[]; value?: bigint }) {

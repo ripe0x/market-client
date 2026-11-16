@@ -10,3 +10,4 @@ cache/
 playwright-report/
 test-results/
 *.tsbuildinfo
+.local-chain.json

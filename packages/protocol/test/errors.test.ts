@@ -7,7 +7,7 @@ import { collectionKind, quoteSale, refusesEth } from "../src/orders";
 import { fixedSchedule } from "../src/schedule";
 import * as tx from "../src/tx";
 import { ACCOUNTS, artifacts, mint, startChain, type Chain } from "../devchain";
-import { createdOrder, now, send } from "./helpers";
+import { createdOrder, now, send } from "../devchain/send";
 
 const [, SELLER, BUYER, BIDDER, HOLDER] = ACCOUNTS;
 const E = (s: string) => parseEther(s);
