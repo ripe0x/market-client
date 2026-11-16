@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#000"></rect><rect x="30" y="30" width="40" height="40" fill="none" stroke="#fff" stroke-width="4"></rect><line x1="30" y1="30" x2="70" y2="70" stroke="#fff" stroke-width="4"></line></svg></template>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="./art.js"></script>
+<style>
+body{margin:0;background:#1a1a1a;-webkit-font-smoothing:antialiased}
+a{color:#fff;text-decoration:none}
+a:hover{color:#8a8a8a}
+</style>
+</helmet>
+<div style="padding:96px 96px 160px;font-family:'Archivo',sans-serif;color:#fff;display:flex;flex-direction:column;gap:120px;width:max-content">
+
+  <div style="display:flex;gap:80px;align-items:flex-end;max-width:1880px">
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:center;gap:12px;font:500 13px/1 'JetBrains Mono',monospace;color:#8a8a8a"><span style="background:#fff;color:#000;padding:5px 8px">8</span>Built on 7 · matched to protocol</div>
+      <div style="font-size:104px;font-weight:800;letter-spacing:-0.05em;line-height:0.9">Square V1</div>
+    </div>
+    <div style="max-width:700px;font-size:19px;line-height:1.5;color:#b5b5b5;text-wrap:pretty;padding-bottom:6px">Matched to the Market protocol (ripe0x/market, 16 Nov 2026). Every price is in ETH and is the price payable now. A listing is an order holding one NFT, at a fixed price or one that moves to an end price over a duration and then holds; expiry is optional and off by default. An offer is an order holding ETH, for one NFT or several from a collection, with an expiry or none. Listing, cancelling and a first sale to an offer each take two wallet steps. Fee figures use today's 1% rate; each order's fee is read from the protocol.</div>
+  </div>
+
+  <!-- 01 Marketplace · Listings -->
+  <div style="display:flex;flex-direction:column;gap:28px">
+    <div style="font:500 14px/1 'JetBrains Mono',monospace;color:#8a8a8a">01 — Marketplace · Listings, table on desktop, grid on mobile</div>
+    <div style="display:flex;gap:64px;align-items:flex-start">
+
+      <div data-screen-label="8 Market Listings Desktop" style="width:1440px;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+        <div style="display:grid;grid-template-columns:260px minmax(0,1fr) auto;align-items:center;height:76px;padding:0 40px;border-bottom:1px solid #262626">
+          <div style="display:flex;align-items:center;gap:12px;font-size:22px;font-weight:800;letter-spacing:-0.03em"><svg width="22" height="22" viewBox="0 0 22 22" style="display:block"><rect x="1" y="1" width="20" height="20" style="fill:none;stroke:#fff;stroke-width:2"></rect><line x1="1" y1="1" x2="21" y2="21" style="stroke:#fff;stroke-width:2"></line></svg>Market</div>
+          <div style="width:520px;height:42px;border:1px solid #333;display:flex;align-items:center;padding:0 16px;font-size:15px;color:#7a7a7a">Search collections and tokens</div>
+          <div style="display:flex;gap:28px;align-items:center;font-size:15px;font-weight:500"><span>Sell</span><span style="height:42px;padding:0 18px;background:#fff;color:#000;display:flex;align-items:center;font:500 14px 'JetBrains Mono',monospace">0x7a…e41</span></div>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:36px;padding:48px 40px 32px;font-size:64px;font-weight:800;letter-spacing:-0.05em;line-height:0.9"><span>Listings</span><span style="color:#3d3d3d">Collections</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;height:64px;padding:0 40px;border-top:1px solid #262626;border-bottom:1px solid #262626;font-size:15px">
+          <div style="display:flex;gap:48px;align-items:center">
+            <div style="display:flex;gap:8px"><span style="height:38px;padding:0 14px;border:1px solid #333;display:flex;align-items:center;font-size:14px;color:#b5b5b5;white-space:nowrap">All collections ▾</span></div>
+            <div style="display:flex;gap:28px;color:#7a7a7a"><span style="color:#fff">Newest</span><span>Price low</span><span>Price high</span></div>
+          </div>
+          <div style="display:flex;border:1px solid #333;font-size:14px;font-weight:500"><span style="padding:9px 14px;background:#fff;color:#000">Table</span><span style="padding:9px 14px;color:#7a7a7a">Grid</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.2fr) minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) 88px;align-items:center;column-gap:24px;height:48px;padding:0 40px;border-bottom:1px solid #262626;font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase">
+          <span>Token</span><span>Price</span><span>Pricing</span><span style="text-align:right">Last sale</span><span style="text-align:right;color:#fff">Listed ↓</span><span></span>
+        </div>
+        <sc-for list="{{ feed }}" as="r" hint-placeholder-count="10">
+          <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.2fr) minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) 88px;align-items:center;column-gap:24px;height:80px;padding:0 40px;border-bottom:1px solid #1a1a1a;font-size:15px;font-variant-numeric:tabular-nums;color:#b5b5b5" style-hover="background:#0d0d0d">
+            <div style="display:flex;align-items:center;gap:16px;min-width:0"><div style="position:relative;width:52px;height:52px;flex:none;background:#111"><x-import component-from-global-scope="nft-art" kind="{{ r.kind }}" seed="{{ r.id }}" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div><span><span style="font-weight:700;color:#fff;font-size:17px">{{ r.coll }}</span> <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#7a7a7a">#{{ r.id }}</span></span></div>
+            <div style="display:flex;align-items:baseline;gap:7px"><span style="font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#fff">{{ r.now }}</span><span style="font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a">ETH</span></div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <span>{{ r.ptext }}</span>
+              <sc-if value="{{ r.isSched }}" hint-placeholder-val="{{ false }}"><span style="position:relative;display:block;width:72px;height:2px;background:#262626"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ r.bar }};background:#7a7a7a"></span></span></sc-if>
+              
+            </div>
+            <span style="text-align:right">{{ r.last }}</span>
+            <span style="text-align:right;color:#7a7a7a">{{ r.age }}</span>
+            <span style="justify-self:end;height:40px;padding:0 20px;border:1px solid #333;display:flex;align-items:center;font-size:14px;font-weight:700;color:#fff" style-hover="background:#fff;color:#000;border-color:#fff">Buy</span>
+          </div>
+        </sc-for>
+        <div style="display:flex;justify-content:space-between;align-items:center;height:64px;padding:0 40px;font-size:15px;color:#7a7a7a"><span>Prices shown are payable at the current block.</span><span style="color:#fff">Show 50 more</span></div>
+      </div>
+
+      <div data-screen-label="8 Market Listings Mobile" style="width:390px;background:#000;border-radius:40px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:50px;padding:0 30px;font-size:15px;font-weight:700"><span>9:41</span><span style="width:24px;height:11px;border:1.5px solid #fff;border-radius:3px"></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 18px 14px;border-bottom:1px solid #262626">
+          <div style="display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800;letter-spacing:-0.03em"><svg width="20" height="20" viewBox="0 0 22 22" style="display:block"><rect x="1" y="1" width="20" height="20" style="fill:none;stroke:#fff;stroke-width:2"></rect><line x1="1" y1="1" x2="21" y2="21" style="stroke:#fff;stroke-width:2"></line></svg>Market</div>
+          <span style="font:500 13px 'JetBrains Mono',monospace;color:#b5b5b5">0x7a…e41</span>
+        </div>
+        <div style="padding:14px 18px 0"><div style="height:44px;border:1px solid #333;display:flex;align-items:center;padding:0 14px;font-size:15px;color:#7a7a7a">Search collections and tokens</div></div>
+        <div style="display:flex;align-items:baseline;gap:18px;padding:22px 18px 16px;font-size:32px;font-weight:800;letter-spacing:-0.05em;line-height:1"><span>Listings</span><span style="color:#3d3d3d">Collections</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:0 18px 12px;font-size:13px"><span style="color:#b5b5b5">Newest ↓</span><span style="display:flex;border:1px solid #333;font-weight:500"><span style="padding:5px 8px;color:#7a7a7a">Table</span><span style="padding:5px 8px;background:#fff;color:#000">Grid</span></span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#262626;border-top:1px solid #262626;border-bottom:1px solid #262626">
+          <sc-for list="{{ feedM }}" as="g" hint-placeholder-count="6">
+            <div style="background:#000;padding:14px">
+              <div style="position:relative;aspect-ratio:1/1;background:#111"><x-import component-from-global-scope="nft-art" kind="{{ g.kind }}" seed="{{ g.id }}" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div>
+              <div style="margin-top:10px;font-size:13px;color:#b5b5b5">{{ g.coll }} <span style="font-family:'JetBrains Mono',monospace;color:#7a7a7a">#{{ g.id }}</span></div>
+              <div style="margin-top:4px;font-variant-numeric:tabular-nums"><span style="font-size:18px;font-weight:700;letter-spacing:-0.02em">{{ g.now }}</span> <span style="font:500 10px 'JetBrains Mono',monospace;color:#7a7a7a">ETH</span></div>
+              <div style="margin-top:3px;min-height:16px;font-size:12px;color:#7a7a7a">{{ g.ptext }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="height:34px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 Marketplace · Collections -->
+  <div style="display:flex;flex-direction:column;gap:28px">
+    <div style="font:500 14px/1 'JetBrains Mono',monospace;color:#8a8a8a">02 — Marketplace · Collections</div>
+    <div style="display:flex;gap:64px;align-items:flex-start">
+
+      <div data-screen-label="8 Collections Desktop" style="width:1440px;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+        <div style="display:grid;grid-template-columns:260px minmax(0,1fr) auto;align-items:center;height:76px;padding:0 40px;border-bottom:1px solid #262626">
+          <div style="display:flex;align-items:center;gap:12px;font-size:22px;font-weight:800;letter-spacing:-0.03em"><svg width="22" height="22" viewBox="0 0 22 22" style="display:block"><rect x="1" y="1" width="20" height="20" style="fill:none;stroke:#fff;stroke-width:2"></rect><line x1="1" y1="1" x2="21" y2="21" style="stroke:#fff;stroke-width:2"></line></svg>Market</div>
+          <div style="width:520px;height:42px;border:1px solid #333;display:flex;align-items:center;padding:0 16px;font-size:15px;color:#7a7a7a">Search collections and tokens</div>
+          <div style="display:flex;gap:28px;align-items:center;font-size:15px;font-weight:500"><span>Sell</span><span style="height:42px;padding:0 18px;background:#fff;color:#000;display:flex;align-items:center;font:500 14px 'JetBrains Mono',monospace">0x7a…e41</span></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;padding:48px 40px 32px">
+          <div style="display:flex;align-items:baseline;gap:36px;font-size:64px;font-weight:800;letter-spacing:-0.05em;line-height:0.9"><span style="color:#3d3d3d">Listings</span><span>Collections</span></div>
+          <div style="display:flex;gap:4px;font-size:15px;font-weight:500"><span style="padding:9px 14px;border:1px solid #333">24H</span><span style="padding:9px 14px;background:#fff;color:#000">7D</span><span style="padding:9px 14px;border:1px solid #333">30D</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:48px minmax(0,2.2fr) repeat(6,minmax(0,1fr));column-gap:24px;padding:0 40px 12px;font:500 11px 'JetBrains Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;color:#555"><span style="grid-column:3 / span 5;padding-bottom:8px;border-bottom:1px solid #262626">Trading on Market</span><span style="padding-bottom:8px;border-bottom:1px solid #262626;text-align:right">Collection</span></div>
+        <div style="display:grid;grid-template-columns:48px minmax(0,2.2fr) repeat(6,minmax(0,1fr));align-items:end;column-gap:24px;padding:0 40px 14px;border-bottom:1px solid #262626;font:500 12px/1.5 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase">
+          <span>#</span><span>Collection</span><span style="text-align:right">Floor<br>ETH</span><span style="text-align:right">Top offer<br>ETH</span><span style="text-align:right">Listed</span><span style="text-align:right;color:#fff">Volume 7D ↓<br>ETH</span><span style="text-align:right">Sales 7D</span><span style="text-align:right">Owners</span>
+        </div>
+        <sc-for list="{{ colls }}" as="c" hint-placeholder-count="10">
+          <div style="display:grid;grid-template-columns:48px minmax(0,2.2fr) repeat(6,minmax(0,1fr));align-items:center;column-gap:24px;height:76px;padding:0 40px;border-bottom:1px solid #1a1a1a;font-size:16px;font-variant-numeric:tabular-nums;color:#b5b5b5" style-hover="background:#0d0d0d">
+            <span style="font:400 13px 'JetBrains Mono',monospace;color:#7a7a7a">{{ c.rank }}</span>
+            <div style="display:flex;align-items:center;gap:16px;min-width:0"><div style="position:relative;width:48px;height:48px;flex:none;background:#111"><x-import component-from-global-scope="nft-art" kind="{{ c.kind }}" seed="{{ c.seed }}" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div><span style="font-weight:700;color:#fff;font-size:17px">{{ c.name }}</span></div>
+            <span style="text-align:right;font-weight:700;color:#fff">{{ c.floor }}</span>
+            <span style="text-align:right">{{ c.top }}</span>
+            <span style="text-align:right">{{ c.listed }}</span>
+            <span style="text-align:right;color:#fff">{{ c.vol }}</span>
+            <span style="text-align:right">{{ c.sales }}</span>
+            <span style="text-align:right">{{ c.owners }}</span>
+          </div>
+        </sc-for>
+        <div style="display:flex;justify-content:space-between;align-items:center;height:64px;padding:0 40px;font-size:15px;color:#7a7a7a"><span>Trading figures count orders and sales on Market. Owners come from indexed collection data.</span><span style="color:#fff">Show 50 more</span></div>
+      </div>
+
+      <div data-screen-label="8 Collections Mobile" style="width:390px;background:#000;border-radius:40px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:50px;padding:0 30px;font-size:15px;font-weight:700"><span>9:41</span><span style="width:24px;height:11px;border:1.5px solid #fff;border-radius:3px"></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 18px 14px;border-bottom:1px solid #262626">
+          <div style="display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800;letter-spacing:-0.03em"><svg width="20" height="20" viewBox="0 0 22 22" style="display:block"><rect x="1" y="1" width="20" height="20" style="fill:none;stroke:#fff;stroke-width:2"></rect><line x1="1" y1="1" x2="21" y2="21" style="stroke:#fff;stroke-width:2"></line></svg>Market</div>
+          <span style="font:500 13px 'JetBrains Mono',monospace;color:#b5b5b5">0x7a…e41</span>
+        </div>
+        <div style="padding:14px 18px 0"><div style="height:44px;border:1px solid #333;display:flex;align-items:center;padding:0 14px;font-size:15px;color:#7a7a7a">Search collections and tokens</div></div>
+        <div style="display:flex;align-items:baseline;gap:18px;padding:22px 18px 16px;font-size:32px;font-weight:800;letter-spacing:-0.05em;line-height:1"><span style="color:#3d3d3d">Listings</span><span>Collections</span></div>
+        <div style="display:flex;justify-content:space-between;padding:0 18px 10px;border-bottom:1px solid #262626;font:500 11px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase"><span>Collection</span><span>Floor · Vol 7D</span></div>
+        <sc-for list="{{ collsM }}" as="c" hint-placeholder-count="8">
+          <div style="display:grid;grid-template-columns:22px 44px minmax(0,1fr) auto;align-items:center;column-gap:12px;padding:12px 18px;border-bottom:1px solid #1a1a1a;font-variant-numeric:tabular-nums">
+            <span style="font:400 12px 'JetBrains Mono',monospace;color:#7a7a7a">{{ c.rank }}</span>
+            <div style="position:relative;width:44px;height:44px;background:#111"><x-import component-from-global-scope="nft-art" kind="{{ c.kind }}" seed="{{ c.seed }}" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div>
+            <div style="line-height:1.3;min-width:0"><div style="font-size:15px;font-weight:700">{{ c.name }}</div><div style="font-size:13px;color:#7a7a7a">{{ c.listed }} listed</div></div>
+            <div style="text-align:right;line-height:1.3"><div style="font-size:16px;font-weight:700">{{ c.floor }} <span style="font:500 11px 'JetBrains Mono',monospace;color:#7a7a7a">ETH</span></div><div style="font-size:13px;color:#7a7a7a">{{ c.vol }}</div></div>
+          </div>
+        </sc-for>
+        <div style="height:34px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 Collection · Listings -->
+  <div style="display:flex;flex-direction:column;gap:28px">
+    <div style="font:500 14px/1 'JetBrains Mono',monospace;color:#8a8a8a">03 — Collection · Listings</div>
+    <div style="display:flex;gap:64px;align-items:flex-start">
+
+      <div data-screen-label="8 Collection Listings Desktop" style="width:1440px;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+        <div style="display:grid;grid-template-columns:260px minmax(0,1fr) auto;align-items:center;height:76px;padding:0 40px;border-bottom:1px solid #262626">
+          <div style="display:flex;align-items:center;gap:12px;font-size:22px;font-weight:800;letter-spacing:-0.03em"><svg width="22" height="22" viewBox="0 0 22 22" style="display:block"><rect x="1" y="1" width="20" height="20" style="fill:none;stroke:#fff;stroke-width:2"></rect><line x1="1" y1="1" x2="21" y2="21" style="stroke:#fff;stroke-width:2"></line></svg>Market</div>
+          <div style="width:520px;height:42px;border:1px solid #333;display:flex;align-items:center;padding:0 16px;font-size:15px;color:#7a7a7a">Search collections and tokens</div>
+          <div style="display:flex;gap:28px;align-items:center;font-size:15px;font-weight:500"><span>Sell</span><span style="height:42px;padding:0 18px;background:#fff;color:#000;display:flex;align-items:center;font:500 14px 'JetBrains Mono',monospace">0x7a…e41</span></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:40px;padding:40px 40px 36px">
+          <div style="display:flex;align-items:center;gap:24px">
+            <div style="position:relative;width:88px;height:88px;flex:none"><x-import component-from-global-scope="nft-art" kind="flow" seed="7" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div>
+            <div><div style="font-size:64px;font-weight:800;letter-spacing:-0.05em;line-height:0.9">Driftlines</div><div style="font:400 13px 'JetBrains Mono',monospace;color:#7a7a7a;margin-top:12px">0xd1e…4a07 · 5% artist royalty</div></div>
+          </div>
+          <div style="display:flex;gap:44px;align-items:flex-end"><div style="display:flex;flex-direction:column;gap:14px"><div style="font:500 11px 'JetBrains Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;color:#555;padding-bottom:8px;border-bottom:1px solid #262626">Trading on Market</div><div style="display:flex;gap:44px">
+            <div><div style="font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase">Floor</div><div style="font-size:26px;font-weight:700;letter-spacing:-0.02em;margin-top:8px">0.62 <span style="font:500 13px 'JetBrains Mono',monospace;color:#7a7a7a">ETH</span></div></div>
+            <div><div style="font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase">Top offer</div><div style="font-size:26px;font-weight:700;letter-spacing:-0.02em;margin-top:8px">0.55 <span style="font:500 13px 'JetBrains Mono',monospace;color:#7a7a7a">ETH</span></div></div>
+            <div><div style="font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase">Listed</div><div style="font-size:26px;font-weight:700;letter-spacing:-0.02em;margin-top:8px">48</div></div>
+            <div><div style="font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase">Volume 7D</div><div style="font-size:26px;font-weight:700;letter-spacing:-0.02em;margin-top:8px">18.4 <span style="font:500 13px 'JetBrains Mono',monospace;color:#7a7a7a">ETH</span></div></div>
+            </div></div><div style="display:flex;flex-direction:column;gap:14px"><div style="font:500 11px 'JetBrains Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;color:#555;padding-bottom:8px;border-bottom:1px solid #262626">Collection</div><div style="display:flex;gap:44px"><div><div style="font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase">Items</div><div style="font-size:26px;font-weight:700;letter-spacing:-0.02em;margin-top:8px">600</div></div><div><div style="font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase">Owners</div><div style="font-size:26px;font-weight:700;letter-spacing:-0.02em;margin-top:8px">512</div></div></div></div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;height:64px;padding:0 40px;border-top:1px solid #262626;border-bottom:1px solid #262626;font-size:15px">
+          <div style="display:flex;gap:48px;align-items:center">
+            <div style="display:flex;gap:28px;align-items:center;font-weight:700"><span style="border-bottom:2px solid #fff;padding-bottom:2px">Listings 48</span><span style="color:#7a7a7a;font-weight:500">Offers 6</span></div>
+            <div style="display:flex;gap:28px;color:#7a7a7a"><span style="color:#fff">Price low</span><span>Price high</span><span>Newest</span></div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center">
+            <div style="display:flex;border:1px solid #333;font-size:14px;font-weight:500"><span style="padding:9px 14px;background:#fff;color:#000">Table</span><span style="padding:9px 14px;color:#7a7a7a">Grid</span></div>
+            <span style="height:40px;padding:0 18px;background:#fff;color:#000;display:flex;align-items:center;font-size:14px;font-weight:700;white-space:nowrap;flex:none">Make offer</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.3fr) minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) 88px;align-items:center;column-gap:24px;height:48px;padding:0 40px;border-bottom:1px solid #262626;font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase">
+          <span>Token</span><span style="color:#fff">Price ↑</span><span>Pricing</span><span style="text-align:right">Last sale</span><span style="text-align:right">Seller</span><span></span>
+        </div>
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="12">
+          <sc-if value="{{ r.isRow }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.3fr) minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) 88px;align-items:center;column-gap:24px;height:80px;padding:0 40px;border-bottom:1px solid #1a1a1a;font-size:15px;font-variant-numeric:tabular-nums;color:#b5b5b5" style-hover="background:#0d0d0d">
+              <div style="display:flex;align-items:center;gap:16px"><div style="position:relative;width:52px;height:52px;flex:none;background:#111"><x-import component-from-global-scope="nft-art" kind="flow" seed="{{ r.id }}" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div><span style="font-weight:700;color:#fff;font-size:17px">#{{ r.id }}</span></div>
+              <div style="display:flex;align-items:baseline;gap:7px"><span style="font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#fff">{{ r.now }}</span><span style="font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a">{{ r.cur }}</span></div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <span>{{ r.ptext }}</span>
+                <sc-if value="{{ r.isSched }}" hint-placeholder-val="{{ false }}"><span style="position:relative;display:block;width:72px;height:2px;background:#262626"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ r.bar }};background:#7a7a7a"></span></span></sc-if>
+                
+              </div>
+              <span style="text-align:right">{{ r.last }}</span>
+              <span style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px">{{ r.owner }}</span>
+              <span style="justify-self:end;height:40px;padding:0 20px;border:1px solid #333;display:flex;align-items:center;font-size:14px;font-weight:700;color:#fff" style-hover="background:#fff;color:#000;border-color:#fff">Buy</span>
+            </div>
+          </sc-if>
+        </sc-for>
+        <div style="display:flex;justify-content:space-between;align-items:center;height:64px;padding:0 40px;font-size:15px;color:#7a7a7a"><span>Prices shown are payable at the current block.</span><span style="color:#fff">Show 38 more</span></div>
+      </div>
+
+      <div data-screen-label="8 Collection Listings Mobile" style="width:390px;background:#000;border-radius:40px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:50px;padding:0 30px;font-size:15px;font-weight:700"><span>9:41</span><span style="width:24px;height:11px;border:1.5px solid #fff;border-radius:3px"></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 18px 14px;font-size:15px;border-bottom:1px solid #262626"><span>←</span><span style="font-weight:500">Collections</span><span style="color:#7a7a7a">···</span></div>
+        <div style="padding:22px 18px 0"><div style="font-size:40px;font-weight:800;letter-spacing:-0.05em;line-height:0.95">Driftlines</div><div style="font:400 12px 'JetBrains Mono',monospace;color:#7a7a7a;margin-top:8px">0xd1e…4a07 · 600 items · 5% royalty</div></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);margin:20px 18px 0;padding:14px 0;border-top:1px solid #262626;border-bottom:1px solid #262626">
+          <div><div style="font:500 11px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase">Floor</div><div style="font-size:19px;font-weight:700;margin-top:6px">0.62 <span style="font:500 10px 'JetBrains Mono',monospace;color:#7a7a7a">ETH</span></div></div>
+          <div><div style="font:500 11px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase">Top offer</div><div style="font-size:19px;font-weight:700;margin-top:6px">0.55 <span style="font:500 10px 'JetBrains Mono',monospace;color:#7a7a7a">ETH</span></div></div>
+          <div><div style="font:500 11px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase">Listed</div><div style="font-size:19px;font-weight:700;margin-top:6px">48</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px;font-size:14px">
+          <div style="display:flex;gap:18px;font-weight:700"><span style="border-bottom:2px solid #fff;padding-bottom:2px">Listings 48</span><span style="color:#7a7a7a;font-weight:500">Offers 6</span></div>
+          <div style="display:flex;gap:12px;align-items:center;font-size:13px"><span style="color:#b5b5b5">Price ↑</span><span style="display:flex;border:1px solid #333;font-weight:500"><span style="padding:5px 8px;background:#fff;color:#000">Table</span><span style="padding:5px 8px;color:#7a7a7a">Grid</span></span></div>
+        </div>
+        <div style="border-top:1px solid #262626">
+          <sc-for list="{{ rowsM }}" as="r" hint-placeholder-count="8">
+            <sc-if value="{{ r.isRow }}" hint-placeholder-val="{{ true }}">
+              <div style="display:grid;grid-template-columns:52px minmax(0,1fr) auto;align-items:center;column-gap:14px;padding:12px 18px;border-bottom:1px solid #1a1a1a;font-variant-numeric:tabular-nums">
+                <div style="position:relative;width:52px;height:52px;background:#111"><x-import component-from-global-scope="nft-art" kind="flow" seed="{{ r.id }}" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div>
+                <div style="line-height:1.35;min-width:0"><div style="font-size:16px;font-weight:700">#{{ r.id }}</div><div style="font-size:13px;color:#7a7a7a">{{ r.mline }}</div></div>
+                <div style="text-align:right"><span style="font-size:18px;font-weight:700;letter-spacing:-0.02em">{{ r.now }}</span> <span style="font:500 11px 'JetBrains Mono',monospace;color:#7a7a7a">{{ r.cur }}</span></div>
+              </div>
+            </sc-if>
+          </sc-for>
+        </div>
+        <div style="padding:20px 18px 34px"><div style="height:54px;border:1px solid #333;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700">Make offer</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 Collection · Offers -->
+  <div style="display:flex;flex-direction:column;gap:28px">
+    <div style="font:500 14px/1 'JetBrains Mono',monospace;color:#8a8a8a">04 — Collection · Offers, with accepting an offer on mobile · fee figures illustrative</div>
+    <div style="display:flex;gap:64px;align-items:flex-start">
+
+      <div data-screen-label="8 Collection Offers Desktop" style="width:1440px;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+        <div style="display:grid;grid-template-columns:260px minmax(0,1fr) auto;align-items:center;height:76px;padding:0 40px;border-bottom:1px solid #262626">
+          <div style="display:flex;align-items:center;gap:12px;font-size:22px;font-weight:800;letter-spacing:-0.03em"><svg width="22" height="22" viewBox="0 0 22 22" style="display:block"><rect x="1" y="1" width="20" height="20" style="fill:none;stroke:#fff;stroke-width:2"></rect><line x1="1" y1="1" x2="21" y2="21" style="stroke:#fff;stroke-width:2"></line></svg>Market</div>
+          <div style="width:520px;height:42px;border:1px solid #333;display:flex;align-items:center;padding:0 16px;font-size:15px;color:#7a7a7a">Search collections and tokens</div>
+          <div style="display:flex;gap:28px;align-items:center;font-size:15px;font-weight:500"><span>Sell</span><span style="height:42px;padding:0 18px;background:#fff;color:#000;display:flex;align-items:center;font:500 14px 'JetBrains Mono',monospace">0x7a…e41</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:24px;padding:32px 40px">
+          <div style="position:relative;width:56px;height:56px;flex:none"><x-import component-from-global-scope="nft-art" kind="flow" seed="7" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div>
+          <div style="font-size:40px;font-weight:800;letter-spacing:-0.05em;line-height:1">Driftlines</div>
+          <div style="margin-left:auto;display:flex;gap:44px;font-size:15px;color:#7a7a7a"><span>Floor <span style="color:#fff;font-weight:700">0.62 ETH</span></span><span>Top offer <span style="color:#fff;font-weight:700">0.55 ETH</span></span><span>In your wallet <span style="color:#fff;font-weight:700">2</span></span></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;height:64px;padding:0 40px;border-top:1px solid #262626;border-bottom:1px solid #262626;font-size:15px">
+          <div style="display:flex;gap:48px;align-items:center">
+            <div style="display:flex;gap:28px;align-items:center;font-weight:700"><span style="color:#7a7a7a;font-weight:500">Listings 48</span><span style="border-bottom:2px solid #fff;padding-bottom:2px">Offers 6</span></div>
+            <div style="display:flex;gap:28px;color:#7a7a7a"><span style="color:#fff">Highest</span><span>Expiring</span><span>Newest</span></div>
+          </div>
+          <span style="height:40px;padding:0 18px;background:#fff;color:#000;display:flex;align-items:center;font-size:14px;font-weight:700;white-space:nowrap;flex:none">Make offer</span>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 100px;align-items:center;column-gap:24px;height:48px;padding:0 40px;border-bottom:1px solid #262626;font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase">
+          <span style="color:#fff">Offer ↓</span><span>For</span><span style="text-align:right">Remaining</span><span style="text-align:right">Expires</span><span style="text-align:right">Buyer</span><span></span>
+        </div>
+        <sc-for list="{{ offs }}" as="o" hint-placeholder-count="8">
+          <sc-if value="{{ o.isRow }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 100px;align-items:center;column-gap:24px;height:76px;padding:0 40px;border-bottom:1px solid #1a1a1a;font-size:15px;font-variant-numeric:tabular-nums;color:#b5b5b5" style-hover="background:#0d0d0d">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:baseline;gap:7px"><span style="font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#fff">{{ o.now }}</span><span style="font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a">{{ o.cur }}</span></div>
+                <sc-if value="{{ o.hasSub }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:#7a7a7a">{{ o.sub }}</span></sc-if>
+              </div>
+              <span style="color:#fff">{{ o.target }}</span>
+              <span style="text-align:right">{{ o.qty }}</span>
+              <span style="text-align:right">{{ o.exp }}</span>
+              <span style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px">{{ o.from }}</span>
+              <sc-if value="{{ o.canSell }}" hint-placeholder-val="{{ true }}"><span style="justify-self:end;height:40px;padding:0 20px;border:1px solid #333;display:flex;align-items:center;font-size:14px;font-weight:700;color:#fff" style-hover="background:#fff;color:#000;border-color:#fff">Sell</span></sc-if>
+              <sc-if value="{{ o.cantSell }}" hint-placeholder-val="{{ false }}"><span></span></sc-if>
+            </div>
+          </sc-if>
+        </sc-for>
+        <div style="display:flex;justify-content:space-between;align-items:center;height:64px;padding:0 40px;font-size:15px;color:#7a7a7a"><span>Offers are funded in advance. Sell appears where your wallet holds an eligible NFT. Cancel a listing first to sell its NFT to an offer.</span><span style="color:#fff">Show all</span></div>
+      </div>
+
+      <div data-screen-label="8 Accept Offer Mobile" style="width:390px;background:#000;border-radius:40px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:50px;padding:0 30px;font-size:15px;font-weight:700"><span>9:41</span><span style="width:24px;height:11px;border:1.5px solid #fff;border-radius:3px"></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 18px 14px;font-size:15px;border-bottom:1px solid #262626"><span>Cancel</span><span style="font-weight:700">Sell to offer</span><span style="width:44px"></span></div>
+        <div style="padding:24px 18px 0">
+          <div style="font-size:14px;color:#b5b5b5">Offer for any Driftlines</div>
+          <div style="margin-top:6px;line-height:1"><span style="font-size:48px;font-weight:700;letter-spacing:-0.045em">0.55</span> <span style="font-size:20px;color:#7a7a7a">ETH</span></div>
+          <div style="font-size:13px;color:#7a7a7a;margin-top:10px">From <span style="font-family:'JetBrains Mono',monospace">0x51…20a9</span> · 7 remaining · expires in 3 days</div>
+        </div>
+        <div style="margin:24px 18px 0;font-size:14px;font-weight:700">Choose an NFT</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 18px 0">
+          <sc-for list="{{ eligible }}" as="e" hint-placeholder-count="2">
+            <div>
+              <div style="position:relative;aspect-ratio:1/1;outline-offset:4px;outline:{{ e.outline }}"><x-import component-from-global-scope="nft-art" kind="flow" seed="{{ e.id }}" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div>
+              <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:14px"><span style="font-weight:700">#{{ e.id }}</span><span style="color:#7a7a7a">{{ e.note }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin:22px 18px 0;padding:14px 0;border-top:1px solid #262626;border-bottom:1px solid #262626;font-size:14px;font-variant-numeric:tabular-nums">
+          <div style="display:flex;justify-content:space-between;color:#7a7a7a"><span>Offer</span><span>0.550</span></div>
+          <div style="display:flex;justify-content:space-between;color:#7a7a7a;margin-top:6px"><span>Artist royalty 5%</span><span>−0.0275</span></div>
+          <div style="display:flex;justify-content:space-between;color:#7a7a7a;margin-top:6px"><span>Market fee</span><span>−0.0055</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px"><span style="color:#fff">You receive</span><span style="font-size:20px;font-weight:700">0.517 <span style="font-size:12px;color:#7a7a7a;font-weight:500">ETH</span></span></div>
+        </div>
+        <div style="margin:18px 18px 0;display:flex;flex-direction:column;border-top:1px solid #262626">
+          <div style="display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;height:48px;border-bottom:1px solid #262626;font-size:14px"><span style="font:500 12px 'JetBrains Mono',monospace">1</span><span>Approve #305 for offers</span><span style="font:500 11px 'JetBrains Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;color:#fff">Next</span></div>
+          <div style="display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;height:48px;border-bottom:1px solid #262626;font-size:14px;color:#7a7a7a"><span style="font:500 12px 'JetBrains Mono',monospace">2</span><span>Sell #305, ETH to your wallet</span><span></span></div>
+        </div>
+        <div style="margin:14px 18px 0;font-size:13px;line-height:1.5;color:#b5b5b5;text-wrap:pretty">Approval lets offers move #305 only when you sell it yourself. Remove it any time. If the royalty or fee changes before this confirms, the sale stops instead of paying you less than 0.517.</div>
+        <div style="padding:18px 18px 34px"><div style="height:58px;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700">Approve #305</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 05 NFT detail -->
+  <div style="display:flex;flex-direction:column;gap:28px">
+    <div style="font:500 14px/1 'JetBrains Mono',monospace;color:#8a8a8a">05 — NFT detail · changing price on desktop, fixed price on mobile</div>
+    <div style="display:flex;gap:64px;align-items:flex-start">
+
+      <div data-screen-label="8 Detail Desktop" style="width:1440px;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+        <div style="display:grid;grid-template-columns:260px minmax(0,1fr) auto;align-items:center;height:76px;padding:0 40px;border-bottom:1px solid #262626">
+          <div style="display:flex;align-items:center;gap:12px;font-size:22px;font-weight:800;letter-spacing:-0.03em"><svg width="22" height="22" viewBox="0 0 22 22" style="display:block"><rect x="1" y="1" width="20" height="20" style="fill:none;stroke:#fff;stroke-width:2"></rect><line x1="1" y1="1" x2="21" y2="21" style="stroke:#fff;stroke-width:2"></line></svg>Market</div>
+          <div style="width:520px;height:42px;border:1px solid #333;display:flex;align-items:center;padding:0 16px;font-size:15px;color:#7a7a7a">Search collections and tokens</div>
+          <div style="display:flex;gap:28px;align-items:center;font-size:15px;font-weight:500"><span>Sell</span><span style="height:42px;padding:0 18px;background:#fff;color:#000;display:flex;align-items:center;font:500 14px 'JetBrains Mono',monospace">0x7a…e41</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 520px">
+          <div style="border-right:1px solid #262626;padding:72px;display:flex;justify-content:center;align-items:flex-start">
+            <div style="position:relative;width:100%;max-width:740px;aspect-ratio:1/1"><x-import component-from-global-scope="nft-art" kind="flow" seed="212" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div>
+          </div>
+          <div style="display:flex;flex-direction:column;padding:56px 48px">
+            <div style="font-size:16px;font-weight:500;color:#b5b5b5">Driftlines</div>
+            <div style="font-size:88px;font-weight:800;letter-spacing:-0.05em;line-height:0.9;margin-top:8px">#212</div>
+
+            <div style="margin-top:56px;font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase">Price</div>
+            <div style="display:flex;align-items:baseline;gap:14px;margin-top:10px"><span style="font-size:76px;font-weight:700;letter-spacing:-0.045em;line-height:1">1.42</span><span style="font-size:28px;font-weight:500;color:#7a7a7a">ETH</span></div>
+
+            <div style="margin-top:28px;padding:18px 0 16px;border-top:1px solid #262626;border-bottom:1px solid #262626">
+              <div style="display:flex;justify-content:space-between;font-size:15px"><span>Changes to 0.80 ETH</span><span style="color:#7a7a7a">by Sat 14:00</span></div>
+              <svg width="424" height="48" viewBox="0 0 424 48" style="display:block;margin-top:14px">
+                <line x1="0" y1="47" x2="424" y2="47" style="stroke:#262626;stroke-width:1"></line>
+                <line x1="4" y1="6" x2="258" y2="27" style="stroke:#b5b5b5;stroke-width:1.5"></line>
+                <line x1="258" y1="27" x2="420" y2="40" style="stroke:#444;stroke-width:1.5;stroke-dasharray:3 4"></line>
+                <circle cx="258" cy="27" r="4" style="fill:#fff"></circle>
+              </svg>
+              <div style="display:flex;justify-content:space-between;margin-top:8px;font:400 12px 'JetBrains Mono',monospace;color:#7a7a7a"><span>2.40 · Wed 12:00</span><span>0.80 · Sat 14:00</span></div>
+              <div style="margin-top:10px;font-size:13px;color:#7a7a7a">Then stays at 0.80 until sold or cancelled.</div>
+            </div>
+
+            <div style="height:64px;margin-top:28px;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">Buy for 1.42 ETH</div>
+            <div style="height:64px;margin-top:10px;border:1px solid #333;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:500">Make offer</div>
+            <div style="margin-top:14px;font-size:14px;color:#7a7a7a">You pay at most 1.42 ETH. If the price falls before this confirms, the difference is refunded. Plus network gas.</div>
+
+            <div style="margin-top:44px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:15px;font-weight:700">Offers</span><span style="font-size:14px;color:#7a7a7a">3 active</span></div>
+            <div style="margin-top:12px;font-size:14px;font-variant-numeric:tabular-nums">
+              <sc-for list="{{ tokOffers }}" as="o" hint-placeholder-count="3">
+                <div style="display:grid;grid-template-columns:110px minmax(0,1fr) auto;column-gap:16px;align-items:baseline;padding:11px 0;border-top:1px solid #262626">
+                  <span><span style="font-weight:700;font-size:16px">{{ o.now }}</span> <span style="font:500 11px 'JetBrains Mono',monospace;color:#7a7a7a">ETH</span></span>
+                  <span style="color:#b5b5b5">{{ o.desc }}</span>
+                  <span style="color:#7a7a7a">{{ o.exp }}</span>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="margin-top:40px;font-size:14px">
+              <div style="display:flex;justify-content:space-between;padding:12px 0;border-top:1px solid #262626"><span style="color:#7a7a7a">Seller</span><span style="font-family:'JetBrains Mono',monospace">0x3a…91c4</span></div>
+              <div style="display:flex;justify-content:space-between;padding:12px 0;border-top:1px solid #262626"><span style="color:#7a7a7a">Artist royalty</span><span>5%, paid from the sale</span></div>
+              <div style="display:flex;justify-content:space-between;padding:12px 0;border-top:1px solid #262626"><span style="color:#7a7a7a">Held in</span><span>This listing <span style="font-family:'JetBrains Mono',monospace;color:#7a7a7a">0x6e…a3f2</span></span></div>
+              <div style="display:flex;justify-content:space-between;padding:12px 0;border-top:1px solid #262626"><span style="color:#7a7a7a">Expires</span><span>Never</span></div>
+              <div style="display:flex;justify-content:space-between;padding:12px 0;border-top:1px solid #262626;border-bottom:1px solid #262626"><span style="color:#7a7a7a">Contract and token</span><span style="color:#7a7a7a">▾</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="border-top:1px solid #262626">
+          <div style="display:flex;justify-content:space-between;align-items:center;height:64px;padding:0 40px;font-size:15px"><span style="font-weight:700">More from Driftlines</span><span style="color:#7a7a7a">48 listed</span></div>
+          <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;background:#262626;border-top:1px solid #262626">
+            <sc-for list="{{ more }}" as="l" hint-placeholder-count="6">
+              <div style="background:#000;padding:16px">
+                <div style="position:relative;aspect-ratio:1/1"><x-import component-from-global-scope="nft-art" kind="flow" seed="{{ l.id }}" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;font-size:14px"><span style="font-family:'JetBrains Mono',monospace;color:#7a7a7a">#{{ l.id }}</span><span><span style="font-weight:700">{{ l.now }}</span> <span style="font:500 11px 'JetBrains Mono',monospace;color:#7a7a7a">ETH</span></span></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div data-screen-label="8 Detail Mobile" style="width:390px;background:#000;border-radius:40px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:50px;padding:0 30px;font-size:15px;font-weight:700"><span>9:41</span><span style="width:24px;height:11px;border:1.5px solid #fff;border-radius:3px"></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 18px 14px;font-size:15px;border-bottom:1px solid #262626"><span>←</span><span style="font-weight:500">Driftlines</span><span style="color:#7a7a7a">···</span></div>
+        <div style="padding:24px 18px"><div style="position:relative;aspect-ratio:1/1"><x-import component-from-global-scope="nft-art" kind="flow" seed="331" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div></div>
+        <div style="padding:0 18px">
+          <div style="font-size:15px;color:#b5b5b5">Driftlines</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:4px">
+            <div style="font-size:56px;font-weight:800;letter-spacing:-0.05em;line-height:0.9">#331</div>
+            <div style="line-height:1"><span style="font-size:36px;font-weight:700;letter-spacing:-0.04em">1.68</span> <span style="font-size:17px;color:#7a7a7a">ETH</span></div>
+          </div>
+          <div style="margin-top:24px;border-top:1px solid #262626"></div>
+          <div style="font-size:14px">
+            <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #262626"><span style="color:#7a7a7a">Top offer</span><span>0.55 ETH · any Driftlines</span></div>
+            <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #262626"><span style="color:#7a7a7a">Artist royalty</span><span>5%, paid from the sale</span></div>
+            <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #262626"><span style="color:#7a7a7a">Held in</span><span>This listing <span style="font-family:'JetBrains Mono',monospace;color:#7a7a7a">0x6e…a3f2</span></span></div>
+            <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #262626"><span style="color:#7a7a7a">Expires</span><span>Never</span></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;padding:28px 18px 34px">
+          <div style="flex:1;height:58px;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700">Buy for 1.68 ETH</div>
+          <div style="width:92px;height:58px;border:1px solid #333;display:flex;align-items:center;justify-content:center;font-size:16px">Offer</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 06 Create listing -->
+  <div style="display:flex;flex-direction:column;gap:28px">
+    <div style="font:500 14px/1 'JetBrains Mono',monospace;color:#8a8a8a">06 — Create listing · changing price on desktop, default on mobile · fee figures illustrative</div>
+    <div style="display:flex;gap:64px;align-items:flex-start">
+
+      <div data-screen-label="8 Create Desktop" style="width:1440px;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+        <div style="display:grid;grid-template-columns:260px minmax(0,1fr) auto;align-items:center;height:76px;padding:0 40px;border-bottom:1px solid #262626">
+          <div style="display:flex;align-items:center;gap:12px;font-size:22px;font-weight:800;letter-spacing:-0.03em"><svg width="22" height="22" viewBox="0 0 22 22" style="display:block"><rect x="1" y="1" width="20" height="20" style="fill:none;stroke:#fff;stroke-width:2"></rect><line x1="1" y1="1" x2="21" y2="21" style="stroke:#fff;stroke-width:2"></line></svg>Market</div>
+          <div style="width:520px;height:42px;border:1px solid #333;display:flex;align-items:center;padding:0 16px;font-size:15px;color:#7a7a7a">Search collections and tokens</div>
+          <div style="display:flex;gap:28px;align-items:center;font-size:15px;font-weight:500"><span style="border-bottom:2px solid #fff;padding-bottom:2px">Sell</span><span style="height:42px;padding:0 18px;background:#fff;color:#000;display:flex;align-items:center;font:500 14px 'JetBrains Mono',monospace">0x7a…e41</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 520px">
+          <div style="border-right:1px solid #262626">
+            <div style="display:flex;justify-content:space-between;align-items:center;height:64px;padding:0 40px;border-bottom:1px solid #262626;font-size:15px"><span style="font-weight:700">Your wallet</span><span style="color:#7a7a7a">6 NFTs · 1 listed</span></div>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:#262626">
+              <sc-for list="{{ owned }}" as="o" hint-placeholder-count="6">
+                <div style="background:#000;padding:24px">
+                  <div style="position:relative;aspect-ratio:1/1;outline-offset:8px;outline:{{ o.outline }}"><x-import component-from-global-scope="nft-art" kind="{{ o.kind }}" seed="{{ o.seed }}" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div>
+                  <div style="display:flex;justify-content:space-between;margin-top:18px;font-size:15px"><span><span style="font-weight:700">{{ o.coll }}</span><span style="font-family:'JetBrains Mono',monospace;color:#7a7a7a;font-size:13px">  #{{ o.id }}</span></span><span style="color:#7a7a7a;font-size:14px">{{ o.note }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:40px 48px 48px;display:flex;flex-direction:column">
+            <div style="font-size:15px;color:#b5b5b5">Meridian</div>
+            <div style="font-size:64px;font-weight:800;letter-spacing:-0.05em;line-height:0.95;margin-top:4px">#15</div>
+            <div style="margin-top:36px;display:flex;flex-direction:column;gap:1px;background:#262626;border:1px solid #262626">
+              <div style="background:#000;padding:16px 18px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:15px;color:#b5b5b5">Start price</span><span style="font-size:30px;font-weight:700;letter-spacing:-0.03em">1.50 <span style="font-size:15px;color:#7a7a7a;font-weight:500">ETH</span></span></div>
+              <div style="background:#000;padding:16px 18px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:15px;color:#fff">Change price over time</span><span style="width:44px;height:24px;background:#fff;display:flex;align-items:center;justify-content:flex-end;padding:3px;box-sizing:border-box"><span style="width:18px;height:18px;background:#000"></span></span></div>
+              <div style="background:#000;padding:16px 18px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:15px;color:#b5b5b5">End price</span><span style="font-size:30px;font-weight:700;letter-spacing:-0.03em">1.00 <span style="font-size:15px;color:#7a7a7a;font-weight:500">ETH</span></span></div>
+              <div style="background:#000;padding:12px 12px 12px 18px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:15px;color:#b5b5b5">Duration</span><span style="display:flex;gap:4px;font-size:15px;font-weight:500"><span style="padding:9px 14px;border:1px solid #333">1D</span><span style="padding:9px 14px;border:1px solid #333">3D</span><span style="padding:9px 14px;background:#fff;color:#000">7D</span><span style="padding:9px 14px;border:1px solid #333">30D</span></span></div>
+              <div style="background:#000;padding:12px 12px 12px 18px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:15px;color:#b5b5b5">Expires</span><span style="display:flex;gap:4px;font-size:15px;font-weight:500"><span style="padding:9px 14px;background:#fff;color:#000">Never</span><span style="padding:9px 14px;border:1px solid #333">30D</span><span style="padding:9px 14px;border:1px solid #333">90D</span></span></div>
+              <div style="background:#000;padding:16px 18px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:15px;color:#b5b5b5">Royalty limit</span><span style="font-size:15px">5% <span style="color:#7a7a7a">· collection asks 5% ▾</span></span></div>
+            </div>
+            <div style="margin-top:22px">
+              <svg width="424" height="36" viewBox="0 0 424 36" style="display:block">
+                <line x1="0" y1="35" x2="424" y2="35" style="stroke:#262626;stroke-width:1"></line>
+                <line x1="4" y1="6" x2="372" y2="26" style="stroke:#7a7a7a;stroke-width:1.5"></line>
+                <line x1="372" y1="26" x2="424" y2="26" style="stroke:#444;stroke-width:1.5;stroke-dasharray:3 4"></line>
+              </svg>
+              <div style="display:flex;justify-content:space-between;margin-top:8px;font:400 12px 'JetBrains Mono',monospace;color:#7a7a7a"><span>1.50 · now</span><span>1.00 · Fri 6 Nov, then holds until sold</span></div>
+            </div>
+            <div style="margin-top:28px;padding:18px 0;border-top:1px solid #262626;border-bottom:1px solid #262626">
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:15px;color:#b5b5b5">You receive at least</span><span style="font-size:26px;font-weight:700;letter-spacing:-0.02em">0.940 <span style="font-size:14px;color:#7a7a7a;font-weight:500">ETH</span></span></div>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 88px 88px;row-gap:6px;margin-top:14px;font-size:13px;color:#7a7a7a;font-variant-numeric:tabular-nums">
+                <span></span><span style="text-align:right;font:500 11px 'JetBrains Mono',monospace;letter-spacing:0.06em;text-transform:uppercase">At start</span><span style="text-align:right;font:500 11px 'JetBrains Mono',monospace;letter-spacing:0.06em;text-transform:uppercase">At end</span>
+                <span>Sale price</span><span style="text-align:right">1.500</span><span style="text-align:right">1.000</span>
+                <span>Artist royalty 5%</span><span style="text-align:right">−0.075</span><span style="text-align:right">−0.050</span>
+                <span>Market fee</span><span style="text-align:right">−0.015</span><span style="text-align:right">−0.010</span>
+                <span style="color:#fff">You receive</span><span style="text-align:right;color:#fff">1.410</span><span style="text-align:right;color:#fff">0.940</span>
+              </div>
+            </div>
+            <div style="margin-top:28px;font-size:14px;line-height:1.5;color:#b5b5b5">Listing creates an order that holds #15 until it sells. If the collection's royalty rises above your limit, the sale stops instead of paying you less. Cancel any time to get #15 back.</div>
+            <div style="margin-top:20px;display:flex;flex-direction:column;border-top:1px solid #262626">
+              <div style="display:grid;grid-template-columns:32px minmax(0,1fr);align-items:center;height:48px;border-bottom:1px solid #262626;font-size:15px"><span style="font:500 12px 'JetBrains Mono',monospace">1</span><span>Create the listing</span></div>
+              <div style="display:grid;grid-template-columns:32px minmax(0,1fr);align-items:center;height:48px;border-bottom:1px solid #262626;font-size:15px"><span style="font:500 12px 'JetBrains Mono',monospace">2</span><span>Move #15 into it</span></div>
+            </div>
+            <div style="margin-top:12px;font-size:13px;color:#7a7a7a">Two wallet confirmations, each with network gas.</div>
+            <div style="height:64px;margin-top:20px;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">List #15</div>
+          </div>
+        </div>
+      </div>
+
+      <div data-screen-label="8 Create Mobile" style="width:390px;background:#000;border-radius:40px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:50px;padding:0 30px;font-size:15px;font-weight:700"><span>9:41</span><span style="width:24px;height:11px;border:1.5px solid #fff;border-radius:3px"></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 18px 14px;font-size:15px;border-bottom:1px solid #262626"><span>Cancel</span><span style="font-weight:700">Sell</span><span style="width:44px"></span></div>
+        <div style="display:flex;gap:10px;padding:18px 18px 0;overflow:hidden">
+          <sc-for list="{{ owned }}" as="o" hint-placeholder-count="6">
+            <div style="position:relative;flex:none;width:74px;height:74px;outline-offset:3px;outline:{{ o.outline }}"><x-import component-from-global-scope="nft-art" kind="{{ o.kind }}" seed="{{ o.seed }}" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div>
+          </sc-for>
+        </div>
+        <div style="padding:22px 18px 0"><div style="font-size:14px;color:#b5b5b5">Meridian</div><div style="font-size:44px;font-weight:800;letter-spacing:-0.05em;line-height:1">#15</div></div>
+        <div style="margin:22px 18px 0;display:flex;flex-direction:column;gap:1px;background:#262626;border:1px solid #262626">
+          <div style="background:#000;padding:16px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:14px;color:#b5b5b5">Price</span><span style="font-size:28px;font-weight:700;letter-spacing:-0.03em">1.50 <span style="font-size:13px;color:#7a7a7a;font-weight:500">ETH</span></span></div>
+          <div style="background:#000;padding:14px 16px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;color:#b5b5b5">Change price over time</span><span style="width:44px;height:24px;border:1px solid #444;display:flex;align-items:center;padding:3px;box-sizing:border-box"><span style="width:16px;height:16px;background:#555"></span></span></div>
+          <div style="background:#000;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;font-size:14px"><span style="color:#b5b5b5">Expires</span><span>Never ▾</span></div>
+          <div style="background:#000;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;font-size:14px"><span style="color:#b5b5b5">Royalty limit</span><span>5% ▾</span></div>
+        </div>
+        <div style="margin:20px 18px 0;padding:12px 0;border-top:1px solid #262626;border-bottom:1px solid #262626;font-variant-numeric:tabular-nums">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px"><span style="color:#b5b5b5">You receive at least</span><span style="font-size:20px;font-weight:700">1.410 <span style="font-size:12px;color:#7a7a7a;font-weight:500">ETH</span></span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:#7a7a7a;margin-top:8px"><span>Artist royalty 5%</span><span>−0.075</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:#7a7a7a;margin-top:4px"><span>Market fee</span><span>−0.015</span></div>
+        </div>
+        <div style="margin:18px 18px 0;font-size:13px;line-height:1.5;color:#b5b5b5">#15 moves into its listing until it sells. Cancel any time to get it back. Two wallet confirmations, each with network gas.</div>
+        <div style="padding:16px 18px 34px"><div style="height:58px;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700">List #15</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 07 Make offer -->
+  <div style="display:flex;flex-direction:column;gap:28px">
+    <div style="font:500 14px/1 'JetBrains Mono',monospace;color:#8a8a8a">07 — Make offer · collection offer on desktop, single NFT on mobile</div>
+    <div style="display:flex;gap:64px;align-items:flex-start">
+
+      <div data-screen-label="8 Offer Desktop" style="width:1440px;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+        <div style="display:grid;grid-template-columns:260px minmax(0,1fr) auto;align-items:center;height:76px;padding:0 40px;border-bottom:1px solid #262626">
+          <div style="display:flex;align-items:center;gap:12px;font-size:22px;font-weight:800;letter-spacing:-0.03em"><svg width="22" height="22" viewBox="0 0 22 22" style="display:block"><rect x="1" y="1" width="20" height="20" style="fill:none;stroke:#fff;stroke-width:2"></rect><line x1="1" y1="1" x2="21" y2="21" style="stroke:#fff;stroke-width:2"></line></svg>Market</div>
+          <div style="width:520px;height:42px;border:1px solid #333;display:flex;align-items:center;padding:0 16px;font-size:15px;color:#7a7a7a">Search collections and tokens</div>
+          <div style="display:flex;gap:28px;align-items:center;font-size:15px;font-weight:500"><span>Sell</span><span style="height:42px;padding:0 18px;background:#fff;color:#000;display:flex;align-items:center;font:500 14px 'JetBrains Mono',monospace">0x7a…e41</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 520px">
+          <div style="border-right:1px solid #262626">
+            <div style="display:flex;align-items:center;gap:20px;padding:40px">
+              <div style="position:relative;width:72px;height:72px;flex:none"><x-import component-from-global-scope="nft-art" kind="flow" seed="7" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div>
+              <div><div style="font-size:48px;font-weight:800;letter-spacing:-0.05em;line-height:0.95">Driftlines</div><div style="font-size:15px;color:#7a7a7a;margin-top:8px">Floor <span style="color:#fff">0.62 ETH</span> · 48 listed</div></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;height:56px;padding:0 40px;border-top:1px solid #262626;border-bottom:1px solid #262626;font-size:15px"><span style="font-weight:700">Offers for any Driftlines</span><span style="color:#7a7a7a">Where yours would sit</span></div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);column-gap:24px;height:44px;align-items:center;padding:0 40px;border-bottom:1px solid #262626;font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase"><span>Offer ETH</span><span style="text-align:right">Remaining</span><span style="text-align:right">Expires</span></div>
+            <sc-for list="{{ ladder }}" as="o" hint-placeholder-count="5">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);column-gap:24px;height:60px;align-items:center;padding:0 40px;border-bottom:1px solid #1a1a1a;font-size:15px;font-variant-numeric:tabular-nums;color:{{ o.color }};background:{{ o.bg }}">
+                <span style="font-size:19px;font-weight:700">{{ o.now }}</span>
+                <span style="text-align:right">{{ o.qty }}</span>
+                <span style="text-align:right">{{ o.exp }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding:40px 48px 48px;display:flex;flex-direction:column">
+            <div style="font-size:15px;color:#b5b5b5">Make an offer</div>
+            <div style="font-size:48px;font-weight:800;letter-spacing:-0.05em;line-height:0.95;margin-top:6px">Any Driftlines</div>
+            <div style="margin-top:32px;display:flex;flex-direction:column;gap:1px;background:#262626;border:1px solid #262626">
+              <div style="background:#000;padding:16px 18px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:15px;color:#b5b5b5">Amount per NFT</span><span style="font-size:30px;font-weight:700;letter-spacing:-0.03em">0.58 <span style="font-size:15px;color:#7a7a7a;font-weight:500">ETH</span></span></div>
+              <div style="background:#000;padding:12px 12px 12px 18px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:15px;color:#b5b5b5">Quantity</span><span style="display:flex;align-items:center;font-size:17px;font-weight:700"><span style="width:40px;height:40px;border:1px solid #333;display:flex;align-items:center;justify-content:center;font-weight:500">−</span><span style="width:64px;text-align:center">5</span><span style="width:40px;height:40px;border:1px solid #333;display:flex;align-items:center;justify-content:center;font-weight:500">+</span></span></div>
+              <div style="background:#000;padding:12px 12px 12px 18px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:15px;color:#b5b5b5">Expires</span><span style="display:flex;gap:4px;font-size:15px;font-weight:500"><span style="padding:9px 14px;border:1px solid #333">1D</span><span style="padding:9px 14px;border:1px solid #333">3D</span><span style="padding:9px 14px;background:#fff;color:#000">7D</span><span style="padding:9px 14px;border:1px solid #333">30D</span><span style="padding:9px 14px;border:1px solid #333">Never</span></span></div>
+            </div>
+            <div style="margin-top:28px;padding:18px 0;border-top:1px solid #262626;border-bottom:1px solid #262626">
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:15px;color:#b5b5b5">Total committed</span><span style="font-size:26px;font-weight:700;letter-spacing:-0.02em">2.90 <span style="font-size:14px;color:#7a7a7a;font-weight:500">ETH</span></span></div>
+              <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:13px;color:#7a7a7a;font-variant-numeric:tabular-nums"><span>0.58 × 5</span><span>Wallet 4.12 ETH, 1.22 after</span></div>
+            </div>
+            <div style="margin-top:24px;font-size:14px;line-height:1.5;color:#b5b5b5;text-wrap:pretty">2.90 ETH moves from your wallet into the offer now. It is spent only when a seller accepts. Cancel any time to get back what is unspent. Creating the offer costs network gas.</div>
+            <div style="height:64px;margin-top:20px;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">Deposit 2.90 ETH and offer</div>
+          </div>
+        </div>
+      </div>
+
+      <div data-screen-label="8 Offer Mobile" style="width:390px;background:#000;border-radius:40px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:50px;padding:0 30px;font-size:15px;font-weight:700"><span>9:41</span><span style="width:24px;height:11px;border:1.5px solid #fff;border-radius:3px"></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 18px 14px;font-size:15px;border-bottom:1px solid #262626"><span>Cancel</span><span style="font-weight:700">Make offer</span><span style="width:44px"></span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:20px 18px 0">
+          <div style="position:relative;width:64px;height:64px;flex:none"><x-import component-from-global-scope="nft-art" kind="flow" seed="212" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div>
+          <div style="line-height:1.35"><div style="font-size:20px;font-weight:800;letter-spacing:-0.02em">Driftlines #212</div><div style="font-size:13px;color:#7a7a7a">Listed at 1.42 ETH · top offer 1.05 ETH</div></div>
+        </div>
+        <div style="margin:22px 18px 0;display:flex;flex-direction:column;gap:1px;background:#262626;border:1px solid #262626">
+          <div style="background:#000;padding:18px 16px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:14px;color:#b5b5b5">Amount</span><span style="font-size:34px;font-weight:700;letter-spacing:-0.03em">1.10 <span style="font-size:14px;color:#7a7a7a;font-weight:500">ETH</span></span></div>
+          <div style="background:#000;padding:10px;display:flex;flex-direction:column;gap:10px"><span style="font-size:14px;color:#b5b5b5;padding:4px 6px 0">Expires</span><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;font-size:14px;font-weight:500;text-align:center"><span style="padding:10px 0;border:1px solid #333">1D</span><span style="padding:10px 0;background:#fff;color:#000">3D</span><span style="padding:10px 0;border:1px solid #333">7D</span><span style="padding:10px 0;border:1px solid #333">30D</span><span style="padding:10px 0;border:1px solid #333">Never</span></div></div>
+        </div>
+        <div style="margin:20px 18px 0;padding:12px 0;border-top:1px solid #262626;border-bottom:1px solid #262626">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px"><span style="color:#b5b5b5">Committed</span><span style="font-size:20px;font-weight:700">1.10 <span style="font-size:12px;color:#7a7a7a;font-weight:500">ETH</span></span></div>
+          <div style="font-size:13px;color:#7a7a7a;margin-top:6px">Wallet 2.10 ETH, 1.00 after</div>
+        </div>
+        <div style="margin:16px 18px 0;font-size:13px;line-height:1.5;color:#b5b5b5">1.10 ETH moves into the offer now. It is spent only if the seller accepts. Cancel any time to get it back.</div>
+        <div style="padding:20px 18px 34px"><div style="height:58px;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700">Deposit 1.10 ETH and offer</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 08 Positions -->
+  <div style="display:flex;flex-direction:column;gap:28px">
+    <div style="font:500 14px/1 'JetBrains Mono',monospace;color:#8a8a8a">08 — Positions · opened from the wallet button</div>
+    <div style="display:flex;gap:64px;align-items:flex-start">
+
+      <div data-screen-label="8 Positions Desktop" style="width:1440px;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+        <div style="display:grid;grid-template-columns:260px minmax(0,1fr) auto;align-items:center;height:76px;padding:0 40px;border-bottom:1px solid #262626">
+          <div style="display:flex;align-items:center;gap:12px;font-size:22px;font-weight:800;letter-spacing:-0.03em"><svg width="22" height="22" viewBox="0 0 22 22" style="display:block"><rect x="1" y="1" width="20" height="20" style="fill:none;stroke:#fff;stroke-width:2"></rect><line x1="1" y1="1" x2="21" y2="21" style="stroke:#fff;stroke-width:2"></line></svg>Market</div>
+          <div style="width:520px;height:42px;border:1px solid #333;display:flex;align-items:center;padding:0 16px;font-size:15px;color:#7a7a7a">Search collections and tokens</div>
+          <div style="display:flex;gap:28px;align-items:center;font-size:15px;font-weight:500"><span>Sell</span><span style="height:42px;padding:0 18px;background:#fff;color:#000;display:flex;align-items:center;font:500 14px 'JetBrains Mono',monospace;outline:2px solid #fff;outline-offset:3px">0x7a…e41</span></div>
+        </div>
+        <div style="padding:48px 40px 36px"><div style="font-size:64px;font-weight:800;letter-spacing:-0.05em;line-height:0.9">Positions</div><div style="font:400 13px 'JetBrains Mono',monospace;color:#7a7a7a;margin-top:14px">0x7a3c…9e41</div></div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;height:56px;padding:0 40px;border-top:1px solid #262626;border-bottom:1px solid #262626;font-size:15px"><span style="font-weight:700">Listings 3</span><span style="color:#7a7a7a">Cancel, then withdraw the NFT: two confirmations</span></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1.2fr) minmax(0,1.4fr) minmax(0,1fr) 200px;align-items:center;column-gap:24px;height:44px;padding:0 40px;border-bottom:1px solid #262626;font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase"><span>Token</span><span>Price</span><span>Pricing</span><span style="text-align:right">Status</span><span></span></div>
+        <sc-for list="{{ posL }}" as="p" hint-placeholder-count="3">
+          <div style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1.2fr) minmax(0,1.4fr) minmax(0,1fr) 200px;align-items:center;column-gap:24px;height:76px;padding:0 40px;border-bottom:1px solid #1a1a1a;font-size:15px;font-variant-numeric:tabular-nums;color:#b5b5b5">
+            <div style="display:flex;align-items:center;gap:16px"><div style="position:relative;width:48px;height:48px;flex:none;background:#111"><x-import component-from-global-scope="nft-art" kind="{{ p.kind }}" seed="{{ p.id }}" style="position:absolute;inset:0" hint-size="100%,100%"></x-import></div><span><span style="font-weight:700;color:#fff">{{ p.coll }}</span> <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#7a7a7a">#{{ p.id }}</span></span></div>
+            <div style="display:flex;align-items:baseline;gap:7px"><span style="font-size:20px;font-weight:700;color:#fff">{{ p.now }}</span><span style="font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a">{{ p.cur }}</span></div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <span>{{ p.ptext }}</span>
+              <sc-if value="{{ p.isSched }}" hint-placeholder-val="{{ false }}"><span style="position:relative;display:block;width:72px;height:2px;background:#262626"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ p.bar }};background:#7a7a7a"></span></span></sc-if>
+            </div>
+            <span style="text-align:right;color:{{ p.statusColor }}">{{ p.status }}</span>
+            <sc-if value="{{ p.primary }}" hint-placeholder-val="{{ false }}"><span style="justify-self:end;white-space:nowrap;height:40px;padding:0 16px;background:#fff;color:#000;display:flex;align-items:center;font-size:14px;font-weight:700">{{ p.action }}</span></sc-if>
+            <sc-if value="{{ p.secondary }}" hint-placeholder-val="{{ true }}"><span style="justify-self:end;white-space:nowrap;height:40px;padding:0 16px;border:1px solid #333;display:flex;align-items:center;font-size:14px;font-weight:700;color:#fff">{{ p.action }}</span></sc-if>
+          </div>
+        </sc-for>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;height:56px;padding:0 40px;margin-top:40px;border-top:1px solid #262626;border-bottom:1px solid #262626;font-size:15px"><span style="font-weight:700">Offers 3</span><span style="color:#7a7a7a">Cancel, then withdraw unspent ETH: two confirmations</span></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 200px;align-items:center;column-gap:24px;height:44px;padding:0 40px;border-bottom:1px solid #262626;font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase"><span>Offer</span><span>For</span><span style="text-align:right">Bought</span><span style="text-align:right">Unspent</span><span style="text-align:right">Expires</span><span></span></div>
+        <sc-for list="{{ posO }}" as="p" hint-placeholder-count="3">
+          <div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 200px;align-items:center;column-gap:24px;height:72px;padding:0 40px;border-bottom:1px solid #1a1a1a;font-size:15px;font-variant-numeric:tabular-nums;color:#b5b5b5">
+            <span><span style="font-size:20px;font-weight:700;color:#fff">{{ p.now }}</span> <span style="font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a">ETH</span></span>
+            <span style="color:#fff">{{ p.target }}</span>
+            <span style="text-align:right">{{ p.bought }}</span>
+            <span style="text-align:right;color:#fff">{{ p.left }}</span>
+            <span style="text-align:right;color:{{ p.statusColor }}">{{ p.exp }}</span>
+            <sc-if value="{{ p.primary }}" hint-placeholder-val="{{ false }}"><span style="justify-self:end;white-space:nowrap;height:40px;padding:0 16px;background:#fff;color:#000;display:flex;align-items:center;font-size:14px;font-weight:700">{{ p.action }}</span></sc-if>
+            <sc-if value="{{ p.secondary }}" hint-placeholder-val="{{ true }}"><span style="justify-self:end;white-space:nowrap;height:40px;padding:0 16px;border:1px solid #333;display:flex;align-items:center;font-size:14px;font-weight:700;color:#fff">{{ p.action }}</span></sc-if>
+          </div>
+        </sc-for>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;height:56px;padding:0 40px;margin-top:40px;border-top:1px solid #262626;border-bottom:1px solid #262626;font-size:15px"><span style="font-weight:700">Activity</span><span style="color:#7a7a7a">Completed sales and purchases</span></div>
+        <div style="display:grid;grid-template-columns:minmax(0,0.8fr) minmax(0,1.1fr) minmax(0,1.5fr) minmax(0,1.2fr) minmax(0,1fr) 120px;align-items:center;column-gap:24px;height:44px;padding:0 40px;border-bottom:1px solid #262626;font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a;letter-spacing:0.06em;text-transform:uppercase"><span>Date</span><span>Event</span><span>Token</span><span style="text-align:right">Amount</span><span style="text-align:right">With</span><span style="text-align:right">Tx</span></div>
+        <sc-for list="{{ acts }}" as="a" hint-placeholder-count="5">
+          <div style="display:grid;grid-template-columns:minmax(0,0.8fr) minmax(0,1.1fr) minmax(0,1.5fr) minmax(0,1.2fr) minmax(0,1fr) 120px;align-items:center;column-gap:24px;height:60px;padding:0 40px;border-bottom:1px solid #1a1a1a;font-size:15px;font-variant-numeric:tabular-nums;color:#b5b5b5">
+            <span style="color:#7a7a7a">{{ a.date }}</span>
+            <span style="color:#fff">{{ a.ev }}</span>
+            <span><span style="font-weight:700;color:#fff">{{ a.coll }}</span> <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#7a7a7a">#{{ a.id }}</span></span>
+            <span style="text-align:right">{{ a.amt }} <span style="font:500 12px 'JetBrains Mono',monospace;color:#7a7a7a">ETH</span></span>
+            <span style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px">{{ a.who }}</span>
+            <span style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;color:#7a7a7a">{{ a.tx }} ↗</span>
+          </div>
+        </sc-for>
+        <div style="display:flex;justify-content:flex-end;align-items:center;height:64px;padding:0 40px;font-size:15px;color:#fff">Show all activity</div>
+      </div>
+
+      <div data-screen-label="8 Positions Mobile" style="width:390px;background:#000;border-radius:40px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:50px;padding:0 30px;font-size:15px;font-weight:700"><span>9:41</span><span style="width:24px;height:11px;border:1.5px solid #fff;border-radius:3px"></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 18px 14px;font-size:15px;border-bottom:1px solid #262626"><span>←</span><span style="font:500 14px 'JetBrains Mono',monospace">0x7a…e41</span><span style="color:#7a7a7a">···</span></div>
+        <div style="padding:22px 18px 0"><div style="font-size:40px;font-weight:800;letter-spacing:-0.05em;line-height:0.95">Positions</div></div>
+        <div style="display:flex;gap:18px;padding:22px 18px 12px;font-size:14px;font-weight:700"><span style="color:#7a7a7a;font-weight:500">Listings 3</span><span style="border-bottom:2px solid #fff;padding-bottom:2px">Offers 3</span><span style="color:#7a7a7a;font-weight:500">Activity</span></div>
+        <div style="border-top:1px solid #262626">
+          <sc-for list="{{ posO }}" as="p" hint-placeholder-count="3">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:14px;padding:14px 18px;border-bottom:1px solid #1a1a1a;font-variant-numeric:tabular-nums">
+              <div style="line-height:1.4;min-width:0"><div><span style="font-size:18px;font-weight:700">{{ p.now }}</span> <span style="font:500 11px 'JetBrains Mono',monospace;color:#7a7a7a">ETH</span> <span style="font-size:14px;color:#b5b5b5">· {{ p.target }}</span></div><div style="font-size:13px;color:#7a7a7a">{{ p.mline }}</div></div>
+              <sc-if value="{{ p.primary }}" hint-placeholder-val="{{ false }}"><span style="height:40px;white-space:nowrap;padding:0 12px;background:#fff;color:#000;display:flex;align-items:center;font-size:13px;font-weight:700">{{ p.mAction }}</span></sc-if>
+              <sc-if value="{{ p.secondary }}" hint-placeholder-val="{{ true }}"><span style="height:40px;white-space:nowrap;padding:0 12px;border:1px solid #333;display:flex;align-items:center;font-size:13px;font-weight:700">{{ p.mAction }}</span></sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin:16px 18px 34px;font-size:13px;line-height:1.5;color:#7a7a7a">Cancel, then withdraw unspent ETH. Two wallet confirmations.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  data() {
+    if (this._d) return this._d;
+    const sch = (to, by, bar) => ({ k: 's', to, by, bar });
+    const cus = (name, addr) => ({ k: 'c', name, addr });
+    const pr = p => !p ? { ptext: '', isSched: false, isCustom: false, bar: '0%', addr: '' }
+      : p.k === 's' ? { ptext: 'to ' + p.to + ' · ' + p.by, isSched: true, isCustom: false, bar: p.bar + '%', addr: '' }
+      : { ptext: p.name, isSched: false, isCustom: true, bar: '0%', addr: p.addr };
+    const feed = [
+      ['Driftlines','flow',212,'1.42',sch('0.80','Sat 14:00',61),'1.25','4m ago'],
+      ['Pixel Folk','sprite',4410,'0.19',null,'0.17','12m ago'],
+      ['Tessellate','truchet',887,'0.44',sch('0.60','Wed 18:00',30),'0.39','26m ago'],
+      ['Orbitals','orb',12,'4.60',null,'4.40','1h ago'],
+      ['Kiln','bauhaus',4,'1.95',null,'1.80','1h ago'],
+      ['Low Tide','contour',63,'0.52',null,'—','2h ago'],
+      ['Weave','weave',31,'1.80',sch('1.40','Fri 09:00',45),'1.70','3h ago'],
+      ['Meridian','colorfield',22,'0.78',null,'0.70','3h ago'],
+      ['Tidepool','contour',140,'0.31',null,'0.29','5h ago'],
+      ['Driftlines','flow',87,'1.52',sch('2.00','Mon 08:00',35),'1.40','6h ago']
+    ].map(([coll, kind, id, now, p, last, age]) => ({ coll, kind, id, now, last, age, ...pr(p) }));
+    const C = [['Pixel Folk','sprite',3318,0.17,0.15,604,31.0,182,4120],['Orbitals','orb',33,4.46,4.05,31,22.3,5,210],['Driftlines','flow',7,0.62,0.55,48,18.4,26,512],['Tessellate','truchet',1093,0.40,0.36,287,12.1,31,1934],['Low Tide','contour',41,0.46,0.41,112,9.7,22,803],['Weave','weave',9,1.73,1.50,56,7.9,5,377],['Kiln','bauhaus',18,1.78,1.60,9,6.2,4,88],['Meridian','colorfield',7,0.70,0.62,14,4.2,6,64],['Tidepool','contour',77,0.29,0.25,140,3.1,11,990],['Loom','weave',21,2.10,1.85,22,2.4,1,140]];
+    const colls = C.map(([name, kind, seed, f, top, listed, vol, sales, owners], i) => ({ rank: i + 1, name, kind, seed, floor: f.toFixed(2), top: top.toFixed(2), listed: listed.toLocaleString(), vol: vol.toFixed(1), sales, owners: owners.toLocaleString() }));
+    const head = (cur, note) => ({ isHead: true, isRow: false, cur, note });
+    const L = [
+      [274,'0.62','ETH',sch('0.50','Fri 09:00',83),'0.58','0x9c…11a2'],
+      [156,'0.85','ETH',null,'0.90','0x41…b07e'],
+      [390,'1.18','ETH',sch('1.00','Sun 12:00',70),'1.10','0xe2…3f90'],
+      [212,'1.42','ETH',sch('0.80','Sat 14:00',61),'1.25','0x3a…91c4'],
+      [87,'1.52','ETH',sch('2.00','Mon 08:00',35),'1.40','0x77…c2d1'],
+      [331,'1.68','ETH',null,'1.80','0x05…aa6b'],
+      [45,'2.30','ETH',null,'—','0xb8…0e14'],
+      [9,'4.10','ETH',sch('5.00','3 Nov',20),'3.90','0x3a…91c4']
+    ];
+    const rows = L.map(a => a.length === 2 ? head(a[0], a[1]) : (() => {
+      const [id, now, cur, p, last, owner] = a; const x = pr(p);
+      const mline = x.isSched ? 'To ' + p.to + ' by ' + p.by : x.isCustom ? p.name + ' · custom' : (last !== '—' ? 'Last sale ' + last : 'No sales yet');
+      return { isHead: false, isRow: true, id, now, cur, last: last === '—' ? '—' : last + ' ' + cur, owner, mline, ...x };
+    })());
+    const rowsM = rows.slice(0, 8);
+    const O = [
+      ['1.05','ETH',null,'#212','1','2 days','0x91…4e0c',false],
+      ['0.55','ETH',null,'Any Driftlines','7','3 days','0x51…20a9',true],
+      ['0.53','ETH','Rising to 0.60 by Thu','Any Driftlines','1','5 days','0xc4…8812',true],
+      ['0.50','ETH',null,'Any Driftlines','20','14 days','0x8f…e271',true],
+      ['0.40','ETH',null,'Any Driftlines','12','Never','0xee…13b8',true]
+    ];
+    const offs = O.map(a => a.length === 2 ? head(a[0], a[1]) : (() => {
+      const [now, cur, sub, target, qty, exp, from, can] = a;
+      return { isHead: false, isRow: true, now, cur, sub: sub || '', hasSub: !!sub, target, qty, exp, from, canSell: can, cantSell: !can };
+    })());
+    const eligible = [[305,'Selected'],[118,'']].map(([id, note]) => ({ id, note, outline: note ? '2px solid #fff' : '0px solid transparent' }));
+    const tokOffers = [['1.05','For #212 only','2 days'],['0.55','Any Driftlines · 7 left','3 days'],['0.53','Any Driftlines','5 days']].map(([now, desc, exp]) => ({ now, desc, exp }));
+    const ladder = [['0.58 · yours','5','7 days'],['0.55','7','3 days'],['0.53','1','5 days'],['0.50','20','14 days'],['0.40','12','Never']]
+      .map(([now, qty, exp], i) => ({ now, qty, exp, color: i === 0 ? '#000' : '#b5b5b5', bg: i === 0 ? '#fff' : 'transparent' }));
+    const more = [[87,'1.52'],[156,'0.85'],[331,'1.68'],[9,'4.10'],[274,'0.62'],[390,'1.18']].map(([id, now]) => ({ id, now }));
+    const owned = [['Meridian',15,'colorfield','Selected'],['Driftlines',305,'flow',''],['Pixel Folk',421,'sprite',''],['Tessellate',772,'truchet',''],['Weave',3,'weave',''],['Orbitals',8,'orb','Listed']]
+      .map(([coll, id, kind, note]) => ({ coll, id, kind, seed: id, note, outline: note === 'Selected' ? '2px solid #fff' : '0px solid transparent' }));
+    const posL = [
+      ['Meridian',15,'colorfield','1.50','ETH',sch('1.00','Fri 6 Nov',2),'Listed','Cancel and withdraw',false],
+      ['Orbitals',8,'orb','4.80','ETH',null,'Listed','Cancel and withdraw',false],
+      ['Weave',3,'weave','2.10','ETH',null,'Cancelled','Withdraw #3',true]
+    ].map(([coll, id, kind, now, cur, p, status, action, primary]) => ({ coll, id, kind, now, cur, status, action, primary, secondary: !primary, statusColor: primary ? '#fff' : '#b5b5b5', ...pr(p) }));
+    const posO = [
+      ['0.58','Any Driftlines','2 of 5','1.74','6 Nov','Cancel and refund 1.74','Cancel',false],
+      ['1.10','Driftlines #212','0 of 1','1.10','2 Nov','Cancel and refund 1.10','Cancel',false],
+      ['0.30','Any Low Tide','4 of 6','0.60','Expired 27 Oct','Withdraw 0.60 ETH','Withdraw',true]
+    ].map(([now, target, bought, left, exp, action, mAction, primary]) => ({ now, target, bought, left: left + ' ETH', exp, action, mAction, primary, secondary: !primary, statusColor: primary ? '#fff' : '#b5b5b5', mline: bought + ' bought · ' + left + ' unspent · ' + (primary ? exp : 'expires ' + exp) }));
+    const acts = [
+      ['28 Oct','Sold','Meridian',11,'0.940','0x51…20a9','0x4be1'],
+      ['27 Oct','Offer filled','Low Tide',40,'0.30','0xaa…71c2','0x9f02'],
+      ['25 Oct','Bought','Driftlines',305,'0.66','0x77…c2d1','0x13ac'],
+      ['24 Oct','Offer filled','Low Tide',12,'0.30','0x0e…44b9','0xd7e5'],
+      ['20 Oct','Sold','Pixel Folk',77,'0.160','0xc4…8812','0x6a90']
+    ].map(([date, ev, coll, id, amt, who, tx]) => ({ date, ev, coll, id, amt, who, tx }));
+    return this._d = { feed, feedM: feed.slice(0, 6), colls, collsM: colls.slice(0, 8), rows, rowsM, offs, eligible, tokOffers, ladder, more, owned, posL, posO, acts };
+  }
+  renderVals() { return this.data(); }
+}
+</script>
+</body>
+</html>
