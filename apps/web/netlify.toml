@@ -1,10 +1,10 @@
 # Web app on Netlify (DECISIONS D29), continuous deploy from GitHub: production from `main`,
-# branch deploys for allowed branches. Site base directory: apps/web. Set
+# branch deploys for allowed branches. Base directory: repo root; package directory: apps/web. Set
 # NEXT_PUBLIC_INDEXER_URL (and optionally ALCHEMY_API_KEY, NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID)
 # in the site's environment.
 [build]
-  command = "pnpm --dir ../.. install --frozen-lockfile && pnpm build"
-  publish = ".next"
+  command = "pnpm --filter @market/web build"
+  publish = "apps/web/.next"
 
 [build.environment]
   NODE_VERSION = "22"
