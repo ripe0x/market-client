@@ -66,16 +66,24 @@ beforeAll(async () => {
     cwd: resolve(import.meta.dirname, ".."),
     env: { ...process.env, PONDER_CHAIN_ID: "31337", PONDER_RPC_URL: c.rpcUrl, PGLITE_DIR: dir },
     stdio: "ignore",
+    // Own process group, so teardown stops Ponder itself and not only the npx wrapper.
+    detached: true,
   });
   await c.test.mine({ blocks: 1 });
   await synced();
   await pollCycle();
 }, 300_000);
 
-afterAll(() => {
-  ponder?.kill();
+afterAll(async () => {
+  // Stop Ponder and wait for it to exit before deleting its database directory: deleting while
+  // it still writes failed with ENOTEMPTY in CI.
+  if (ponder?.pid && ponder.exitCode === null) {
+    const exited = new Promise((r) => ponder.once("exit", r));
+    process.kill(-ponder.pid, "SIGTERM");
+    await Promise.race([exited, new Promise((r) => setTimeout(r, 10_000))]);
+  }
   c?.stop();
-  if (dir) rmSync(dir, { recursive: true, force: true });
+  if (dir) rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
 });
 
 const order = (a: Address) => get<ApiOrder>(`/api/orders/${a}`);
