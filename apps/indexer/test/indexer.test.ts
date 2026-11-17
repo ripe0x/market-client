@@ -66,16 +66,24 @@ beforeAll(async () => {
     cwd: resolve(import.meta.dirname, ".."),
     env: { ...process.env, PONDER_CHAIN_ID: "31337", PONDER_RPC_URL: c.rpcUrl, PGLITE_DIR: dir },
     stdio: "ignore",
+    // Own process group, so teardown stops Ponder itself and not only the npx wrapper.
+    detached: true,
   });
   await c.test.mine({ blocks: 1 });
   await synced();
   await pollCycle();
 }, 300_000);
 
-afterAll(() => {
-  ponder?.kill();
+afterAll(async () => {
+  // Stop Ponder and wait for it to exit before deleting its database directory: deleting while
+  // it still writes failed with ENOTEMPTY in CI.
+  if (ponder?.pid && ponder.exitCode === null) {
+    const exited = new Promise((r) => ponder.once("exit", r));
+    process.kill(-ponder.pid, "SIGTERM");
+    await Promise.race([exited, new Promise((r) => setTimeout(r, 10_000))]);
+  }
   c?.stop();
-  if (dir) rmSync(dir, { recursive: true, force: true });
+  if (dir) rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
 });
 
 const order = (a: Address) => get<ApiOrder>(`/api/orders/${a}`);
@@ -155,6 +163,24 @@ test("time states change without events", async () => {
   // A risingOffer funded for its start price becomes underfunded as the price rises.
   const ro = await order(s.orders.risingOffer);
   expect((await get<ApiOrder>(`/api/orders/${s.orders.risingOffer}?at=${ro.schedule.endTime}`)).status).toBe("live");
+});
+
+test("past listings and offers: finished orders only, with what they traded for", async () => {
+  const past = await get<Page<ApiOrder>>(`/api/listings?state=past&limit=200`);
+  const byAddr = new Map(past.items.map((o) => [o.address, o]));
+  expect(byAddr.get(s.orders.cheap)).toMatchObject({ status: "sold", filled: E("0.62").toString() });
+  expect(byAddr.get(s.orders.cheap)!.closedAt).toBeGreaterThan(0);
+  expect(byAddr.get(s.orders.myCancelled)).toMatchObject({ status: "cancelled", filled: "0" });
+  for (const o of past.items) expect(["sold", "cancelled", "expired"]).toContain(o.status);
+  expect(byAddr.has(s.orders.fixed)).toBe(false); // live
+  expect(byAddr.has(s.orders.awaitingNft)).toBe(false); // open, not finished
+  // An expiry in the past makes a listing past without any event.
+  const exp = await order(s.orders.expiring);
+  const later = await get<Page<ApiOrder>>(`/api/listings?state=past&limit=200&at=${exp.schedule.expiry + 1}`);
+  expect(later.items.map((o) => o.address)).toContain(s.orders.expiring);
+  const offersPast = await get<ApiOrder[]>(`/api/collections/${s.collections.driftlines}/offers?state=past&at=${exp.schedule.expiry + 86_400 * 30}`);
+  expect(offersPast.map((o) => o.address)).toEqual(expect.arrayContaining([s.orders.tokenOffer, s.orders.risingOffer]));
+  for (const o of offersPast) expect(["sold_out", "cancelled", "expired"]).toContain(o.status);
 });
 
 test("positions list what the owner can act on", async () => {

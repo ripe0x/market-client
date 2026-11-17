@@ -3,7 +3,7 @@
 import type { Address } from "viem";
 import type { ApiCollection, ApiOrder, Page } from "@market/protocol";
 import { Toolbar, InlineTabs, SortOptions, ViewToggle, Button } from "@/components/ui";
-import { CollectionHeader, CollectionListingsTable, ListingsGrid, Loading, Empty } from "@/components/screens";
+import { CollectionHeader, CollectionListingsTable, ListingsGrid, Loading, Empty, PastOrdersTable } from "@/components/screens";
 import { useHead, useIndexer, useApi } from "@/data/hooks";
 import { paths, type ListingSort } from "@/data/indexer";
 import { LagBanner, useRoyaltyBps } from "@/components/app/Trading";
@@ -13,6 +13,7 @@ export function CollectionListingsView({ nft, sort = "price_asc", view = "table"
   const now = useHead();
   const col = useIndexer<ApiCollection>(paths.collection(nft)).data;
   const listings = useIndexer<Page<ApiOrder>>(paths.listings({ collection: nft, sort })).data;
+  const past = useIndexer<Page<ApiOrder>>(paths.listings({ collection: nft, state: "past", limit: 20 })).data?.items ?? [];
   const counts = useApi<{ items: number | null; owners: number | null }>(`/api/nfts/counts?nft=${nft}`).data;
   const royaltyBps = useRoyaltyBps(nft, listings?.items[0]?.tokenId);
   const href = (p: { sort?: string; view?: string }) => withParams(`/c/${nft}`, { sort, view, ...p });
@@ -58,6 +59,7 @@ export function CollectionListingsView({ nft, sort = "price_asc", view = "table"
       ) : (
         <CollectionListingsTable orders={items} now={now} />
       )}
+      <PastOrdersTable orders={past} />
     </>
   );
 }

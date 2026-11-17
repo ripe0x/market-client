@@ -49,6 +49,13 @@ const status = (at: bigint) => sql<OrderStatus>`(CASE
 END)`;
 
 const isLive = (at: bigint) => sql`${status(at)} = 'live'`;
+/** Finished orders: sold or filled out, cancelled, or expired unfilled. Invalid configs never show. */
+const isPast = (at: bigint, kind: "sale" | "bid") =>
+  kind === "sale"
+    ? sql`${status(at)} IN ('sold', 'cancelled', 'expired')`
+    : sql`${status(at)} IN ('sold_out', 'cancelled', 'expired')`;
+/** Most recently finished first: when it closed, else when it expired. */
+const finishedDesc = sql`coalesce(${o.closedAt}, nullif(${o.expiry}, 0), ${o.createdAt}) DESC`;
 const notDenied = () =>
   DENYLIST.length ? sql`lower(${o.nft}) NOT IN (${sql.join(DENYLIST.map((a) => sql`${a.toLowerCase()}`), sql`, `)})` : sql`TRUE`;
 
@@ -58,6 +65,7 @@ const columns = (at: bigint) => ({
   priceNow: priceNow(at),
   collectionName: collection.name,
   lastSalePrice: token.lastSalePrice,
+  filled: sql<string>`(SELECT coalesce(sum(${fill.price}), 0) FROM ${fill} WHERE ${fill.order} = ${o.address})`,
 });
 
 function baseQuery(at: bigint) {
@@ -68,7 +76,14 @@ function baseQuery(at: bigint) {
     .leftJoin(token, and(eq(token.nft, o.nft), eq(token.tokenId, o.tokenId)));
 }
 
-type Row = { row: typeof order.$inferSelect; status: OrderStatus; priceNow: string; collectionName: string | null; lastSalePrice: bigint | null };
+type Row = {
+  row: typeof order.$inferSelect;
+  status: OrderStatus;
+  priceNow: string;
+  collectionName: string | null;
+  lastSalePrice: bigint | null;
+  filled: string;
+};
 
 function toApi(r: Row): ApiOrder {
   const x = r.row;
@@ -103,6 +118,8 @@ function toApi(r: Row): ApiOrder {
     status: r.status,
     priceNow: String(r.priceNow),
     withdrawable: x.closed && (x.escrowed || x.balance > 0n),
+    closedAt: x.closedAt == null ? null : Number(x.closedAt),
+    filled: String(r.filled),
     lastSalePrice: r.lastSalePrice?.toString() ?? null,
   };
 }
@@ -152,9 +169,10 @@ app.get("/api/listings", async (c) => {
   const nft = addr(c.req.query("collection"));
   const limit = limitOf(c.req.query("limit"));
   const offset = offsetOf(c.req.query("cursor"));
-  const where = and(eq(o.kind, "sale"), isLive(at), notDenied(), nft ? eq(o.nft, nft) : undefined);
+  const past = c.req.query("state") === "past";
+  const where = and(eq(o.kind, "sale"), past ? isPast(at, "sale") : isLive(at), notDenied(), nft ? eq(o.nft, nft) : undefined);
   const [rows, [{ n }]] = await Promise.all([
-    baseQuery(at).where(where).orderBy(sortOf(c.req.query("sort"), at)).limit(limit).offset(offset),
+    baseQuery(at).where(where).orderBy(past ? finishedDesc : sortOf(c.req.query("sort"), at)).limit(limit).offset(offset),
     db.select({ n: sql<number>`count(*)::int` }).from(o).where(where),
   ]);
   return c.json(page((rows as Row[]).map(toApi), offset, limit, n));
@@ -167,9 +185,10 @@ app.get("/api/collections/:nft/offers", async (c) => {
   const at = await atOf(c.req.query("at"));
   const tokenId = c.req.query("token");
   const forToken = tokenId && /^\d+$/.test(tokenId) ? or(eq(o.anyToken, true), eq(o.tokenId, BigInt(tokenId))) : undefined;
+  const past = c.req.query("state") === "past";
   const rows = await baseQuery(at)
-    .where(and(eq(o.kind, "bid"), eq(o.nft, nft), sql`${status(at)} IN ('live', 'underfunded')`, forToken))
-    .orderBy(sortOf(c.req.query("sort") ?? "highest", at))
+    .where(and(eq(o.kind, "bid"), eq(o.nft, nft), past ? isPast(at, "bid") : sql`${status(at)} IN ('live', 'underfunded')`, forToken))
+    .orderBy(past ? finishedDesc : sortOf(c.req.query("sort") ?? "highest", at))
     .limit(limitOf(c.req.query("limit")));
   return c.json((rows as Row[]).map(toApi));
 });

@@ -54,6 +54,10 @@ export type ApiOrder = {
   priceNow: Wei;
   /** Closed and still holding the NFT or ETH. */
   withdrawable: boolean;
+  /** Unix seconds the order closed (sold, filled out or cancelled); null while open. */
+  closedAt: number | null;
+  /** Total price of this order's fills: a sale's price, or what an offer spent. */
+  filled: Wei;
   lastSalePrice: Wei | null;
 };
 
