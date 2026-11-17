@@ -6,7 +6,8 @@ import { useConnectModal } from "@rainbow-me/rainbowkit";
 import type { ErrorContext } from "@market/protocol";
 import { useTxFlow, type Step as FlowStep, type StepState as FlowStepState } from "@/data/txflow";
 import { Button, StepList, type Step as UiStep, type StepState as UiStepState } from "@/components/ui";
-import { TxStatus, type TxPhase } from "@/components/screens";
+import { ErrorNote, TxStatus, type TxPhase } from "@/components/screens";
+import { useTradingGuard } from "@/components/app/Trading";
 import { EXPLORER } from "@/lib/deployment";
 import styles from "./Flow.module.css";
 
@@ -59,6 +60,9 @@ export function FlowButton({
   const { isConnected } = useAccount();
   const { openConnectModal } = useConnectModal();
   const phase = phaseOf(flow);
+  // Every write goes through this button, so the deployment, code-hash and network checks live
+  // here (PLAN.md §8.4): no CTA is offered against contracts that don't match the pinned build.
+  const guard = useTradingGuard();
 
   useEffect(() => {
     if (flow.done) onDone?.();
@@ -66,7 +70,15 @@ export function FlowButton({
 
   return (
     <div className={styles.wrap}>
-      {!isConnected ? (
+      {guard.state === "not_deployed" ? (
+        <ErrorNote>{`Market isn't deployed on ${guard.chainName} yet.`}</ErrorNote>
+      ) : guard.state === "mismatch" ? (
+        <ErrorNote emphasis>The deployed contracts don't match the expected build, so trading is disabled.</ErrorNote>
+      ) : guard.state === "wrong_network" ? (
+        <Button size={size} block onClick={guard.switchChain}>
+          {`Switch to ${guard.chainName}`}
+        </Button>
+      ) : !isConnected ? (
         <Button size={size} block onClick={openConnectModal}>
           Connect wallet
         </Button>

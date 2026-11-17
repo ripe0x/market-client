@@ -22,7 +22,9 @@ export type Step = {
   call: (c: StepCtx) => Promise<Call>;
 };
 
-export type StepCtx = { pub: PublicClient; account: Address; results: Record<string, unknown> };
+/** `batch`: the call is being built for an atomic batch, before earlier steps exist on chain, so
+ * per-step simulation would fail; the batch is simulated as a whole instead. */
+export type StepCtx = { pub: PublicClient; account: Address; results: Record<string, unknown>; batch?: boolean };
 
 export type FlowState = {
   states: StepState[];
@@ -117,10 +119,16 @@ export function useTxFlow(steps: Step[], ctx: ErrorContext) {
       // Atomic batch: every remaining call must be buildable now (later steps use predicted
       // addresses) and the batch must simulate as a whole.
       if (todo.length > 1 && (await supportsAtomic(wallet, account, pub.chain!.id))) {
-        const calls: Call[] = [];
-        for (const i of todo) calls.push(await steps[i]!.call(c));
-        const sim = await pub.simulateCalls({ account, calls: calls.map(toRaw) }).catch(() => null);
-        if (sim && sim.results.every((r) => r.status === "success")) {
+        // Build and simulate the whole batch; if either fails, fall back to step by step, where
+        // each step is checked against the chain its predecessors left.
+        const prepared = await (async () => {
+          const calls: Call[] = [];
+          for (const i of todo) calls.push(await steps[i]!.call({ ...c, batch: true }));
+          const sim = await pub.simulateCalls({ account, calls: calls.map(toRaw) });
+          return sim.results.every((r) => r.status === "success") ? calls : null;
+        })().catch(() => null);
+        if (prepared) {
+          const calls = prepared;
           set((p) => ({ ...p, current: todo[0]!, states: p.states.map((x, j) => (todo.includes(j) ? "wallet" : x)) }));
           const { id } = await wallet.sendCalls({ account, chain: pub.chain, calls: calls.map(toRaw), forceAtomic: true });
           set((p) => ({ ...p, states: p.states.map((x, j) => (todo.includes(j) ? "pending" : x)) }));

@@ -7,8 +7,20 @@ import { isIP } from "node:net";
 export const ALLOWED = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml", "image/avif", "video/mp4", "video/webm"];
 export const MAX_BYTES = 15 * 1024 * 1024;
 
-const PRIVATE = [/^127\./, /^10\./, /^192\.168\./, /^172\.(1[6-9]|2\d|3[01])\./, /^169\.254\./, /^0\./, /^::1$/, /^f[cd]/i, /^fe80/i, /^::ffff:(127|10|192\.168)\./];
-const isPrivate = (ip: string) => PRIVATE.some((r) => r.test(ip));
+const PRIVATE4 = [/^127\./, /^10\./, /^192\.168\./, /^172\.(1[6-9]|2\d|3[01])\./, /^169\.254\./, /^0\./, /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./, /^(22[4-9]|2[3-5]\d)\./];
+const PRIVATE6 = [/^::1?$/, /^f[cd]/i, /^fe[89ab]/i];
+/** Loopback, private, link-local, CGNAT, multicast; IPv4-mapped IPv6 checked as IPv4. */
+function isPrivate(ip: string): boolean {
+  const hex = ip.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+  const mapped = hex
+    ? [parseInt(hex[1]!, 16) >> 8, parseInt(hex[1]!, 16) & 255, parseInt(hex[2]!, 16) >> 8, parseInt(hex[2]!, 16) & 255].join(".")
+    : ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i)?.[1];
+  const v4 = mapped ?? (isIP(ip) === 4 ? ip : null);
+  return v4 ? PRIVATE4.some((r) => r.test(v4)) : PRIVATE6.some((r) => r.test(ip));
+}
+// ponytail: DNS is resolved here and again by fetch, so a rebinding host could switch to a
+// private address in between; bounded by redirect:"error", the content-type allowlist and the
+// sandbox CSP. Pin the vetted IP with a custom dispatcher if this proxy ever returns more.
 
 export async function safeUrl(src: string): Promise<URL | null> {
   let u: URL;

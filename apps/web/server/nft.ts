@@ -6,6 +6,7 @@
 // elsewhere.
 import { deploymentFor, erc721Abi } from "@market/protocol";
 import { createPublicClient, getAddress, http, parseAbiItem, type Address } from "viem";
+import { safeUrl } from "./media";
 
 const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? 31337);
 const rpcUrl = process.env.RPC_URL ?? process.env.NEXT_PUBLIC_RPC_URL ?? deploymentFor(chainId).rpcUrl;
@@ -39,9 +40,15 @@ async function fetchJson(url: string): Promise<unknown> {
     const body = url.slice(comma + 1);
     return JSON.parse(head.endsWith(";base64") ? Buffer.from(body, "base64").toString("utf8") : decodeURIComponent(body));
   }
-  const r = await fetch(url, { signal: AbortSignal.timeout(8_000), next: { revalidate: 3600 } });
+  // tokenURI is chosen by whoever deployed the collection: never let it reach private networks
+  // or redirect there (same guard as /api/media), and cap what we read.
+  const safe = await safeUrl(url);
+  if (!safe) throw new Error("blocked url");
+  const r = await fetch(safe, { redirect: "error", signal: AbortSignal.timeout(8_000), next: { revalidate: 3600 } });
   if (!r.ok) throw new Error(String(r.status));
-  return r.json();
+  const body = await r.arrayBuffer();
+  if (body.byteLength > 1_000_000) throw new Error("metadata too large");
+  return JSON.parse(new TextDecoder().decode(body));
 }
 
 /** Text from untrusted metadata, trimmed to a sane length. Rendered as text only. */

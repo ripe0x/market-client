@@ -1,17 +1,18 @@
 import { test, expect } from "@playwright/test";
 import { injectWallet } from "./wallet";
-import { ACC, collections, mint, balance, ownerOf, isApprovedForAll, NFTBID, waitFor, getToken, connect, eth } from "./helpers";
+import { ACC, collections, mint, balance, ownerOf, isApprovedForAll, NFTBID, waitFor, getToken, connect, eth, offerOnChain } from "./helpers";
 
 const lower = (a: string) => a.toLowerCase();
-// Seeded collection offer on Driftlines (owner/recipient = account 4), 7 fills, funded.
-const COLLECTION_OFFER = "0xB44d7a99E8b0E3AF36763cf4Cb41f101E6cF0a01";
-const OFFER_OWNER = "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65";
+// Each run makes its own funded collection offer (account 2 bids), so runs never share state.
+const OFFER_OWNER = ACC.other;
 
 test("accept an offer: approve + sell; seller receives the proceeds, token delivered", async ({ page }) => {
   const c = await collections();
   const id = await mint(c.driftlines, ACC.me);
   // Make sure the minted token shows up as owned before loading the picker.
   await waitFor(() => ownerOf(c.driftlines, id), (o) => lower(o) === lower(ACC.me));
+  const COLLECTION_OFFER = await offerOnChain(OFFER_OWNER, c.driftlines, true, 0n, eth("0.5"));
+  await waitFor(() => fetch(`http://localhost:42169/api/orders/${COLLECTION_OFFER}`).then((r) => r.status), (s) => s === 200);
 
   await injectWallet(page);
   await page.goto(`/c/${c.driftlines}/offers/${COLLECTION_OFFER}/sell`);

@@ -13,6 +13,7 @@ import { parseEth } from "@/lib/listingConfig";
 import { LagBanner } from "@/components/app/Trading";
 import { FlowButton, useFlowUi } from "@/components/tx/Flow";
 import { offerSteps } from "@/data/flows";
+import { randomSalt } from "@market/protocol";
 
 const EXPIRY_SECONDS: Record<Exclude<MakeOfferValue["expires"], "Never">, bigint> = { "1D": 86_400n, "3D": 259_200n, "7D": 604_800n, "30D": 2_592_000n };
 const remaining = (o: ApiOrder) => (o.maxFills === "0" ? 1 : Number(o.maxFills)) - o.fills;
@@ -33,7 +34,11 @@ export function OfferView({ nft, tokenId }: { nft: Address; tokenId?: string }) 
   const qty = single ? 1 : value.quantity;
   const amountWei = parseEth(value.amount);
   const total = amountWei * BigInt(qty);
-  const expiry = value.expires === "Never" ? 0n : now + EXPIRY_SECONDS[value.expires];
+  // Salt and expiry anchor stay fixed while the form is open so a retry targets the same order
+  // address (offerSteps' done check); the anchor follows the chain until a flow starts.
+  const [salt] = useState(() => randomSalt());
+  const [anchor, setAnchor] = useState(now);
+  const expiry = value.expires === "Never" ? 0n : anchor + EXPIRY_SECONDS[value.expires];
 
   const config: BidConfig = {
     nft,
@@ -43,8 +48,11 @@ export function OfferView({ nft, tokenId }: { nft: Address; tokenId?: string }) 
     recipient: (address ?? "0x0000000000000000000000000000000000000000") as Address,
     maxFills: BigInt(qty),
   };
-  const flowSteps = address && amountWei > 0n ? offerSteps(config, total) : [];
+  const flowSteps = address && amountWei > 0n ? offerSteps(config, total, salt) : [];
   const { flow } = useFlowUi(flowSteps, { kind: "bid" });
+  useEffect(() => {
+    if (!flow.running && !flow.done && !flow.error && now - anchor > 30n) setAnchor(now);
+  }, [now, anchor, flow.running, flow.done, flow.error]);
 
   if (!col) return <Loading />;
 

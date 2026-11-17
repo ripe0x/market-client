@@ -7,6 +7,7 @@ import {
   decodeBidConfig,
   decodeRevert,
   decodeSaleConfig,
+  encodeBidConfig,
   encodeSaleConfig,
   erc721Abi,
   marketAbi,
@@ -104,7 +105,7 @@ export function buySteps(o: ApiOrder): Step[] {
     {
       key: "buy",
       label: "Buy",
-      call: async ({ pub, account }) => {
+      call: async ({ pub, account, batch }) => {
         const v = await verifyOrder(pub, d, { address: o.address, kind: "sale", config: o.config });
         if (v.closed) throw new Stop("This listing has sold or been cancelled.");
         if (sameAddress(v.owner, account)) throw new Stop("This is your listing.");
@@ -113,7 +114,7 @@ export function buySteps(o: ApiOrder): Step[] {
           throw e; // decoded by the flow (NotStarted, Expired, RoyaltyAboveLimit, BadRoyalty…)
         });
         const call = tx.buy(o.address, o.config, account, buyMaxPrice(c.schedule, await head(pub)));
-        await pub.simulateContract({ ...call, account }).catch(async (e) => {
+        if (!batch) await pub.simulateContract({ ...call, account }).catch(async (e) => {
           if (["Error", "Unknown"].includes(decodeRevert(e).name)) await explainRefusal(pub, o.address, q);
           throw e;
         });
@@ -126,9 +127,18 @@ export function buySteps(o: ApiOrder): Step[] {
 // ---------------------------------------------------------------------------------------------
 // Make offer: one create with the deposit.
 
-export function offerSteps(config: BidConfig, value: bigint): Step[] {
-  const salt = tx.randomSalt();
-  return [{ key: "create", label: "Create the offer", call: async () => tx.createOffer(d, config, salt, value) }];
+export function offerSteps(config: BidConfig, value: bigint, salt: Hex): Step[] {
+  const bytes = encodeBidConfig(config);
+  return [
+    {
+      key: "create",
+      label: "Create the offer",
+      // A retry after a create that landed must not fund a second offer: the same config and
+      // salt predict the same address, and its code means the offer exists.
+      done: async ({ pub, account }) => !!(await pub.getCode({ address: await predictOrder(pub, account, bytes, salt, d.nftBid) })),
+      call: async () => tx.createOffer(d, config, salt, value),
+    },
+  ];
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -136,6 +146,9 @@ export function offerSteps(config: BidConfig, value: bigint): Step[] {
 // minProceeds from the lowest price in the headroom window (D5).
 
 export async function acceptQuote(pub: PublicClient, o: ApiOrder, tokenId: bigint) {
+  // The config comes from the indexer: check it against the order's committed hash before any
+  // figure derived from it is shown.
+  await verifyOrder(pub, d, { address: o.address, kind: "bid", config: o.config });
   const c = decodeBidConfig(o.config);
   const floor = acceptFloorPrice(c.schedule, await head(pub));
   const [, asked] = await royaltyOf(pub, d, c.nft, tokenId, floor);
@@ -164,14 +177,14 @@ export function acceptSteps(o: ApiOrder, tokenId: bigint, tokenLabel: string): S
     {
       key: "sell",
       label: `Sell ${tokenLabel}, ETH to your wallet`,
-      call: async ({ pub, account }) => {
+      call: async ({ pub, account, batch }) => {
         const v = await verifyOrder(pub, d, { address: o.address, kind: "bid", config: o.config });
         if (v.closed) throw new Stop("This offer is closed.");
         if (sameAddress(v.owner, account)) throw new Stop("This is your offer.");
         const q = await quoteBid(pub, d, o.address, c, tokenId);
         const { proceeds } = await acceptQuote(pub, o, tokenId);
         const call = tx.sellToOffer(o.address, o.config, tokenId, proceeds, account);
-        await pub.simulateContract({ ...call, account }).catch(async (e) => {
+        if (!batch) await pub.simulateContract({ ...call, account }).catch(async (e) => {
           if (["Error", "Unknown"].includes(decodeRevert(e).name)) await explainRefusal(pub, o.address, q);
           throw e;
         });
