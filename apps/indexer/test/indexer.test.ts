@@ -37,7 +37,9 @@ async function get<T>(path: string): Promise<T> {
 
 /** Wait until the indexer has seen block `n` (the poll writes the head). */
 async function synced(n?: bigint) {
-  const target = n ?? (await c.pub.getBlockNumber());
+  // cacheTime 0: viem caches the head for the polling interval, so right after mining it can
+  // return a block from before the transaction under test.
+  const target = n ?? (await c.pub.getBlockNumber({ cacheTime: 0 }));
   for (let i = 0; i < 300; i++) {
     try {
       const st = await get<{ block: string }>("/api/status");
