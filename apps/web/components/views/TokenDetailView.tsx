@@ -1,0 +1,102 @@
+"use client";
+
+import { useAccount } from "wagmi";
+import type { Address } from "viem";
+import { eth, when, until, buyMaxPrice, sameAddress, toSchedule, priceAt, type ApiOrder } from "@market/protocol";
+import { TokenDetail, ErrorNote, Loading, type TokenOffer } from "@/components/screens";
+import { Button } from "@/components/ui";
+import { useHead, useIndexer, useApi } from "@/data/hooks";
+import { paths, type TokenView } from "@/data/indexer";
+import { LagBanner, useRoyaltyBps } from "@/components/app/Trading";
+import { FlowButton, useFlowUi } from "@/components/tx/Flow";
+import { buySteps } from "@/data/flows";
+
+const statusNote = (o: ApiOrder, now: bigint): string | null => {
+  const s = toSchedule(o.schedule);
+  switch (o.status) {
+    case "not_started":
+      return `This listing opens ${when(s.startTime, now)}.`;
+    case "expired":
+      return `This listing expired ${when(s.expiry, now)}.`;
+    case "awaiting_nft":
+      return "This listing isn't ready: its NFT hasn't been deposited yet.";
+    case "blocked":
+      return "Sale stopped: the collection's royalty is above the seller's limit.";
+    default:
+      return null;
+  }
+};
+
+export function TokenDetailView({ nft, tokenId }: { nft: Address; tokenId: string }) {
+  const now = useHead();
+  const { address } = useAccount();
+  const token = useIndexer<TokenView>(paths.token(nft, tokenId)).data;
+  const meta = useApi<{ name: string | null; image: string | null }>(`/api/nfts/token?nft=${nft}&id=${tokenId}`).data;
+  const royaltyBps = useRoyaltyBps(nft, tokenId);
+  const moreFrom = useIndexer<{ items: ApiOrder[] }>(paths.listings({ collection: nft, limit: 7 })).data?.items ?? [];
+
+  const listing = token?.listing ?? null;
+  const own = !!(listing && address && sameAddress(listing.owner, address));
+  const { flow } = useFlowUi(listing ? buySteps(listing) : [], { kind: "sale", token: `#${tokenId}`, owner: own });
+
+  if (!token) return <Loading />;
+
+  const offerHref = `/c/${nft}/${tokenId}/offer`;
+  const offerBtn = (
+    <Button href={offerHref} variant="secondary" size="desktop" block>
+      Make offer
+    </Button>
+  );
+
+  const buyable = listing && listing.status === "live" && !own;
+  const note = listing ? statusNote(listing, now) : null;
+
+  let cta: React.ReactNode;
+  let payNote = false;
+  if (buyable && listing) {
+    cta = (
+      <>
+        <FlowButton flow={flow} label={`Buy for ${eth(buyMaxPrice(toSchedule(listing.schedule), now), "up")} ETH`} />
+        {offerBtn}
+      </>
+    );
+    payNote = true;
+  } else {
+    cta = (
+      <>
+        {own && <ErrorNote emphasis>This is your listing.</ErrorNote>}
+        {note && <ErrorNote>{note}</ErrorNote>}
+        {offerBtn}
+      </>
+    );
+  }
+
+  const offers: TokenOffer[] = (token.offers ?? []).map((o) => {
+    const remaining = (o.maxFills === "0" ? 1 : Number(o.maxFills)) - o.fills;
+    return {
+      price: priceAt(toSchedule(o.schedule), now),
+      desc: o.anyToken ? `Any ${o.collectionName ?? "collection"}${remaining > 1 ? ` · ${remaining} left` : ""}` : `For #${o.tokenId} only`,
+      expires: until(BigInt(o.schedule.expiry), now),
+    };
+  });
+
+  return (
+    <>
+      <LagBanner />
+      <TokenDetail
+        nft={nft}
+        tokenId={tokenId}
+        collectionName={token.collectionName}
+        now={now}
+        order={listing}
+        mediaSrc={meta?.image ?? undefined}
+        royaltyBps={royaltyBps}
+        offers={offers}
+        moreFrom={moreFrom.filter((o) => o.tokenId !== tokenId).slice(0, 6)}
+        totalListed={moreFrom.length}
+        cta={cta}
+        payNote={payNote}
+      />
+    </>
+  );
+}

@@ -43,6 +43,8 @@ export type CreateListingFormProps = {
   breakdown: { atStart: SplitFigures; atEnd?: SplitFigures };
   royaltyOptions: RoyaltyOption[];
   collectionRoyaltyBps?: number | null;
+  /** Live StepList states from the tx flow; falls back to the default two todo steps. */
+  steps?: Step[];
   cta?: React.ReactNode;
 };
 
@@ -72,7 +74,7 @@ export function CreateListingForm(props: CreateListingFormProps) {
   };
 
   const tok = sel ? `#${sel.tokenId}` : "#—";
-  const steps: Step[] = [
+  const steps: Step[] = props.steps ?? [
     { label: "Create the listing", state: "todo" },
     { label: `Move ${tok} into it`, state: "todo" },
   ];

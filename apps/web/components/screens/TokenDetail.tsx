@@ -33,10 +33,12 @@ export type TokenDetailProps = {
   totalListed?: number;
   /** Override the Buy/Make offer CTAs (the lead injects the live-quoted buy button). */
   cta?: React.ReactNode;
+  /** Show the "You pay at most…" note; hide it when the listing isn't buyable. */
+  payNote?: boolean;
 };
 
 export function TokenDetail(props: TokenDetailProps) {
-  const { nft, tokenId, collectionName, now, order, mediaSrc, royaltyBps, offers, moreFrom, moreFromMedia, totalListed, cta } =
+  const { nft, tokenId, collectionName, now, order, mediaSrc, royaltyBps, offers, moreFrom, moreFromMedia, totalListed, cta, payNote = true } =
     props;
   const royaltyText = royaltyBps ? `${pct(royaltyBps)}, paid from the sale` : "No royalty";
   const offerHref = `/c/${nft}/${tokenId}/offer`;
@@ -112,10 +114,12 @@ export function TokenDetail(props: TokenDetailProps) {
                 </>
               )}
             </div>
-            <div className={styles.note}>
-              You pay at most {eth(buyMaxPrice(s, now), "up")} ETH. If the price falls before this confirms, the
-              difference is refunded. Plus network gas.
-            </div>
+            {payNote && (
+              <div className={styles.note}>
+                You pay at most {eth(buyMaxPrice(s, now), "up")} ETH. If the price falls before this confirms, the
+                difference is refunded. Plus network gas.
+              </div>
+            )}
           </>
         ) : (
           <div className={styles.unlisted}>

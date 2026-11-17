@@ -26,6 +26,8 @@ export type AcceptOfferProps = {
   step?: 0 | 1;
   /** Approval already granted → skip step 1. */
   approved?: boolean;
+  /** Live StepList states from the tx flow; falls back to the approve/sell defaults. */
+  stepsOverride?: Step[];
   cta?: React.ReactNode;
 };
 
@@ -38,6 +40,7 @@ export function AcceptOffer({
   onSelect,
   step = 0,
   approved,
+  stepsOverride,
   cta,
 }: AcceptOfferProps) {
   const [internal, setInternal] = useState(selectedTokenId ?? eligible[0]?.tokenId);
@@ -53,7 +56,7 @@ export function AcceptOffer({
   const expText = exp === 0n ? "never expires" : `expires in ${until(exp, now)}`;
   const tok = selected ? `#${selected}` : "the NFT";
 
-  const steps: Step[] = [
+  const steps: Step[] = stepsOverride ?? [
     { label: `Approve ${tok} for offers`, state: approved ? "done" : step === 0 ? "active" : "todo" },
     { label: `Sell ${tok}, ETH to your wallet`, state: step === 1 ? "active" : "todo" },
   ];

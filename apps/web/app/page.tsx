@@ -1,22 +1,17 @@
 import { Chrome } from "@/components/chrome";
-import { GiantTabs, Hero } from "@/components/ui";
-import { Loading } from "@/components/screens";
+import { ListingsView } from "@/components/views/ListingsView";
+import type { ListingSort } from "@/data/indexer";
 
-// Screen 01 · Marketplace Listings. Data wiring (indexer listings) is added by the lead; until then
-// the route renders the chrome and the Loading state.
-export default function Page() {
+// Screen 01 · Marketplace Listings.
+export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = await searchParams;
+  const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+  const sort = (one(sp.sort) as ListingSort) || "newest";
+  const view = one(sp.view) === "grid" ? "grid" : "table";
   return (
     <Chrome>
       <div className="page">
-        <Hero>
-          <GiantTabs
-            tabs={[
-              { label: "Listings", href: "/", active: true },
-              { label: "Collections", href: "/collections" },
-            ]}
-          />
-        </Hero>
-        <Loading />
+        <ListingsView collection={one(sp.collection)} sort={sort} view={view} />
       </div>
     </Chrome>
   );
