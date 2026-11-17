@@ -96,3 +96,10 @@ svg {
   padding-left: var(--gutter);
   padding-right: var(--gutter);
 }
+
+/* Keyboard focus, in the selection style (STYLE_GUIDE §5 Selection). Wins over the component
+   modules that drop the default outline on inputs. */
+:focus-visible {
+  outline: 2px solid var(--ink) !important;
+  outline-offset: 2px;
+}
