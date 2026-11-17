@@ -1,0 +1,17 @@
+.input {
+  height: 44px;
+  width: 100%;
+  border: 1px solid var(--line-control);
+  background: transparent;
+  color: var(--ink);
+  padding: 0 16px;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.input::placeholder {
+  color: var(--ink-3);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--ink);
+}

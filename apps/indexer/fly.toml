@@ -1,0 +1,28 @@
+# Sepolia indexer on Fly.io. Secrets: DATABASE_URL (fly postgres attach), DATABASE_SCHEMA.
+app = "market-indexer-sepolia"
+primary_region = "iad"
+
+[build]
+  dockerfile = "../../Dockerfile.indexer"
+
+[env]
+  PONDER_CHAIN_ID = "11155111"
+  PONDER_RPC_URL = "https://sepolia.gateway.tenderly.co"
+  WEB_ORIGIN = "https://sepolia.market.example"
+
+[http_service]
+  internal_port = 42069
+  force_https = true
+  auto_stop_machines = "off"
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    path = "/ready"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "120s"
+    method = "GET"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"

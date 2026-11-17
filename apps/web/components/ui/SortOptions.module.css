@@ -1,0 +1,19 @@
+.sorts {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  font-size: 15px;
+  color: var(--ink-3);
+}
+.opt {
+  color: var(--ink-3);
+}
+.opt:hover {
+  color: var(--ink-2);
+}
+.active {
+  color: var(--ink);
+}
+.active:hover {
+  color: var(--ink);
+}

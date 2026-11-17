@@ -1,0 +1,67 @@
+/* Shared in-table affordances and cell helpers for screen components. */
+
+.right {
+  text-align: right;
+}
+.muted {
+  color: var(--ink-3);
+}
+.ink {
+  color: var(--ink);
+}
+
+/* Pricing cell: label line + progress bar (README 01). */
+.pricing {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+/* In-row action affordance (the row/token already links; these are visual or small links). */
+.pill {
+  justify-self: end;
+  height: 40px;
+  padding: 0 20px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line-control);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+a.pill:hover,
+button.pill:hover {
+  background: var(--ink);
+  color: #000;
+  border-color: var(--ink);
+}
+.pillPrimary {
+  justify-self: end;
+  height: 40px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  background: var(--ink);
+  color: #000;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pillPrimary:hover {
+  color: #000;
+  background: var(--ink-2);
+}
+
+/* Sub-line under an offer figure (rising offers). */
+.subline {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+/* Address-like mono meta in a cell. */
+.monoMeta {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13px;
+}

@@ -1,0 +1,68 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  padding: 0 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Sizes */
+.inline {
+  height: 40px;
+  font-size: 14px;
+}
+.mobile {
+  height: 58px;
+  font-size: 17px;
+}
+.desktop {
+  height: 64px;
+  font-size: 18px;
+}
+
+/* Variants */
+.primary {
+  background: var(--ink);
+  color: #000;
+}
+.primary:hover {
+  color: #000;
+}
+
+.secondary {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line-control);
+}
+.secondary:hover {
+  background: var(--ink);
+  color: #000;
+  border-color: var(--ink);
+}
+
+.text {
+  height: auto;
+  padding: 0;
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--ink);
+  background: none;
+}
+.text:hover {
+  color: var(--ink-2);
+}
+.text.active {
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 2px;
+}
+
+.block {
+  display: flex;
+  width: 100%;
+}

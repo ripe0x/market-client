@@ -1,0 +1,26 @@
+.track {
+  width: 44px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 3px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  flex: none;
+}
+.knob {
+  width: 16px;
+  height: 16px;
+  background: var(--ink-4);
+}
+.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  justify-content: flex-end;
+}
+.on .knob {
+  width: 18px;
+  height: 18px;
+  background: #000;
+}

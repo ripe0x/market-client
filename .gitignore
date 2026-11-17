@@ -2,3 +2,14 @@
 node_modules/
 .env*
 !.env.example
+.next/
+.ponder/
+generated/
+out/
+cache/
+playwright-report/
+test-results/
+*.tsbuildinfo
+.local-chain.json
+.netlify/
+deno.lock

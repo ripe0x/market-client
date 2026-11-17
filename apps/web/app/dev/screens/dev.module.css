@@ -1,0 +1,52 @@
+.root {
+  padding: 32px 0 120px;
+}
+.heading {
+  padding: 0 var(--gutter);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+.sub {
+  padding: 8px var(--gutter) 0;
+  color: var(--ink-3);
+  font-size: 14px;
+}
+.section {
+  margin-top: 48px;
+}
+.sectionLabel {
+  padding: 0 var(--gutter) 12px;
+  font: 500 13px/1 var(--font-mono), ui-monospace, monospace;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+.frame {
+  border-top: 1px solid var(--line);
+}
+.menu {
+  height: 38px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line-control);
+  font-size: 14px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.mobileNavDemo {
+  display: flex;
+  flex-direction: column;
+}
+.states {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px var(--gutter);
+}
+.txRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

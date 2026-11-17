@@ -1,0 +1,27 @@
+.tabs {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  font-size: 15px;
+}
+.tab {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.tab:hover {
+  color: var(--ink-2);
+}
+.active {
+  color: var(--ink);
+  font-weight: 700;
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 2px;
+}
+.active:hover {
+  color: var(--ink);
+}
+.count {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  color: var(--ink-3);
+  font-weight: 500;
+}

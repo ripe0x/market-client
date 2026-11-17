@@ -1,0 +1,13 @@
+.track {
+  position: relative;
+  display: block;
+  height: 2px;
+  background: var(--line);
+}
+.fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--ink-3);
+}

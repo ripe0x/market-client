@@ -1,0 +1,9 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = []
+allow_paths = ["../market"]
+solc_version = "0.8.30"
+evm_version = "prague"
+auto_detect_remappings = false
+remappings = ["@openzeppelin/contracts/=../market/lib/openzeppelin-contracts/contracts/", "market/=../market/"]

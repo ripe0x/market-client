@@ -1,0 +1,11 @@
+.addr {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+a.addr:hover {
+  color: var(--ink-2);
+}
+.ext {
+  color: var(--ink-3);
+}

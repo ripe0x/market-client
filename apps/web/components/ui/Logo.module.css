@@ -1,0 +1,14 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ink);
+}
+.logo:hover {
+  color: var(--ink);
+}
+.word {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}

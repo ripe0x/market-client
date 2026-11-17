@@ -1,0 +1,19 @@
+.cell {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.text {
+  min-width: 0;
+}
+.title {
+  font-weight: 700;
+  color: var(--ink);
+  font-size: 17px;
+}
+.meta {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13px;
+  color: var(--ink-3);
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@market/indexer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "ponder dev",
+    "start": "ponder start",
+    "codegen": "ponder codegen",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@market/protocol": "workspace:*",
+    "hono": "4.13.16",
+    "ponder": "0.18.3",
+    "viem": "2.57.14"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12"
+  }
+}

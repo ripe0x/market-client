@@ -51,11 +51,29 @@ Review order: start with the ones marked **Revisit first**.
 | --- | --- | --- |
 | D27 | **Sepolia first, mainnet later, one chain per deployment** (`sepolia.<domain>`, later `<domain>`), each with its own indexer. No chain switcher. Mainnet only after the protocol's human audit and your mainnet deployment. | Decided |
 | D28 | **Contract addresses: you redeploy Sepolia** from the protocol repo per `DEPLOYMENT.md` (`Market`, `FeeConfig`, `NFTSale`, `NFTBid`). I don't deploy. Until then all work runs on local Anvil, where the protocol's `Deploy.s.sol` gives the same planned addresses. | **Needs you** before M12: the deployment, then send me the block number. |
-| D29 | **Hosting: Vercel for the web app, Railway for Ponder and Postgres.** | Decided. **Needs you** before M12: accounts. Nothing is deployed without your go-ahead. |
+| D29 | **Hosting: Netlify for the web app, Fly.io for Ponder and Postgres** (owner's choice, 2026-11-16). No Vercel, no Railway. | Decided by you. **Needs you** before M12: accounts. Nothing is deployed without your go-ahead. |
 | D30 | **NFT data: Alchemy NFT API** behind one adapter (metadata, media, wallet holdings, Items, Owners), with `tokenURI` resolution as fallback. Key server-side only. Media served only through our proxy as `<img>`/`<video>`. | Decided. **Needs you** before M5 against Sepolia: an Alchemy key. Local work uses `tokenURI` resolution. |
-| D31 | **RPC: Tenderly public gateways for dev, tests, fork work and scripts. Production indexer and server reads use a keyed provider (Alchemy, same account as D30).** This is an exception to your global rule that mainnet RPC is always Tenderly's public gateway, and only for the production indexer and the app's server reads. | Decided. **Revisit first:** confirm the exception before mainnet. Sepolia can start on Tenderly's public gateway and switch if it rate-limits. |
+| D31 | **RPC: Tenderly's public gateways only, everywhere** (owner's choice, 2026-11-16): `https://sepolia.gateway.tenderly.co`, `https://mainnet.gateway.tenderly.co`, in the browser, the web server and the indexer. No keyed RPC provider. Polling is batched through Multicall3 and kept to the lanes in `PLAN.md` §4.6 to stay within public rate limits. | Decided by you. Risk: a public gateway may rate-limit the indexer under load; watch the lag alert. |
 | D32 | **WalletConnect:** local and early milestones use injected wallets only (RainbowKit without WalletConnect). | **Needs you** before M12: a Reown project ID, domain-restricted. |
+
+## Build-time decisions (2026-11-16)
+
+| # | Decision | Status |
+| --- | --- | --- |
+| D33 | Accepting an offer opens its own page (`/c/[nft]/offers/[order]/sell`) at both widths instead of a 520px panel inside the collection page (deviation from D13). Same content and flow. | Decided; revisit if the panel matters |
+| D34 | List and grid thumbnails use the #111 placeholder; token art loads on token pages and in the NFT pickers only, to avoid one metadata request per row. | Decided; revisit with an Alchemy key |
+| D35 | The collection header's royalty samples the first listed token (else #1) at 1 ETH. ERC2981 is per token, so this is a heuristic. | Decided |
+| D36 | List queries use the indexer's own head, not the client's; displayed prices are recomputed per block, so a price sort can lag the display by one block (PLAN §4.7). | Decided |
+| D37 | `@base-org/account` is aliased to an empty module: RainbowKit's connector bundle imports it with optional dependencies that are not installed, and the app never uses the Base wallet connector. | Decided; revisit when adding WalletConnect wallets |
+| D38 | Keyboard focus: a 2px white outline on `:focus-visible` everywhere, the design's selection style. | Decided |
+| D39 | Every write CTA (`FlowButton`) is gated on the deployment check (start block, runtime code hashes) and the wallet's network. | Decided |
 
 ## Changes
 
 - 2026-11-16: all of the above set on the owner's instruction "make the decisions for me". No owner review yet.
+- 2026-11-16: owner: "Only use tenderly public rpc url. Dont use vercel or railway. Use netlify and fly.io." D29 and D31 replaced accordingly. D30 (Alchemy NFT API for metadata and holdings) is not RPC and stays.
+- 2026-11-16: owner: "Complete the full work without asking me any more questions." Build proceeds M0 to M11 locally; M12 (Sepolia) still waits on the protocol redeploy and accounts.
+- 2026-11-16: owner: "You have access to netlify and fly.io. Just use auto deploy on netlify from gh". Done:
+  - GitHub: `plan/v1` pushed; `main` created at the plan commit `22bec9c` so a PR has a base.
+  - Netlify site `ripe-market-v1` (team ripe0x, id `6fae7e25-455f-4121-970d-c4887dce54fa`), linked to `ripe0x/market-client` through the existing Netlify GitHub app: production from `main`, branch deploys for `plan/v1` at https://plan-v1--ripe-market-v1.netlify.app. Base directory: repo root; package directory `apps/web`; config in `apps/web/netlify.toml`. `NEXT_PUBLIC_INDEXER_URL=https://market-indexer-sepolia.fly.dev`.
+  - Fly.io app `market-indexer-sepolia` created (no machines, no database yet). It cannot start until Market is deployed on Sepolia (D28): no start block exists. Then: `fly postgres create --name market-indexer-sepolia-db`, `fly postgres attach`, `fly secrets set DATABASE_SCHEMA=market_v1`, set `startBlock` in `packages/protocol/src/addresses.ts`, `fly deploy -c apps/indexer/fly.toml --dockerfile Dockerfile.indexer` from the repo root.

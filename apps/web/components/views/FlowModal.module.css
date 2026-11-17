@@ -1,0 +1,37 @@
+.amountRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 16px;
+}
+.amountField {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.amountField input {
+  width: 120px;
+  text-align: right;
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.amountField input:focus {
+  outline: none;
+}
+.unit {
+  font: 500 13px/1 var(--font-mono), ui-monospace, monospace;
+  color: var(--ink-3);
+}
+.muted {
+  color: var(--ink-3);
+}
+.steps {
+  margin-bottom: 16px;
+}

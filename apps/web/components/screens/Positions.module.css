@@ -1,0 +1,133 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+}
+.section {
+  display: flex;
+  flex-direction: column;
+}
+.gap {
+  margin-top: 40px;
+}
+.sectionHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  height: 56px;
+  padding: 0 var(--gutter);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+}
+.sectionTitle {
+  font-weight: 700;
+}
+.actions {
+  justify-self: end;
+  display: flex;
+  gap: 8px;
+}
+.unit {
+  font: 500 12px/1 var(--font-mono), ui-monospace, monospace;
+  color: var(--ink-3);
+}
+.actCol {
+  color: var(--ink);
+  font-weight: 700;
+}
+.tx a {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.approvals {
+  padding: 20px var(--gutter);
+  border-top: 1px solid var(--line);
+}
+.approvalItems {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.approvalItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  max-width: 420px;
+  font-size: 14px;
+}
+
+.addInfo {
+  font-size: 14px;
+  color: var(--ink-2);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.addLabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 16px;
+}
+.addField {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.addField input {
+  width: 120px;
+  text-align: right;
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.addField input:focus {
+  outline: none;
+}
+
+.tabBar {
+  display: none;
+}
+.hideMobile {
+  display: flex;
+}
+
+@media (max-width: 767px) {
+  .tabBar {
+    display: flex;
+    gap: 18px;
+    padding: 12px var(--gutter);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .tab {
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .tabActive {
+    color: var(--ink);
+    font-weight: 700;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 2px;
+  }
+  .hideMobile {
+    display: none;
+  }
+  .gap {
+    margin-top: 0;
+  }
+  .actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
