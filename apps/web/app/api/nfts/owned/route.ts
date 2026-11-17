@@ -9,7 +9,14 @@ export async function GET(req: Request) {
   // Without ALCHEMY_API_KEY holdings come from chain logs, so a collection list is required.
   const keyed = !!process.env.ALCHEMY_API_KEY;
   if (!isAddress(owner) || (!keyed && collections.length === 0) || collections.length > 50) return Response.json({ error: "bad request" }, { status: 400 });
-  const items = await ownedTokens(getAddress(owner), collections);
+  let items;
+  try {
+    items = await ownedTokens(getAddress(owner), collections);
+  } catch (e) {
+    // Never answer "you hold nothing" when the chain read failed.
+    console.error("ownedTokens failed", (e as { shortMessage?: string }).shortMessage ?? e);
+    return Response.json({ error: "holdings unavailable" }, { status: 502 });
+  }
   return Response.json(
     items.map((t) => ({ ...t, image: t.image ? `/api/media?src=${encodeURIComponent(t.image)}` : null })),
     { headers: { "Cache-Control": "private, max-age=15" } },

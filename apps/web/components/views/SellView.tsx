@@ -43,7 +43,8 @@ export function SellView({ nft, id }: { nft?: string; id?: string }) {
 
   const collections = useIndexer<ApiCollection[]>(paths.collections({})).data ?? [];
   const colQuery = collections.slice(0, 50).map((c) => `collection=${c.address}`).join("&");
-  const holdings = useApi<Owned[]>(address && colQuery ? `/api/nfts/owned?owner=${address}&${colQuery}` : null).data ?? [];
+  const holdingsQuery = useApi<Owned[]>(address && colQuery ? `/api/nfts/owned?owner=${address}&${colQuery}` : null);
+  const holdings = holdingsQuery.data ?? [];
   const positions = useIndexer<ApiPositions>(address ? paths.positions(address) : null).data;
 
   const [manual, setManual] = useState<{ nft: Address; tokenId: string } | null>(null);
@@ -211,6 +212,9 @@ export function SellView({ nft, id }: { nft?: string; id?: string }) {
         cta={
           <>
             {kindError && <ErrorNote emphasis>{kindError}</ErrorNote>}
+            {holdingsQuery.isError && (
+              <ErrorNote>{"Couldn't load the NFTs in your wallet. Reload to try again, or enter a contract address and token ID below."}</ErrorNote>
+            )}
             <ManualEntry
               nft={manualNft}
               id={manualId}
