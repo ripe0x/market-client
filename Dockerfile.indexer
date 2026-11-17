@@ -1,0 +1,17 @@
+# Indexer image for Fly.io (DECISIONS D29). Build from the repo root:
+#   fly deploy -c apps/indexer/fly.toml --dockerfile Dockerfile.indexer
+FROM node:22.19-slim
+RUN corepack enable && corepack prepare pnpm@9.4.0 --activate
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY packages/protocol/package.json packages/protocol/package.json
+COPY apps/indexer/package.json apps/indexer/package.json
+RUN pnpm install --frozen-lockfile --filter @market/indexer...
+COPY packages/protocol packages/protocol
+COPY apps/indexer apps/indexer
+WORKDIR /app/apps/indexer
+ENV NODE_ENV=production
+EXPOSE 42069
+# DATABASE_SCHEMA names this deployment's tables; a new value reindexes beside the old one
+# (PLAN.md §4.8). Views in "market" always point at the live deployment.
+CMD ["sh", "-c", "exec npx ponder start --schema \"${DATABASE_SCHEMA:?set DATABASE_SCHEMA}\" --views-schema market --port 42069"]

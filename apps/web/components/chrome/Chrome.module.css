@@ -1,0 +1,48 @@
+.topbar {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) auto;
+  align-items: center;
+  height: var(--topbar-h);
+  padding: 0 var(--gutter);
+  border-bottom: 1px solid var(--line);
+}
+.search {
+  min-width: 0;
+}
+.right {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 500;
+}
+.sell {
+  color: var(--ink);
+}
+.sellActive {
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 2px;
+}
+
+.mobileOnly {
+  display: none;
+}
+.mobileHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 18px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.mobileSearch {
+  padding: 14px 18px 0;
+}
+
+@media (max-width: 767px) {
+  .topbar {
+    display: none;
+  }
+  .mobileOnly {
+    display: block;
+  }
+}

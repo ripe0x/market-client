@@ -1,0 +1,15 @@
+.fig {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  font-variant-numeric: tabular-nums;
+}
+.num {
+  font-weight: 700;
+  line-height: 1;
+}
+.unit {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-weight: 500;
+  color: var(--ink-3);
+}

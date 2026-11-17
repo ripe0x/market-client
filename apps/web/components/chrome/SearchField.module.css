@@ -1,0 +1,27 @@
+.field {
+  width: 520px;
+  max-width: 100%;
+}
+.field.mobile {
+  width: 100%;
+}
+.input {
+  width: 100%;
+  height: 42px;
+  border: 1px solid var(--line-control);
+  background: transparent;
+  color: var(--ink);
+  padding: 0 16px;
+  font-size: 15px;
+}
+.input::placeholder {
+  color: var(--ink-3);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--ink-2);
+}
+.mobile .input {
+  height: 44px;
+  padding: 0 14px;
+}

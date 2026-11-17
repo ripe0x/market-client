@@ -1,0 +1,225 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--panel-w);
+}
+.left {
+  border-right: 1px solid var(--line);
+}
+.collHead {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 40px;
+}
+.collName {
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+}
+.muted {
+  color: var(--ink-3);
+  font-size: 15px;
+  margin-top: 8px;
+}
+.ink {
+  color: var(--ink);
+}
+.strong {
+  font-weight: 700;
+}
+.ladderHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 56px;
+  padding: 0 var(--gutter);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+}
+.ladderCols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 24px;
+  height: 44px;
+  align-items: center;
+  padding: 0 var(--gutter);
+  border-bottom: 1px solid var(--line);
+  font: 500 12px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.ladderRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 24px;
+  height: 60px;
+  align-items: center;
+  padding: 0 var(--gutter);
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+.ladderPrice {
+  font-size: 19px;
+  font-weight: 700;
+}
+.yours {
+  background: var(--ink);
+  color: #000;
+}
+.r {
+  text-align: right;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  padding: 40px 48px 48px;
+}
+.lead {
+  font-size: 15px;
+  color: var(--ink-2);
+}
+.title {
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  margin-top: 6px;
+}
+.cells {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+.cellBaseline,
+.cellCenter {
+  background: var(--bg);
+  padding: 16px 18px;
+  display: flex;
+  justify-content: space-between;
+}
+.cellBaseline {
+  align-items: baseline;
+}
+.cellCenter {
+  align-items: center;
+  padding: 12px 12px 12px 18px;
+}
+.cellLabel {
+  font-size: 15px;
+  color: var(--ink-2);
+}
+.priceInput {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.priceField {
+  width: 110px;
+  text-align: right;
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.priceField:focus {
+  outline: none;
+}
+.unit {
+  font: 500 15px/1 var(--font-mono), ui-monospace, monospace;
+  color: var(--ink-3);
+}
+.totalBlock {
+  margin-top: 28px;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.totalHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.totalFig {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.totalSub {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.copy {
+  margin-top: 24px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.cta {
+  margin-top: 20px;
+}
+
+/* Single-NFT (mobile) variant */
+.single {
+  display: flex;
+  flex-direction: column;
+}
+.singleHead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px var(--gutter) 0;
+}
+.singleName {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.singleTitle .muted {
+  font-size: 13px;
+  margin-top: 2px;
+}
+.single .panel {
+  padding: 22px var(--gutter);
+}
+.single .title {
+  display: none;
+}
+.single .lead {
+  display: none;
+}
+
+@media (max-width: 1099px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .left {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+  .panel {
+    padding: 24px var(--gutter);
+  }
+  .collName {
+    font-size: 36px;
+  }
+  .title {
+    font-size: 36px;
+  }
+}

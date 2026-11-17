@@ -1,0 +1,45 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+.row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  height: 48px;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+  color: var(--ink);
+}
+.num {
+  font: 500 12px/1 var(--font-mono), ui-monospace, monospace;
+  color: var(--ink-3);
+}
+.right {
+  font: 500 11px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+/* States */
+.todo .label,
+.todo .num {
+  color: var(--ink-3);
+}
+.active .label {
+  color: var(--ink);
+}
+.done .label {
+  color: var(--ink-3);
+}
+.done .right {
+  color: var(--ink-3);
+}
+.failed .label {
+  color: var(--ink);
+}

@@ -1,0 +1,29 @@
+.tabs {
+  display: flex;
+  align-items: baseline;
+  gap: 36px;
+  font-size: 64px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+}
+.tab {
+  color: var(--ink-ghost);
+}
+.tab:hover {
+  color: var(--ink-2);
+}
+.active {
+  color: var(--ink);
+}
+.active:hover {
+  color: var(--ink);
+}
+
+@media (max-width: 767px) {
+  .tabs {
+    gap: 18px;
+    font-size: 32px;
+    line-height: 1;
+  }
+}

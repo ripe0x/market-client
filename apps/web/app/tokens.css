@@ -1,0 +1,59 @@
+/* Design tokens — STYLE_GUIDE §2/§3/§4. Monochrome Square: no accent colour, radius 0. */
+:root {
+  /* Colour (STYLE_GUIDE §2) */
+  --bg: #000000;
+  --ink: #ffffff;
+  --ink-2: #b5b5b5;
+  --ink-3: #7a7a7a;
+  --ink-4: #555555;
+  --ink-ghost: #3d3d3d;
+  --line-strong: #444444;
+  --line-control: #333333;
+  --line: #262626;
+  --line-soft: #1a1a1a;
+  --fill-media: #111111;
+  --hover: #0d0d0d;
+  --fill-group: #0a0a0a;
+
+  /* --font-ui / --font-mono are set on <html> by next/font (app/fonts.ts). */
+
+  /* Type roles (STYLE_GUIDE §3). Display/figure sizes are set per use; these are the shared knobs. */
+  --fs-hero: 88px;
+  --fs-section: 56px;
+  --fs-big-figure: 76px;
+  --fs-figure: 36px;
+  --tracking-display: -0.05em;
+  --tracking-figure: -0.045em;
+
+  /* Spacing scale (STYLE_GUIDE §4) */
+  --s-4: 4px;
+  --s-8: 8px;
+  --s-10: 10px;
+  --s-12: 12px;
+  --s-14: 14px;
+  --s-16: 16px;
+  --s-18: 18px;
+  --s-20: 20px;
+  --s-24: 24px;
+  --s-28: 28px;
+  --s-32: 32px;
+  --s-36: 36px;
+  --s-40: 40px;
+  --s-48: 48px;
+  --s-56: 56px;
+  --s-64: 64px;
+  --s-72: 72px;
+
+  /* Layout */
+  --gutter: 40px;
+  --radius: 0;
+  --topbar-h: 76px;
+  --toolbar-h: 64px;
+  --panel-w: 520px;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --gutter: 18px;
+  }
+}

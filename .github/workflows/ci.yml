@@ -1,0 +1,36 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: foundry-rs/foundry-toolchain@v1
+        with: { version: v1.8.1 }
+      - uses: pnpm/action-setup@v4
+        with: { version: 9.4.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:contracts
+      - name: Generated ABIs match the pinned protocol
+        run: pnpm --filter @market/protocol exec tsx scripts/gen-abis.ts && git diff --exit-code packages/protocol/src/abis.ts
+      - run: pnpm -r typecheck
+      - uses: dorny/paths-filter@v3
+        id: changed
+        with:
+          filters: |
+            protocol: ['packages/protocol/**', 'contracts/**']
+            indexer: ['apps/indexer/**', 'packages/protocol/**']
+            web: ['apps/web/**', 'packages/protocol/**']
+      - if: steps.changed.outputs.protocol == 'true'
+        run: pnpm --filter @market/protocol test
+      - if: steps.changed.outputs.indexer == 'true'
+        run: pnpm --filter @market/indexer test
+      - if: steps.changed.outputs.web == 'true'
+        run: pnpm --filter @market/web build
