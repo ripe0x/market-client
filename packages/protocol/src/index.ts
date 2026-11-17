@@ -7,6 +7,6 @@ export * from "./errors";
 export * from "./format";
 export * from "./orders";
 export * as tx from "./tx";
-export { randomSalt } from "./tx";
+export { randomSalt, gasWithHeadroom, type ContractCall } from "./tx";
 export * from "./schedule";
 export * from "./split";
