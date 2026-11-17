@@ -1,0 +1,13 @@
+**/node_modules
+**/.next
+**/.ponder
+.git
+contracts
+handoff
+apps/web
+**/out
+**/cache
+**/.env*
+**/test-results
+**/playwright-report
+.local-chain.json

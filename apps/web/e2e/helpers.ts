@@ -115,7 +115,7 @@ export const eth = (s: string) => parseEther(s);
 
 /** Wait until the indexer has processed the chain head (so lists include our setup). */
 export async function waitIndexer(indexerUrl = process.env.E2E_INDEXER_URL ?? "http://localhost:42169") {
-  const target = await pub.getBlockNumber();
+  const target = await pub.getBlockNumber({ cacheTime: 0 }); // uncached: the head right now
   for (let i = 0; i < 60; i++) {
     try {
       const r = await fetch(`${indexerUrl}/api/status`);
