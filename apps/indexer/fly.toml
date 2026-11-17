@@ -8,7 +8,6 @@ primary_region = "iad"
 [env]
   PONDER_CHAIN_ID = "11155111"
   PONDER_RPC_URL = "https://sepolia.gateway.tenderly.co"
-  WEB_ORIGIN = "https://ripe-market-v1.netlify.app,https://plan-v1--ripe-market-v1.netlify.app"
 
 [http_service]
   internal_port = 42069
