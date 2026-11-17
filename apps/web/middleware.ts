@@ -63,5 +63,7 @@ export function middleware(request: NextRequest) {
 export const config = {
   // Skip Next internals (static assets, image optimizer, HMR) and the favicon; CSP matters on
   // documents, API routes and pages. Running on _next/* would also break the dev HMR socket.
-  matcher: [{ source: "/((?!_next/|favicon.ico).*)" }],
+  // API routes set their own headers: /api/media serves untrusted media with a sandbox CSP that the
+  // page CSP must not replace.
+  matcher: [{ source: "/((?!_next/|api/|favicon.ico).*)" }],
 };

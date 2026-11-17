@@ -4,7 +4,7 @@
 // (not RPC: chain reads stay on Tenderly's public gateway, D31); otherwise read from the chain
 // (tokenURI, Transfer logs, totalSupply), which is complete on local chains and best-effort
 // elsewhere.
-import { deploymentFor, erc721Abi } from "@market/protocol";
+import { deploymentFor, erc721Abi, MULTICALL3 } from "@market/protocol";
 import { createPublicClient, getAddress, http, parseAbiItem, type Address } from "viem";
 import { safeUrl } from "./media";
 
@@ -104,16 +104,27 @@ export async function ownedTokens(owner: Address, collections: Address[]): Promi
     }
   }
   // Chain fallback: tokens transferred to `owner` in known collections that it still owns.
+  // Ownership is read in one Multicall3 call per collection: Tenderly's public gateway rejects a
+  // JSON-RPC batch of one call per token as a whole ("rate limit exceeded"), and treating those
+  // failures as "not owned" showed an empty wallet. Failures now throw, so the route can say so.
   const out: OwnedToken[] = [];
   for (const nft of collections) {
-    const logs = await client.getLogs({ address: nft, event: transfer, args: { to: owner }, fromBlock: 0n }).catch(() => []);
+    const logs = await client.getLogs({ address: nft, event: transfer, args: { to: owner }, fromBlock: 0n });
     const ids = [...new Set(logs.map((l) => l.args.tokenId!))];
-    const owners = await Promise.all(
-      ids.map((id) => client.readContract({ address: nft, abi: erc721Abi, functionName: "ownerOf", args: [id] }).catch(() => null)),
-    );
-    const name = await client.readContract({ address: nft, abi: erc721Abi, functionName: "name" }).catch(() => null);
+    if (ids.length === 0) continue;
+    const [nameResult, ...owners] = (await client.multicall({
+      multicallAddress: MULTICALL3,
+      allowFailure: true,
+      contracts: [
+        { address: nft, abi: erc721Abi, functionName: "name" },
+        ...ids.map((id) => ({ address: nft, abi: erc721Abi, functionName: "ownerOf", args: [id] }) as const),
+      ] as never,
+    })) as { status: "success" | "failure"; result?: unknown }[];
+    const name = nameResult?.status === "success" ? (nameResult.result as string) : null;
     for (const [i, id] of ids.entries()) {
-      if (owners[i] && getAddress(owners[i]!) === getAddress(owner)) {
+      const o = owners[i];
+      // A failed ownerOf here means a burned token, not a transport error (multicall itself threw on those).
+      if (o?.status === "success" && getAddress(o.result as string) === getAddress(owner)) {
         const m = await tokenMeta(nft, id);
         out.push({ nft, tokenId: id.toString(), name: m.name, collectionName: name, image: m.image });
       }
