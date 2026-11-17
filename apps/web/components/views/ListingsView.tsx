@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { Address } from "viem";
 import type { ApiOrder, Page } from "@market/protocol";
 import { GiantTabs, Hero, Toolbar, SortOptions, ViewToggle } from "@/components/ui";
-import { ListingsTable, ListingsGrid, Loading, Empty } from "@/components/screens";
+import { ListingsTable, ListingsGrid, Loading, Empty, PastOrdersTable } from "@/components/screens";
 import { useHead, useIndexer } from "@/data/hooks";
 import { paths, indexer, type ListingSort } from "@/data/indexer";
 import { LagBanner } from "@/components/app/Trading";
@@ -17,6 +17,7 @@ export function ListingsView({ collection, sort = "newest", view = "table" }: { 
   const now = useHead();
   const base = paths.listings({ collection: collection as Address | undefined, sort, limit: PAGE });
   const first = useIndexer<Page<ApiOrder>>(base);
+  const past = useIndexer<Page<ApiOrder>>(paths.listings({ collection: collection as Address | undefined, state: "past", limit: 20 })).data?.items ?? [];
   const [more, setMore] = useState<ApiOrder[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -70,7 +71,11 @@ export function ListingsView({ collection, sort = "newest", view = "table" }: { 
       {first.isLoading ? (
         <Loading />
       ) : items.length === 0 ? (
-        <Empty title="No listings yet" note="When sellers list tokens here, they appear in this table." />
+        past.length ? (
+          <Empty title="No live listings" note="Past listings are below." />
+        ) : (
+          <Empty title="No listings yet" note="When sellers list tokens here, they appear in this table." />
+        )
       ) : view === "grid" ? (
         <ListingsGrid orders={items} now={now} />
       ) : (
@@ -81,6 +86,7 @@ export function ListingsView({ collection, sort = "newest", view = "table" }: { 
           onMore={loadMore}
         />
       )}
+      <PastOrdersTable orders={past} />
     </>
   );
 }

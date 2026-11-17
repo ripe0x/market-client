@@ -157,6 +157,24 @@ test("time states change without events", async () => {
   expect((await get<ApiOrder>(`/api/orders/${s.orders.risingOffer}?at=${ro.schedule.endTime}`)).status).toBe("live");
 });
 
+test("past listings and offers: finished orders only, with what they traded for", async () => {
+  const past = await get<Page<ApiOrder>>(`/api/listings?state=past&limit=200`);
+  const byAddr = new Map(past.items.map((o) => [o.address, o]));
+  expect(byAddr.get(s.orders.cheap)).toMatchObject({ status: "sold", filled: E("0.62").toString() });
+  expect(byAddr.get(s.orders.cheap)!.closedAt).toBeGreaterThan(0);
+  expect(byAddr.get(s.orders.myCancelled)).toMatchObject({ status: "cancelled", filled: "0" });
+  for (const o of past.items) expect(["sold", "cancelled", "expired"]).toContain(o.status);
+  expect(byAddr.has(s.orders.fixed)).toBe(false); // live
+  expect(byAddr.has(s.orders.awaitingNft)).toBe(false); // open, not finished
+  // An expiry in the past makes a listing past without any event.
+  const exp = await order(s.orders.expiring);
+  const later = await get<Page<ApiOrder>>(`/api/listings?state=past&limit=200&at=${exp.schedule.expiry + 1}`);
+  expect(later.items.map((o) => o.address)).toContain(s.orders.expiring);
+  const offersPast = await get<ApiOrder[]>(`/api/collections/${s.collections.driftlines}/offers?state=past&at=${exp.schedule.expiry + 86_400 * 30}`);
+  expect(offersPast.map((o) => o.address)).toEqual(expect.arrayContaining([s.orders.tokenOffer, s.orders.risingOffer]));
+  for (const o of offersPast) expect(["sold_out", "cancelled", "expired"]).toContain(o.status);
+});
+
 test("positions list what the owner can act on", async () => {
   const p = await get<ApiPositions>(`/api/accounts/${s.me}/positions`);
   expect(p.listings.map((o) => o.address)).toEqual(expect.arrayContaining([s.orders.myListing, s.orders.myFixed, s.orders.myCancelled]));

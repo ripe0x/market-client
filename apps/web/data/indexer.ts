@@ -32,10 +32,10 @@ export type TokenView = { nft: Address; tokenId: string; collectionName: string 
 
 export const paths = {
   status: () => `/api/status`,
-  listings: (p: { collection?: Address; sort?: ListingSort; cursor?: string | null; limit?: number; at?: bigint }) => `/api/listings${qs(p)}`,
+  listings: (p: { collection?: Address; sort?: ListingSort; cursor?: string | null; limit?: number; at?: bigint; state?: "past" }) => `/api/listings${qs(p)}`,
   collections: (p: { period?: Period; at?: bigint }) => `/api/collections${qs(p)}`,
   collection: (nft: Address, p: { period?: Period } = {}) => `/api/collections/${nft}${qs(p)}`,
-  offers: (nft: Address, p: { sort?: OfferSort; token?: string; at?: bigint } = {}) => `/api/collections/${nft}/offers${qs(p)}`,
+  offers: (nft: Address, p: { sort?: OfferSort; token?: string; at?: bigint; state?: "past" } = {}) => `/api/collections/${nft}/offers${qs(p)}`,
   token: (nft: Address, id: string) => `/api/tokens/${nft}/${id}`,
   order: (a: Address) => `/api/orders/${a}`,
   positions: (a: Address) => `/api/accounts/${a}/positions`,

@@ -28,3 +28,4 @@ export {
   ErrorNote,
   type TxPhase,
 } from "./states";
+export { PastOrdersTable } from "./PastOrdersTable";

@@ -5,7 +5,7 @@ import { getAddress, type Address } from "viem";
 import type { ApiCollection, ApiOrder } from "@market/protocol";
 import { sameAddress } from "@market/protocol";
 import { Toolbar, InlineTabs, SortOptions, Button } from "@/components/ui";
-import { CollectionHeader, OffersTable, Loading, Empty } from "@/components/screens";
+import { CollectionHeader, OffersTable, Loading, Empty, PastOrdersTable } from "@/components/screens";
 import { useHead, useIndexer, useApi } from "@/data/hooks";
 import { paths, type OfferSort } from "@/data/indexer";
 import { LagBanner } from "@/components/app/Trading";
@@ -18,6 +18,7 @@ export function CollectionOffersView({ nft, sort = "highest" }: { nft: Address; 
   const { address } = useAccount();
   const col = useIndexer<ApiCollection>(paths.collection(nft)).data;
   const offers = useIndexer<ApiOrder[]>(paths.offers(nft, { sort })).data;
+  const past = useIndexer<ApiOrder[]>(paths.offers(nft, { state: "past" })).data ?? [];
   const holdings = useApi<Owned>(address ? `/api/nfts/owned?owner=${address}&collection=${nft}` : null).data ?? [];
   const href = (s: OfferSort) => withParams(`/c/${nft}/offers`, { sort: s });
 
@@ -61,7 +62,11 @@ export function CollectionOffersView({ nft, sort = "highest" }: { nft: Address; 
         }
       />
       {items.length === 0 ? (
-        <Empty title="No offers" note="No one has made an offer on this collection yet." />
+        past.length ? (
+          <Empty title="No live offers" note="Past offers are below." />
+        ) : (
+          <Empty title="No offers" note="No one has made an offer on this collection yet." />
+        )
       ) : (
         <OffersTable
           offers={items}
@@ -70,6 +75,7 @@ export function CollectionOffersView({ nft, sort = "highest" }: { nft: Address; 
           sellHrefOf={(o) => `/c/${nft}/offers/${getAddress(o.address)}/sell`}
         />
       )}
+      <PastOrdersTable orders={past} />
     </>
   );
 }
