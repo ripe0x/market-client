@@ -35,3 +35,15 @@ cd apps/web && cp .env.example .env.local && pnpm dev
 ```
 
 The app runs on http://localhost:3100. The seeded wallet is Anvil account 1.
+
+## Seed a deployment with listings
+
+`contracts/test-collections/script/SeedListings.s.sol` deploys a test collection and creates four listings (fixed, falling, rising, expiring) and one collection offer through the real Market. About 3.0M gas plus 0.002 ETH held by the offer; everything stays yours to cancel from Positions.
+
+```bash
+cd contracts/test-collections && forge script script/SeedListings.s.sol --rpc-url https://sepolia.gateway.tenderly.co --sender <your address>
+```
+
+```bash
+cd contracts/test-collections && forge script script/SeedListings.s.sol --rpc-url https://sepolia.gateway.tenderly.co --account ripe0x --sender <your address> --broadcast --slow
+```
