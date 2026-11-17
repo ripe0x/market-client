@@ -31,12 +31,12 @@ import { codehash } from "./codehashes";
 
 export const deployments: Record<number, Deployment> = {
   31337: { chainId: 31337, name: "Local", ...release, startBlock: 0n, codehash, explorer: null, rpcUrl: "http://127.0.0.1:8645" },
-  // Sepolia: redeploy pending (DECISIONS D28). Set startBlock once deployed.
+  // Sepolia: Market deployed at block 12,150,229; all five code hashes verified 2026-11-16.
   11155111: {
     chainId: 11155111,
     name: "Sepolia",
     ...release,
-    startBlock: null,
+    startBlock: 12_150_229n,
     codehash,
     explorer: "https://sepolia.etherscan.io",
     rpcUrl: "https://sepolia.gateway.tenderly.co",

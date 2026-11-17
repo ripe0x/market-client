@@ -20,7 +20,7 @@ export default createConfig({
       rpc,
       pollingInterval: chainId === 31337 ? 250 : 4_000,
       // Tenderly's public gateway: stay well inside its limits.
-      maxRequestsPerSecond: chainId === 31337 ? 1000 : 10,
+      maxRequestsPerSecond: chainId === 31337 ? 1000 : 5,
       ethGetLogsBlockRange: chainId === 31337 ? undefined : 2_000,
       cacheRpcRequests: chainId !== 31337,
     },
