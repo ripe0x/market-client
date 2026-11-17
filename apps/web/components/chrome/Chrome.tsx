@@ -4,6 +4,8 @@ import { Logo } from "@/components/ui";
 import { SearchField } from "./SearchField";
 import { WalletButton } from "./WalletButton";
 import { MobileNav } from "./MobileNav";
+import { Empty } from "@/components/screens/states";
+import { DEPLOYMENT } from "@/lib/deployment";
 import styles from "./Chrome.module.css";
 
 export type MobileNavProps = React.ComponentProps<typeof MobileNav>;
@@ -52,7 +54,16 @@ export function Chrome({
         </div>
       )}
 
-      {children}
+      {/* No start block means Market has no deployment (and so no indexer) on this chain yet:
+          say so instead of loading forever. */}
+      {DEPLOYMENT.startBlock === null ? (
+        <Empty
+          title={`Market isn't deployed on ${DEPLOYMENT.name} yet.`}
+          note="Listings and offers appear here once it is."
+        />
+      ) : (
+        children
+      )}
     </>
   );
 }
