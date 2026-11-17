@@ -1,7 +1,7 @@
-import { eth, until, shortAddress, isRising, when, type ApiOrder } from "@market/protocol";
+import { eth, until, shortAddress, isFixed, when, type ApiOrder } from "@market/protocol";
 import { Table, HeaderRow, HeaderCell, Row, TableFooter } from "@/components/ui";
 import { PriceFigure } from "@/components/ui";
-import { scheduleOf, priceNow } from "@/lib/orderDisplay";
+import { scheduleOf, priceNow, moveWords } from "@/lib/orderDisplay";
 import { cx } from "@/lib/cx";
 import common from "./common.module.css";
 import styles from "./OffersTable.module.css";
@@ -42,15 +42,14 @@ export function OffersTable({
       </HeaderRow>
       {offers.map((o) => {
         const s = scheduleOf(o);
-        const rising = isRising(s);
         const eligible = eligibleOf?.(o) ?? false;
         return (
           <Row key={o.address} columns={COLS} height={76}>
             <div className={styles.offerCell}>
               <PriceFigure wei={priceNow(o, now)} size={22} />
-              {rising && (
+              {!isFixed(s) && (
                 <span className={common.subline}>
-                  Rising to {eth(s.endPrice)} by {when(s.endTime, now)}
+                  {moveWords(s, now).ing} to {eth(s.endPrice)} by {when(s.endTime, now)}
                 </span>
               )}
             </div>

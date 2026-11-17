@@ -10,7 +10,7 @@ import {
   Button,
   Address,
 } from "@/components/ui";
-import { scheduleOf, priceNow } from "@/lib/orderDisplay";
+import { scheduleOf, priceNow, moveWords } from "@/lib/orderDisplay";
 import { EXPLORER } from "@/lib/deployment";
 import styles from "./TokenDetail.module.css";
 
@@ -94,7 +94,7 @@ export function TokenDetail(props: TokenDetailProps) {
             {changing && (
               <div className={styles.changeBlock}>
                 <div className={styles.changeHead}>
-                  <span>Changes to {eth(s.endPrice)} ETH</span>
+                  <span>{moveWords(s, now).verb} to {eth(s.endPrice)} ETH</span>
                   <span className={styles.muted}>by {when(s.endTime, now)}</span>
                 </div>
                 <PriceScheduleChart schedule={s} now={now} width={424} height={48} />

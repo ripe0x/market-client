@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ApiOrder } from "@market/protocol";
 import { TokenMedia, PriceFigure } from "@/components/ui";
-import { priceNow, pricingText } from "@/lib/orderDisplay";
+import { priceNow, pricingShort } from "@/lib/orderDisplay";
 import styles from "./ListingsGrid.module.css";
 
 // Screen 01 grid view (README): square media cards with 1px gutters.
@@ -27,7 +27,7 @@ export function ListingsGrid({
             <div className={styles.price}>
               <PriceFigure wei={priceNow(o, now)} round="up" size={18} />
             </div>
-            <div className={styles.pricing}>{pricingText(o, now) ?? ""}</div>
+            <div className={styles.pricing}>{pricingShort(o, now) ?? ""}</div>
           </Link>
         );
       })}
