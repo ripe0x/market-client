@@ -142,7 +142,7 @@ export function RightDetailView({ account }: { account: Address }) {
         { key: "Royalty recipient", value: <span className={styles.mono}>{r.royaltyTo ?? "None"}</span> },
         { key: "Proceeds recipient", value: <span className={styles.mono}>{r.proceedsTo ?? "Unknown"}</span> },
       ]} /></section>
-      <p className={styles.note}>{r.supported ? "Surrender gives up this entitlement. After surrender or expiry, the issuer can recover the nft. A premium you've already paid isn't refunded. Every successful exercise allocates the committed royalty. Exercise has no trading fee. The nft collection's rules can still freeze, seize, or prevent delivery." : "Surrender gives up this entitlement. The committed residual beneficiary controls terminal recovery. External permissions can remain in their target contracts after termination."}</p>
+      <p className={styles.note}>{r.supported ? "Surrender gives up this entitlement. After termination, the committed residual beneficiary can recover the nft. A premium you've already paid isn't refunded. Every successful exercise allocates the committed royalty. Exercise has no trading fee. The nft collection's rules can still freeze, seize, or prevent delivery." : "Surrender gives up this entitlement. The committed residual beneficiary controls terminal recovery. External permissions can remain in their target contracts after termination."}</p>
       {r.configError ? <ErrorNote>{r.configError}</ErrorNote> : null}
       {!r.supported ? <ErrorNote>This handler isn't supported. Inspect its contract before using it. No exercise form is available.</ErrorNote> : null}
     </div><div className={styles.panel}>
