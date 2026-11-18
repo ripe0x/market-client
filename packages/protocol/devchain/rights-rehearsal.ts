@@ -5,7 +5,7 @@ import { marketAbi, rightAbi, rightsAbi, feeConfigAbi } from "../src/abis";
 import { configHash, encodeSaleConfig } from "../src/config";
 import { erc721Abi } from "../src/erc721";
 import { fixedSchedule } from "../src/schedule";
-import { readRight, encodeCoveredConfig, verifyRightDeposit, verifyRightTrade, type CoveredNFTConfig } from "../src/rights";
+import { readRight, encodeCoveredConfig, verifyRightDeposit, verifyRightTrade, verifyCoveredRecovery, type CoveredNFTConfig } from "../src/rights";
 import { verifyDeployment } from "../src/orders";
 import * as rt from "../src/rightsTx";
 import * as tx from "../src/tx";
@@ -99,11 +99,26 @@ export async function runRightsRehearsal(c:Chain) {
   await act("issuer surrenders",ISSUER,rt.surrenderRight(canceled.account));
   await act("issuer recovers surrendered collateral",ISSUER,rt.recoverRightNft(canceled.account,nft,canceled.id,ISSUER));
 
-  const expiring=await issue("listed expiry");await list("expiring premium",ISSUER,expiring,E("0.1"));
+  const listingExpired=await issue("listing expiry before right");
+  const stale=await list("short premium",ISSUER,listingExpired,E("0.1"));
+  await warp(c,listingExpired.deadline-3600n);
+  assert.equal((await readRight(c.pub,d,listingExpired.account)).effectiveExpired,false);
+  await assert.rejects(c.pub.simulateContract({...tx.buy(stale.order,stale.bytes,A,E("0.1")),account:A}));
+  await act("close expired listing with live right",ISSUER,tx.close(stale.order));
+  await act("return live right after listing expiry",ISSUER,tx.withdrawNft(stale.order,d.rights!,ISSUER,listingExpired.tokenId));
+  assert.equal((await readRight(c.pub,d,listingExpired.account)).holder?.toLowerCase(),ISSUER.toLowerCase());
+
+  const expiring=await issue("listed expiry");const expiredListing=await list("expiring premium",ISSUER,expiring,E("0.1"));
   await warp(c,expiring.deadline);
   view=await readRight(c.pub,d,expiring.account);assert.equal(view.effectiveExpired,true);assert.equal(view.state,"active");
+  await act("close listing without impossible token return",ISSUER,tx.close(expiredListing.order));
   await act("anyone finalizes expiry",FINALIZER,rt.finalizeRight(expiring.account));
-  await act("issuer recovers expired collateral",ISSUER,rt.recoverRightNft(expiring.account,nft,expiring.id,ISSUER));
+  // No indexer is used. Explicit original config bypasses historical log discovery.
+  const recovered=await verifyCoveredRecovery(c.pub,d,expiring.account,ISSUER,expiring.bytes);
+  assert.equal(recovered.holder,null,"manual recovery does not need an existing token");
+  await assert.rejects(verifyCoveredRecovery(c.pub,d,expiring.account,A,expiring.bytes));
+  await assert.rejects(verifyCoveredRecovery(c.pub,d,expiring.account,ISSUER,encodeCoveredConfig({...expiring.config,price:2n})));
+  await act("issuer manual-config recovery after burn",ISSUER,rt.recoverRightNft(expiring.account,recovered.nft!,recovered.assetId!,recovered.residual));
   assert.equal((await readRight(c.pub,d,expiring.account)).holder,null);
 
   const pending=await issue("abandoned setup",false);
@@ -135,10 +150,10 @@ export async function runRightsRehearsal(c:Chain) {
   assert.equal(await c.pub.getCode({address:badPredicted}),undefined);
   assert.equal(await c.pub.readContract({address:d.market,abi:marketAbi,functionName:"isRight",args:[badPredicted]}),false);
   assert.equal((await c.pub.readContract({address:nft,abi:erc721Abi,functionName:"ownerOf",args:[badId]})).toLowerCase(),wallet.toLowerCase());
-  const authoritativeState=await Promise.all([right.account,canceled.account,expiring.account,pending.account,predicted].map(async account=>{
+  const authoritativeState=await Promise.all([right.account,canceled.account,listingExpired.account,expiring.account,pending.account,predicted].map(async account=>{
     const state=await readRight(c.pub,d,account);
     const backingOwner=state.nft&&state.assetId!==null?await c.pub.readContract({address:state.nft,abi:erc721Abi,functionName:"ownerOf",args:[state.assetId]}):null;
     return {account,tokenId:String(state.tokenId),state:state.state,stateCode:state.stateCode,holder:state.holder,issuer:state.issuer,residual:state.residual,nft:state.nft,assetId:state.assetId===null?null:String(state.assetId),backingOwner,price:state.price===null?null:String(state.price),deadline:String(state.deadline),royaltyTo:state.royaltyTo,royaltyAmount:String(state.royaltyAmount),totalCredits:String(state.totalCredits),accountBalance:String(state.balance),credits:state.credits.map(x=>({beneficiary:x.beneficiary,amount:String(x.amount)}))};
   }));
-  return {deploymentId:d.deploymentId,protocolCommit:d.protocolCommit,chainId:31337,contracts:{market:d.market,rightImplementation:d.rightImplementation,rights:d.rights,coveredNFTPurchase:d.coveredNFTPurchase,nft,atomicWallet:wallet},actors:{issuer:ISSUER,buyerA:A,buyerB:B,finalizer:FINALIZER},rights:{exercised:right.account,surrendered:canceled.account,expired:expiring.account,canceled:pending.account,atomic:predicted,rolledBack:badPredicted},premiumReceipts:{primarySeller:String(E("0.198")),secondarySeller:String(E("0.297")),tradingFees:String(E("0.005"))},paymentReceipts:receipts,authoritativeState,atomicRollback:{tx:failedHash,status:failed.status,created:false,deposited:false,nftOwner:wallet},transactions};
+  return {deploymentId:d.deploymentId,protocolCommit:d.protocolCommit,chainId:31337,contracts:{market:d.market,rightImplementation:d.rightImplementation,rights:d.rights,coveredNFTPurchase:d.coveredNFTPurchase,nft,atomicWallet:wallet},actors:{issuer:ISSUER,buyerA:A,buyerB:B,finalizer:FINALIZER},rights:{exercised:right.account,surrendered:canceled.account,listingExpired:listingExpired.account,expired:expiring.account,canceled:pending.account,atomic:predicted,rolledBack:badPredicted},premiumReceipts:{primarySeller:String(E("0.198")),secondarySeller:String(E("0.297")),tradingFees:String(E("0.005"))},paymentReceipts:receipts,authoritativeState,atomicRollback:{tx:failedHash,status:failed.status,created:false,deposited:false,nftOwner:wallet},transactions};
 }
