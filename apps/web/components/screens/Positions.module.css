@@ -131,3 +131,17 @@
     justify-content: flex-end;
   }
 }
+
+@media (max-width: 767px) {
+  .tableHead { display: none; }
+  .sectionHead { height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px; padding-block: 12px; }
+  .positionRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    row-gap: 12px;
+    padding-block: 16px;
+    overflow-wrap: anywhere;
+  }
+  .positionRow > * { min-width: 0; }
+  .positionRow > :first-child { grid-column: 1 / -1; }
+  .positionRow .actions { grid-column: 1 / -1; justify-self: stretch; justify-content: flex-start; }
+}

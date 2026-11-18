@@ -77,7 +77,12 @@ test("Positions closes an expired escrowed right without a withdrawal in an atom
   await expect(row.getByRole("link", { name: "Inspect right", exact: true })).toBeVisible();
   await send(ACC.other, rightsTx.finalizeRight(r.account)); await waitIndexer();
   await expect(pub.readContract({ address: D.rights!, abi: rightsAbi, functionName: "ownerOf", args: [r.tokenId] })).rejects.toThrow();
-  await page.reload(); await expect(row.getByRole("button", { name: /withdraw/i })).toHaveCount(0);
+  await page.reload();
+  const rights = page.getByRole("heading", { name: "Your rights", exact: true }).locator("..");
+  await expect(rights.locator(`a[href="/rights/${r.account}"]`)).toBeVisible();
+  await expect(row.getByRole("button", { name: /withdraw/i })).toHaveCount(0);
+  await expect(row.getByRole("button", { name: "Close stale listing", exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: `test-results/positions-expired-right-${info.project.name}.png`, fullPage: true });
 });
 
