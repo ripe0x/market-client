@@ -98,12 +98,12 @@ const toQuote = ([price, royaltyTo, royalty, fee, feeTo]: readonly [bigint, Addr
   proceeds: price - royalty - fee,
 });
 
-/** `NFTSale.quote`: reverts like a fill would, except escrow, `maxPrice` and payment. */
+/** Price and split with schedule, proceeds, canonical liveness and royalty checks; not a fill simulation. */
 export async function quoteSale(client: PublicClient, d: Deployment, order: Address, c: SaleConfig) {
   return toQuote(await client.readContract({ address: d.nftSale, abi: nftSaleAbi, functionName: "quote", args: [order, c] }));
 }
 
-/** `NFTBid.quote`: reverts like a fill would, except `minProceeds`, ownership and approval. */
+/** Price and split with token, schedule, liveness and funding checks; not complete fill eligibility. */
 export async function quoteBid(client: PublicClient, d: Deployment, order: Address, c: BidConfig, tokenId: bigint) {
   if(d.rights && c.anyToken && sameAddress(c.nft,d.rights)) throw new OrderCheckError("Offers for rights must name a specific token.");
   return toQuote(
@@ -111,11 +111,11 @@ export async function quoteBid(client: PublicClient, d: Deployment, order: Addre
   );
 }
 
-/** Fee rate an existing order pays (locked at creation). Never reverts, unlike `quote`. */
+/** Applicable rate: Market creation timestamp for canonical orders, latest scheduled rate for foreign clones. */
 export const orderFeeBps = (client: PublicClient, d: Deployment, order: Address) =>
   client.readContract({ address: d.feeConfig, abi: feeConfigAbi, functionName: "feeBpsOf", args: [order] });
 
-/** Fee rate a new order would get. */
+/** Latest scheduled rate, which can precede its effective timestamp. Existing orders use feeBpsOf. */
 export const newOrderFeeBps = (client: PublicClient, d: Deployment) =>
   client.readContract({ address: d.feeConfig, abi: feeConfigAbi, functionName: "feeBps" });
 

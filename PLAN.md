@@ -554,3 +554,7 @@ Each is one reviewable PR (some may split), verified with the checks named, comm
 6. A rising **listing** is allowed by the protocol and shown in the design, but buying one at the displayed price fails one block later unless `maxPrice` has headroom; the design's "You pay at most 1.42" cannot hold for it.
 7. `FeeConfig`'s admin is still an EOA (`SECURITY.md` residual risk 23). A refusing fee recipient halts every fill; worth moving the admin to a Safe before Sepolia is used by others.
 8. Your global rule fixes mainnet RPC to Tenderly's public gateway; a production indexer may need a keyed provider (Q5).
+
+## Focused reliability follow-up acceptance
+
+Keep both expiry conditions visible; allow listing cleanup without impossible canonical token transfers. Support exact-byte authenticated covered collateral recovery when config discovery fails. Regenerate source-pinned artifacts after Artwork registry authentication, mint-history removal and production comment cleanup. Preserve legacy selection and require separate authority for public deployment or cutover. Validation and signed local evidence are recorded in STATUS.md.

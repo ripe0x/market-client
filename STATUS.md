@@ -1,6 +1,20 @@
 # Status
 
-Updated 2026-11-17, branch `codex/covered-rights`. Plan: [PLAN.md](PLAN.md). Decisions: [DECISIONS.md](DECISIONS.md). Release steps: [DEPLOYMENT.md](DEPLOYMENT.md).
+## Focused improvements candidate, 2026-11-18
+
+Verified implementation: `578e1b163ac1f458b7a6547ed9b90125da0800f1`; final protocol/submodule and artifact source: `c211808cf3dd6ed36f41e92d885e6f866a4b9436`. The complete protocol pin and repeated signed rehearsal are committed in `1d37cd8`; `4c86a5a` records the initial artifact generation. This supersedes the rights metadata-only candidate described in the historical status below. Current rights Market candidate is `0x5796242872BCAA3Fb0e16a4388c70f2e80aB966c`; Sepolia remains candidate/startBlock null. Legacy deployment and production selection remain unchanged.
+
+Implemented independent listing/right acquisition eligibility, exact selected-right sale binding, Positions close-only cleanup for expired/burned entitlements, refreshed staged checks, canonical burn-source escrow history, and authenticated manual terminal collateral recovery during discovery outages. Activation-only policy remains separate from core terminal residual authority. Issuance also accepts a valid zero exercise price, preserving the approved protocol economics.
+
+Fresh validation: protocol package 34/34, indexer 12/12, web unit 2/2, workspace typechecks and frozen production web build passed. Protocol local 245/245; both deep invariant campaigns 1,000 × 128 calls with unexpected reverts failing, zero reverts; fork suites 14 nft + 2 rights + 7 historical Sepolia passed after repairing the intentionally changed verifier metadata expectation. Focused immutable AI source review found and verified the scoped authority/association repairs and reported no remaining actionable finding. It did not independently rerun tests and is not an audit.
+
+The repeated signed isolated local rehearsal at final protocol pin c211808 completed 56 transactions: 55 successes and one deliberate genuine atomic rollback. Receipts, gas, source pin and authoritative reads are in packages/protocol/evidence/rights-local.json. Primary/resale premiums are separate from the exact 1 eth exercise, with 0.95/0.05 eth actual beneficiary payments. Listing expiry/live token return and right expiry/close-only/finalization/manual-config recovery after burn both passed.
+
+**52 distinct browser cases passed** at desktop 1440 × 900 and mobile 390 × 844, across the frozen campaign and affected repair/completion runs. The initial full command stopped with 30 passes, one mobile form-overflow failure and 21 unrun cases. A layout retry passed the next two mobile cases, then exposed the same overflow in Positions before any send. After repairs, all remaining 20 mobile cases passed (8.9 minutes), and six affected desktop Positions cases passed again (1.5 minutes). Earlier affected four-case desktop and three-case desktop runs also passed. No single all-green 52-case command is claimed. Screenshots in docs/screenshots show real loaded states, verified recovery destinations, separated expiry reasons and usable controls. Details, retained initial failures, exact commands and limitations are in [the verification record](docs/verification/2026-11-18-improvements.md).
+
+Read-only Tenderly Sepolia identity check at block 12,163,460 returned no legacy runtime/relationship mismatches and no code for the new candidate Market. No public transaction, production infrastructure change, merge or package publication occurred. Real wallet extension smoke and public release steps remain pending authorization and environment support.
+
+Historical milestone updated 2026-11-17, branch `codex/covered-rights`. Plan: [PLAN.md](PLAN.md). Decisions: [DECISIONS.md](DECISIONS.md). Release steps: [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Rights client candidate
 
