@@ -1,4 +1,5 @@
 "use client";
+import { DEPLOYMENT } from "@/lib/deployment";
 import type { ApiStatus } from "@market/protocol";
 import { useQuery } from "@tanstack/react-query";
 import { useBlock } from "wagmi";
@@ -21,7 +22,7 @@ export function useHeadBlock(): bigint | undefined {
 /** An indexer path as a query; refetched every 12 s and after every confirmed write. */
 export function useIndexer<T>(path: string | null, opts: { refetch?: number } = {}) {
   return useQuery({
-    queryKey: ["indexer", path],
+    queryKey: ["indexer", DEPLOYMENT.deploymentId, path],
     queryFn: () => indexer<T>(path!),
     enabled: !!path,
     refetchInterval: opts.refetch ?? 12_000,
@@ -39,7 +40,7 @@ export function useIndexerLag(): number | null {
 /** JSON fetch of the app's own NFT routes. */
 export function useApi<T>(path: string | null) {
   return useQuery({
-    queryKey: ["api", path],
+    queryKey: ["api", DEPLOYMENT.deploymentId, path],
     queryFn: async () => {
       const r = await fetch(path!);
       if (!r.ok) throw new Error(String(r.status));

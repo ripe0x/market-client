@@ -9,7 +9,7 @@ import type { Step as FlowStep } from "@/data/txflow";
 import { parseEth } from "@/lib/listingConfig";
 import styles from "./FlowModal.module.css";
 
-type Base = { title: string; ctaLabel: string; ctx: ErrorContext; onClose: () => void; onDone?: () => void };
+type Base = { title: string; ctaLabel: string; description?: React.ReactNode; ctx: ErrorContext; onClose: () => void; onDone?: () => void };
 
 /** A sheet that runs a transaction flow with live StepList + status. Two modes: fixed `steps`, or
  * an `amount` input whose value builds the steps (top-up). */
@@ -23,6 +23,7 @@ export function FlowModal(props: Base & { steps?: FlowStep[]; amount?: { suggest
 
   return (
     <Sheet open title={title} onClose={onClose}>
+      {props.description}
       {amount && (
         <label className={styles.amountRow}>
           <span className={styles.muted}>Amount</span>

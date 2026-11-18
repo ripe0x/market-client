@@ -1,18 +1,68 @@
 # Status
 
-Updated 2026-11-16, branch `plan/v1`. Plan: [PLAN.md](PLAN.md). Decisions: [DECISIONS.md](DECISIONS.md).
+Updated 2026-11-17, branch `codex/covered-rights`. Plan: [PLAN.md](PLAN.md). Decisions: [DECISIONS.md](DECISIONS.md). Release steps: [DEPLOYMENT.md](DEPLOYMENT.md).
+
+## Rights client candidate
+
+The client pins protocol `484223e81e6e68fd63531897ee7227aa20f8b91e`, including generic `Rights.tokenURI` metadata and exact deadline/execution fields (protocol D412–D413). `deployments/rights-local.json` identifies the local build. `deployments/rights-sepolia.json` is **candidate**, `startBlock: null`; its calculated addresses have **not** been deployed on Sepolia. `deployments/legacy-sepolia.json` preserves the verified order-only release at block 12,150,229. Public Sepolia still defaults to `legacy-v1`; rights indexing refuses the undeployed candidate.
+
+| Candidate evidence | Observed result | Limit |
+| --- | --- | --- |
+| Protocol source suites | `CANDIDATE_RUN=1 forge test --no-match-path 'test/fork/*' --summary`: 223 passed in 27 suites; `MAINNET_RPC_URL=https://mainnet.gateway.tenderly.co SEPOLIA_RPC_URL=https://sepolia.gateway.tenderly.co forge test --match-path 'test/fork/*' --summary`: 23 passed in 3 fork suites. Both local invariant drivers ran 128 × 64 calls, zero reverts. | Captured in `/tmp/market_metadata_candidate_local.log` and `/tmp/market_metadata_candidate_forks.log` at pinned protocol source; fork tests do not put rights code on public Sepolia. |
+| Protocol package | `pnpm --filter @market/protocol test`: 32 passed across four files, including 14 rights cases and a fresh-cache seven-day right after 16,001 actual blocks. | Package tests are distinct from browser and live-wallet paths. |
+| Signed local RPC rehearsal | `pnpm --filter @market/protocol rehearse:rights`: 47 signed Anvil transactions on chain 31337, 46 successes and one deliberately reverted AtomicWallet activation. All receipts and readbacks are in `packages/protocol/evidence/rights-local.json`; protocol commit and deployment identity match the local manifest. | No public broadcast. Receipt gas prices are nonzero; a local transaction is not a Sepolia transaction. |
+| Economic paths in that rehearsal | Primary 0.2 ETH premium pays 0.198 ETH seller and 0.002 ETH fee; secondary 0.3 ETH premium pays 0.297 ETH new seller and 0.003 ETH fee. Separate 1 ETH exercise pays 0.95 ETH proceeds and 0.05 ETH committed royalty through credits; canceled listing leaves right active; expiry and surrender recover only committed collateral. Failed atomic issuance leaves neither right nor deposit. | Example prices and 1%/5% rates are local test conditions, not launch settings or profit claims. |
+
+The complete 36-case browser suite passed at desktop 1440 × 900 and mobile 390 × 844 (`CANDIDATE_RUN=1 E2E_RPC_URL=http://127.0.0.1:8865 E2E_INDEXER_URL=http://localhost:42369 E2E_BASE_URL=http://localhost:3130 pnpm exec playwright test`, 12.6 minutes). After the payment destination repair and fee disclosure changes, the affected `e2e/rights.spec.ts` passed 8/8 again against a fixed production build. This includes issue, sell, resell, exercise, exact payout receipts, rejected activation/reload/recovery, collection-wide right-offer rejection, and a genuine AtomicWallet issuance with no implicit staged fallback. The separate local RPC rehearsal submits a genuinely reverted atomic transaction to prove rollback; the old generic `batch.spec.ts` still checks the batch interface with sequential sends, not atomicity.
+
+The independent AI source review covered immutable client trees and the consequential payment repairs. It found and prompted fixes for bounded older-config discovery, stale listing resumption, shared payout recipient state, fee disclosure, and alternate NFT delivery history. Its final repair pass found no further actionable issue in that narrow slice. It did not independently rerun the suites and is not an audit.
+
+`CANDIDATE_RUN=1 pnpm typecheck` passed for all three packages. The production web build passed with the selected local rights release. Standalone component suites passed: protocol package 32, real Anvil/Ponder indexer 12, web unit tests 2. Slither 0.11.5 analyzed 30 protocol contracts with 101 detectors and reported 25 results (`/tmp/market_metadata_slither_final.log`); the added metadata timestamp comparison enforces the documented exclusive deadline. The protocol's review found no new actionable issue. Static analysis is not an audit. The initial workspace `pnpm test` failed because Vitest collected Playwright specs; the new web Vitest include rule separates the runners, and the affected component suites were completed. Earlier browser attempts failed during development hot reload, a missing explicit dialog selector, and indexer startup; those failures were diagnosed before the fixed-build pass. A separate payout outage check initially timed out on dialog closure after its exact recipient and balance assertions passed: the framework can wait 30 seconds for the indexer plus query retries. With a bounded 60-second wait, the final desktop and mobile runs passed. No economic assertion was weakened.
+
+Public rights deployment and cutover checks remain pending. No public contract deployment, public walkthrough, hosted infrastructure change, push or merge occurred.
+
+The positive canonical offer walkthrough passed at both widths in `e2e/right-offer.spec.ts`. A 0.15 eth token-specific premium bid clamps its deadline to one hour before exercise expiry, settles 0.1485 eth to the issuer and 0.0015 eth in fees, leaves the underlying nft in the same account, and creates no exercise credit. Its first mobile run exposed long token IDs overlapping the approval button; wrapping the picker, step rows and full-width buttons fixed it. The affected ordinary acceptance/batch cases and canonical offer cases then passed 6/6 (`/tmp/market_client_verified_long_ids.log`, 1.9 minutes). The final read-only viewport/screenshot checks passed 2/2 again after that CSS repair.
+
+Coverage totals **42 distinct browser cases**: the 36-case full run, two viewport cases, two payout-outage cases, and two token-specific offer cases. Affected cases were rerun after repairs rather than repeating the whole suite. No unresolved functional failure remains in these local checks.
+
+## Final local checks and limits
+
+- `e2e/rights-views.spec.ts`: 2/2 passed, issuance/discovery/positions at both widths with no horizontal overflow. Screenshots are in `docs/screenshots/`.
+- `e2e/z-right-payments.spec.ts`: 2/2 passed at desktop and mobile against Anvil (`/tmp/market_client_verified_payment_outage.log`). The old burned account lacks indexer config; release beneficiary and own-credit withdrawal destination stay separate. The issuer receives exactly 0.95 ETH, the royalty beneficiary balance is unchanged, and 0.05 ETH remains reserved. Its first attempt failed only because the dialog could take longer than the 20-second wait while the indexer and query retries took up to 30 seconds; the final assertion waits up to 60 seconds and checks the same amounts.
+- Positive token-specific right offers passed 2/2; the affected ordinary acceptance and batch paths passed again in the same 6/6 run. The complete browser set contains 42 distinct cases.
+- Read-only current Sepolia identity check through `https://sepolia.gateway.tenderly.co` at block 12,158,234: the preserved legacy manifest's runtime hashes and relationships all matched (`verifyDeployment` returned no mismatches). This performed no transaction.
+- No real wallet extension smoke test, signer-specific Sepolia deployment dry run, public rights walkthrough, hosted indexer/client deployment, or production cutover ran. These remain review/release steps in `DEPLOYMENT.md`. Optional Alchemy and WalletConnect paths were not exercised.
+- Test Multicall3 is the real stateless runtime installed as a local Anvil predeploy, following the existing development setup. Calls execute that code; no successful RPC answers or protocol balances are mocked. Local counterparties and hostile recipients are real deployed contracts.
+- Older creation configs should come from the selected indexer and are checked against the immutable account hash before any supported action. Without config, exercise/trading is disabled. A known beneficiary can still release or withdraw its recorded credit; a contract that refuses eth and cannot authorize redirection remains unable to collect.
+- The seven-day older-right test mined 16,001 local blocks. The resulting old Anvil on port 8865 refused historical block 21 calls from a subsequent indexer; the remaining browser preview moved to a fresh local node and separate indexer without clearing the old node or its database. This is an environment limit of that rehearsal, not evidence of a rights contract failure. No public indexer backfill under comparable depth was run.
+
+## Representative signed local transaction gas
+
+| Operation | Gas used |
+| --- | --- |
+| purchase: create | 127,519 |
+| purchase: activate | 235,334 |
+| primary: escrow | 71,277 |
+| A buys entitlement | 190,675 |
+| B exercises | 203,463 |
+| anyone finalizes expiry | 52,195 |
+| issuer recovers expired collateral | 56,945 |
+
+The 47 recorded transactions, including deployment and fixtures, used 12,494,581 gas and 0.012734040159391815 eth of local gas. These are actual nonzero-price Anvil receipts, not public gas quotes. Hashes, actors, addresses and post-state reads are in the committed JSON evidence.
+
+## Verified legacy Sepolia release (2026-11-16 record)
 
 ## State
 
-Milestones M0–M11 built and verified locally against the pinned protocol. **Sepolia (M12): live.** Market is deployed on Sepolia at block 12,150,229; all five runtime code hashes (Market, Order implementation, FeeConfig, NFTSale, NFTBid) match the pinned build, FeeConfig reads 1%, recipient `0xD4ba…7e72`, admin `0xCB43…17F9` (checked 2026-11-16 through Tenderly's public gateway).
+Milestones M0–M11 were built and verified locally against the **order-only** protocol pin. **Legacy Sepolia (M12) is live.** Market was deployed on Sepolia at block 12,150,229; all five runtime code hashes (Market, Order implementation, FeeConfig, NFTSale, NFTBid) matched that build, FeeConfig read 1%, recipient `0xD4ba…7e72`, admin `0xCB43…17F9` (checked 2026-11-16 through Tenderly's public gateway).
 
 | Where | What |
 | --- | --- |
 | https://ripe-market-v1.netlify.app | Netlify production, from `main` |
-| https://deploy-sepolia--ripe-market-v1.netlify.app | Branch deploy of `deploy/sepolia` (PR #2): live Sepolia data |
+| https://deploy-sepolia--ripe-market-v1.netlify.app | Historical branch deploy of `deploy/sepolia`; PR #2 merged at `69cb488` |
 | https://market-indexer-sepolia.fly.dev | Indexer (Fly.io `market-indexer-sepolia`, Postgres `market-indexer-sepolia-db`, schema `market_v1`), at the Sepolia head |
 
-## Evidence
+## Legacy evidence (recorded 2026-11-16)
 
 | Check | Command | Result |
 | --- | --- | --- |
@@ -24,10 +74,10 @@ Milestones M0–M11 built and verified locally against the pinned protocol. **Se
 | E2E | `cd apps/web && npx playwright test e2e/*.spec.ts` (with `pnpm dev:chain`, indexer, `next start`) | 22 passed: 11 flows × desktop 1440 and mobile 390, incl. one-prompt batch accept |
 | Independent review | AI review of money, approval, indexer and server code | 2 confirmed bugs (SSRF in metadata fetch; accept broken on batching wallets) and 4 lesser findings, all fixed in `1680d83`; no economic loss or understated amount found |
 
-## Not verified
+## Remaining checks and limitations
 
 1. No human audit of the client or the protocol. The protocol itself is unaudited (its STATUS.md).
-2. No real wallet extension run (MetaMask/Coinbase). E2E uses a test wallet that forwards to Anvil's unlocked account; its batch mode runs calls one after another, so atomicity is not tested.
+2. The historical E2E result used a test wallet forwarding to Anvil's unlocked account; its batch mode ran calls one after another. The current signed AtomicWallet local rehearsal checks one atomic issuance and rollback, but no real wallet extension run (MetaMask/Coinbase) is recorded. Rights browser coverage uses the injected wallet plus a genuine owner-controlled account.
 3. No mainnet-fork compatibility run through the client (real BAYC/Azuki/Opepen…). The protocol repo's own fork tests cover the contracts.
 4. Tenderly's public gateway rate-limits the indexer (HTTP -32005 at 10 req/s); Ponder retries and stays at the head at 5 req/s. Heavier Sepolia traffic may need a lower rate or longer poll interval.
 5. Alchemy NFT API path untested (no key); the chain fallback for metadata and holdings is what ran.
@@ -37,4 +87,4 @@ Milestones M0–M11 built and verified locally against the pinned protocol. **Se
 
 ## Next action
 
-Merge PR #2 so Netlify production (built from `main`) uses the Sepolia start block; start that build by hand until Netlify's GitHub app can see this repository.
+Review the completed local candidate and its committed release record. PR #2 was already merged at `69cb488`; no Sepolia rights cutover is authorized under this implementation task. The Sepolia preparation sequence and separate legacy access are in [DEPLOYMENT.md](DEPLOYMENT.md).

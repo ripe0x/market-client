@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "legacy-v1",
+  "chainId": 11155111,
+  "name": "Sepolia",
+  "protocolCommit": "d6b207309b2f1fad8f47f5e16cb166e7e28d9d13",
+  "status": "deployed",
+  "startBlock": "12150229",
+  "contracts": {
+    "market": {
+      "address": "0x7c91e34703ae3E32812bad1f7251CD0976A31FD4",
+      "codehash": "0xb3663e868089193f44b68f1767e9aa2547c5e92c8f0e16b877bf56cd5d62f79f"
+    },
+    "orderImplementation": {
+      "address": "0x1c8Af1349Fa2b41903291675DCf5e9dfc2A8fB83",
+      "codehash": "0xc4fc2e507b4bc3c98b04ec7054d3771f650a43f686e3c65efe0c031f6df28005"
+    },
+    "feeConfig": {
+      "address": "0x9A181B2129540Df9502a30e08a4E4e34Cd7406fF",
+      "codehash": "0x5ff314ecf3fb25697a979273aefe20be64795be179dc0c7581ed32a4dc80c5d0"
+    },
+    "nftSale": {
+      "address": "0xfEf3a72600a453F82650343525751811120da2c8",
+      "codehash": "0x4bc49d695700657f6b80d862120919637a7a39aa71d96a1108b6ff8cf767616a"
+    },
+    "nftBid": {
+      "address": "0x8dbB30441bB0ca607bC17A3ea763C8f66B30017E",
+      "codehash": "0x053a677c711ba974b53ca5c7edaca97a438ff2837c373254e857de2367aef569"
+    }
+  },
+  "relationships": {
+    "market.implementation": "0x1c8Af1349Fa2b41903291675DCf5e9dfc2A8fB83",
+    "feeConfig.market": "0x7c91e34703ae3E32812bad1f7251CD0976A31FD4",
+    "nftSale.fees": "0x9A181B2129540Df9502a30e08a4E4e34Cd7406fF",
+    "nftBid.fees": "0x9A181B2129540Df9502a30e08a4E4e34Cd7406fF"
+  },
+  "rpcUrl": "https://sepolia.gateway.tenderly.co",
+  "explorer": "https://sepolia.etherscan.io"
+}

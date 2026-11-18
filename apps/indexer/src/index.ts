@@ -2,7 +2,6 @@ import {
   decodeBidConfig,
   decodeRevert,
   decodeSaleConfig,
-  deploymentFor,
   erc721Abi,
   feeConfigAbi,
   feeOf,
@@ -11,13 +10,22 @@ import {
   multicall3Abi,
   nftBidAbi,
   nftSaleAbi,
+  verifyDeployment,
 } from "@market/protocol";
 import { and, eq, or, sql } from "ponder";
 import { ponder, type Context } from "ponder:registry";
 import { collection, fill, meta, order, token } from "ponder:schema";
-import { getAddress, isAddressEqual, zeroAddress, type Address, type Hex } from "viem";
+import { createPublicClient, getAddress, http, isAddressEqual, zeroAddress, type Address, type Hex, type PublicClient } from "viem";
+import { deployment as d } from "./deployment";
+import { pollRights, recordRightEvent } from "./rights";
 
-const d = deploymentFor(Number(process.env.PONDER_CHAIN_ID ?? 31337));
+ponder.on("Market:setup", async () => {
+  // Setup's historical client is pinned to startBlock, before later deployment transactions.
+  const live = createPublicClient({ transport: http(process.env.PONDER_RPC_URL ?? d.rpcUrl) });
+  const mismatch = await verifyDeployment(live as PublicClient, d);
+  if (mismatch.length) throw new Error(`Deployment identity mismatch: ${mismatch.join(", ")}`);
+});
+
 
 // ---------------------------------------------------------------------------------------------
 // Market.Created: the only way an order enters the index (trust rules 1, 2, 5; PLAN.md §4.2).
@@ -43,7 +51,8 @@ ponder.on("Market:Created", async ({ event, context }) => {
     config,
     // Market.create does not validate config; an order that can never fill stays visible to
     // its owner only, so they can close and recover.
-    valid: !!terms && !!coll?.isERC721 && terms.payee !== zeroAddress,
+    valid: !!terms && !!coll?.isERC721 && terms.payee !== zeroAddress
+      && !(kind === "bid" && terms.anyToken && d.rights && isAddressEqual(terms.nft, d.rights)),
     nft,
     tokenId: terms?.tokenId ?? 0n,
     anyToken: terms?.anyToken ?? false,
@@ -201,7 +210,7 @@ type FillArgs = { tokenId: bigint; price: bigint; royalty: bigint; fee: bigint; 
 
 async function recordFill(
   context: Context,
-  event: { transaction: { hash: Hex }; block: { number: bigint; timestamp: bigint } },
+  event: { transaction: { hash: Hex }; block: { number: bigint; timestamp: bigint }; log: { logIndex: number } },
   row: typeof order.$inferSelect,
   f: FillArgs,
 ) {
@@ -221,6 +230,12 @@ async function recordFill(
     .insert(token)
     .values({ nft: row.nft, tokenId: f.tokenId, lastSalePrice: f.price, lastSaleAt: event.block.timestamp })
     .onConflictDoUpdate({ lastSalePrice: f.price, lastSaleAt: event.block.timestamp });
+  if (d.rights && isAddressEqual(row.nft, d.rights) && f.tokenId <= (1n << 160n) - 1n) {
+    const account = getAddress(`0x${f.tokenId.toString(16).padStart(40, "0")}`);
+    await recordRightEvent(context, event, account, row.kind === "sale" ? "premium_sale" : "premium_bid", {
+      from: f.seller, to: f.buyer, amount: f.price, order: row.address,
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -238,6 +253,7 @@ ponder.on("poll:block", async ({ event, context }) => {
 
   const normal = number % 5n === 0n;
   const slow = number % 300n === 0n;
+  await pollRights(context, number, timestamp, normal);
   const rows = await context.db.sql
     .select()
     .from(order)

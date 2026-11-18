@@ -1,6 +1,6 @@
 # Decisions
 
-Decisions for the Market V1 client, made on the owner's instruction "make the decisions for me" (2026-11-16). Each one is the recommendation from `PLAN.md` §2 unless noted. **Status "Decided" means build on it; "Needs you" means a step only you can take.** To change one, edit its row and add a dated line under "Changes"; later work follows the latest entry.
+Original Market V1 client decisions were made on the owner's instruction "make the decisions for me" (2026-11-16). D40–D44 below supersede the order-only scope for the approved rights milestone. **Status "Decided" means build on it; "Needs you" means a step only you can take.** Later dated decisions control where historical rows conflict.
 
 Review order: start with the ones marked **Revisit first**.
 
@@ -68,8 +68,24 @@ Review order: start with the ones marked **Revisit first**.
 | D38 | Keyboard focus: a 2px white outline on `:focus-visible` everywhere, the design's selection style. | Decided |
 | D39 | Every write CTA (`FlowButton`) is gated on the deployment check (start block, runtime code hashes) and the wallet's network. | Decided |
 
+## Rights client superseding decisions (2026-11-17)
+
+The owner's approved transferable-rights direction supersedes the order-only scope of the original plan and D22/D28 for the new release. The original decisions still describe the verified legacy Sepolia deployment. Protocol commitments and economic terms are specified in `contracts/market/docs/DECISIONS.md` D401–D413; the client cannot weaken them.
+
+| # | Decision | Why and boundary | Status |
+| --- | --- | --- | --- |
+| D40 | Keep `legacy-v1` and `rights-v1` as separate release identities and manifests. Public Sepolia defaults to verified `legacy-v1`; the rights Sepolia manifest stays `candidate` with `startBlock: null` until actual receipts and postflight reads establish deployment. | Computed CREATE2 addresses are not deployed code. The historical legacy manifest and its positions remain intact. `deploymentId` scopes queries and indexer responses. | Decided |
+| D41 | The rights indexer uses its own schema and authenticates Market-created Right accounts and canonical token ownership. A candidate manifest cannot start a public indexer. | Rights events and backing states must not contaminate legacy positions or become live solely through an environment override. | Decided |
+| D42 | The supported first client right is a covered NFT purchase. Show the separate premium, fixed exercise price, committed royalty recipient/amount, backing account, holder, residual beneficiary and remaining exclusive exercise window. Refuse a right trade when its configured order expiry does not leave the required exercise window. Collection-wide canonical rights bids are excluded. | Buying or reselling the token does not execute the right, and generic NFT collection value does not describe a specific right. The protocol's `Rights.tokenURI` supplies generic identity and liveness; full operation terms come from `RightCreated` and activation state. | Decided |
+| D43 | Use the existing NFT trading fee for right-token premiums; do not apply the underlying NFT's royalty to every premium. Covered exercise pays exact ETH and credits the activation-committed royalty and proceeds; credit release remains available after exercise. | A 0.2 ETH primary premium at 1% pays 0.198 ETH to that seller and 0.002 ETH fee. A 0.3 ETH resale pays 0.297 ETH to its listing seller and 0.003 ETH fee. A separate 1 ETH exercise at 5% credits 0.05 ETH royalty and 0.95 ETH proceeds. These are tested example amounts, not launch price limits. | Decided |
+| D44 | Public rights release requires a frozen source, same-signer rehearsal, codehash and relationship readbacks, isolated indexer readiness, a separate web selection, a signed user walkthrough and explicit owner authorization before each public broadcast. | Local Anvil receipts and fork simulations do not establish a Sepolia deployment or authorize sending. Legacy access must survive evaluation of the rights candidate. | Decided |
+| D45 | Covered issuance is staged and resumable by default. Atomic mode requires actual wallet support, preserves that account as issuer, and never silently falls back after failed preparation. Deposits reauthenticate the account, asset and committed terms. | Atomic setup failure rolls back creation and deposit. Separate transactions require a pending cancellation and recovery path. | Implemented |
+| D46 | Exercise recipient, right transfer recipient, credit release beneficiary and own-credit withdrawal destination are independent inputs. Confirmation displays the destination captured with the call. | A third-party beneficiary entered for release must never redirect the caller's own proceeds. Live fees and seller net are shown for premiums; exercise has no trading fee. | Implemented |
+| D47 | Indexed creation bytes are untrusted until the canonical account's config hash matches. Supplied bytes avoid a history scan; fallback discovery is bounded to eight 2,000-block requests. | Older rights need indexed or supplied config for exercise and trading. Missing config does not prevent withdrawal of a known credit. The listing UI requires more than two hours remaining and leaves a one-hour exercise window. | Implemented |
+
 ## Changes
 
+- 2026-11-17: D40–D44 record the native rights client and separate release. D22's `d6b2073` pin and D28's pending Sepolia redeploy describe the original V1 plan; the legacy release was deployed and verified, while the rights candidate pins `484223e` and has no public start block. No new public broadcast is authorized.
 - 2026-11-16: all of the above set on the owner's instruction "make the decisions for me". No owner review yet.
 - 2026-11-16: owner: "Only use tenderly public rpc url. Dont use vercel or railway. Use netlify and fly.io." D29 and D31 replaced accordingly. D30 (Alchemy NFT API for metadata and holdings) is not RPC and stays.
 - 2026-11-16: owner: "Complete the full work without asking me any more questions." Build proceeds M0 to M11 locally; M12 (Sepolia) still waits on the protocol redeploy and accounts.

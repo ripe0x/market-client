@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "rights-v1",
+  "chainId": 31337,
+  "name": "Local",
+  "protocolCommit": "484223e81e6e68fd63531897ee7227aa20f8b91e",
+  "status": "deployed",
+  "startBlock": "1",
+  "contracts": {
+    "market": {
+      "address": "0x2EEd41b789fC4D812fB7d2b19a40FF21851Ada95",
+      "codehash": "0x7b6d08223495e80461728d3a375a309313d3f6665632522a9dab6f9b978ebd6f"
+    },
+    "orderImplementation": {
+      "address": "0x5c6faF50236c460849314c302198Ed382E65f6Ee",
+      "codehash": "0xad1fe3f38e65f4afbbba63f6d1cf97dc8bbb1878591c76936bf6074ad07fd8f8"
+    },
+    "rightImplementation": {
+      "address": "0x038E2C2b4448021525dd3EB0e3385b447e43e4e5",
+      "codehash": "0x990992e83f90360faa5ccc821a373818c989cc82a576494f52de6b2aea75c85a"
+    },
+    "rights": {
+      "address": "0x7d3AB35412fF49921A60eAf921a1f6A3c5F83b5b",
+      "codehash": "0xba0cada03edb49c82b05a4ada7623c1c39849ef09b3f3cda51353a2576bf1553"
+    },
+    "feeConfig": {
+      "address": "0xa4c8dC554170d3016aeC36441F5F465BbAb816B0",
+      "codehash": "0x88d9425a99110796d61472966d5476ca2ce6a111eb61cdb866d156581949df48"
+    },
+    "nftSale": {
+      "address": "0x60C4c83bB2EAdd73D2669dC180587FB4e4a9393C",
+      "codehash": "0x46c0bdce5ceb5817056a276f928c033949fd34f46a15e7d1c8c1db51b1937594"
+    },
+    "nftBid": {
+      "address": "0xea19021Fd9d418874e146C1dA167C234D08f33f4",
+      "codehash": "0xc5f3a514660b7b7510bd880c3f575e95b168daa9562eb5b53595ca15f7e5789b"
+    },
+    "coveredNFTPurchase": {
+      "address": "0xe9f8bf0e002Ef25dCa9c5490186191aB93E2184c",
+      "codehash": "0xac7f7ec79fa0b2dcfc4707897604f542b8c8bd6507a9084117ad33d63d337d40"
+    },
+    "fillVerifier": {
+      "address": "0x9e301ffeE4900D6e1436911c0eD5bDd6DF0499C0",
+      "codehash": "0xbb49051cebc22b73e345ad3e65c789467b1a0f7e77d240ca4a3b3167749c607e"
+    }
+  },
+  "relationships": {
+    "market.implementation": "0x5c6faF50236c460849314c302198Ed382E65f6Ee",
+    "market.rightImplementation": "0x038E2C2b4448021525dd3EB0e3385b447e43e4e5",
+    "market.rights": "0x7d3AB35412fF49921A60eAf921a1f6A3c5F83b5b",
+    "rights.market": "0x2EEd41b789fC4D812fB7d2b19a40FF21851Ada95",
+    "rightImplementation.market": "0x2EEd41b789fC4D812fB7d2b19a40FF21851Ada95",
+    "rightImplementation.rights": "0x7d3AB35412fF49921A60eAf921a1f6A3c5F83b5b",
+    "coveredNFTPurchase.market": "0x2EEd41b789fC4D812fB7d2b19a40FF21851Ada95",
+    "feeConfig.market": "0x2EEd41b789fC4D812fB7d2b19a40FF21851Ada95",
+    "nftSale.fees": "0xa4c8dC554170d3016aeC36441F5F465BbAb816B0",
+    "nftBid.fees": "0xa4c8dC554170d3016aeC36441F5F465BbAb816B0",
+    "nftSale.canonicalRights": "0x7d3AB35412fF49921A60eAf921a1f6A3c5F83b5b",
+    "nftBid.canonicalRights": "0x7d3AB35412fF49921A60eAf921a1f6A3c5F83b5b"
+  },
+  "rpcUrl": "http://127.0.0.1:8645",
+  "explorer": null
+}

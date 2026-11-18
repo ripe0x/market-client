@@ -10,7 +10,8 @@
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr) auto;
   align-items: center;
-  height: 48px;
+  min-height: 48px;
+  padding: 12px 0;
   border-bottom: 1px solid var(--line);
   font-size: 15px;
   color: var(--ink);
@@ -18,6 +19,10 @@
 .num {
   font: 500 12px/1 var(--font-mono), ui-monospace, monospace;
   color: var(--ink-3);
+}
+.label {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .right {
   font: 500 11px/1 var(--font-mono), ui-monospace, monospace;

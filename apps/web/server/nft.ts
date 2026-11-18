@@ -9,7 +9,7 @@ import { createPublicClient, getAddress, http, parseAbiItem, type Address } from
 import { safeUrl } from "./media";
 
 const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? 31337);
-const rpcUrl = process.env.RPC_URL ?? process.env.NEXT_PUBLIC_RPC_URL ?? deploymentFor(chainId).rpcUrl;
+const rpcUrl = process.env.RPC_URL ?? process.env.NEXT_PUBLIC_RPC_URL ?? deploymentFor(chainId, process.env.NEXT_PUBLIC_MARKET_RELEASE).rpcUrl;
 export const client = createPublicClient({ transport: http(rpcUrl, { batch: true }) });
 
 const ALCHEMY_NETWORK: Record<number, string> = { 1: "eth-mainnet", 11155111: "eth-sepolia" };

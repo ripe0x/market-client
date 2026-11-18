@@ -12,9 +12,9 @@ export const ME = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
  * It runs the calls one after another from the unlocked account (Anvil has no atomic batch), so
  * it tests the app's batch path, not atomicity. `window.__walletPrompts` counts prompts.
  */
-export async function injectWallet(page: Page, account = ME, rpc = RPC, opts: { atomic?: boolean } = {}) {
+export async function injectWallet(page: Page, account = ME, rpc = RPC, opts: { atomic?: boolean; rejectAt?: number; realExecutor?: boolean } = {}) {
   await page.addInitScript(
-    ({ account, rpc, atomic }) => {
+    ({ account, rpc, atomic, rejectAt, realExecutor }) => {
       let id = 0;
       const w = window as unknown as { __walletPrompts: number };
       w.__walletPrompts = 0;
@@ -43,9 +43,15 @@ export async function injectWallet(page: Page, account = ME, rpc = RPC, opts: { 
             case "wallet_sendCalls": {
               if (!atomic) throw Object.assign(new Error("unsupported"), { code: 4200 });
               w.__walletPrompts++;
+              if (rejectAt === w.__walletPrompts) throw Object.assign(new Error("Rejected in test wallet"), { code: 4001 });
               const [{ calls }] = params as [{ calls: { to: string; data?: string; value?: string }[] }];
               const receipts: unknown[] = [];
-              for (const c of calls) {
+              if (realExecutor) {
+                const hash = await (window as unknown as { __atomicSend: (calls: unknown[]) => Promise<string> }).__atomicSend(calls);
+                let r = null;
+                while (!(r = await call("eth_getTransactionReceipt", [hash]))) await new Promise((x) => setTimeout(x, 250));
+                receipts.push(r);
+              } else for (const c of calls) {
                 const hash = await call("eth_sendTransaction", [{ from: account, to: c.to, data: c.data ?? "0x", value: c.value ?? "0x0" }]);
                 let r = null;
                 while (!(r = await call("eth_getTransactionReceipt", [hash]))) await new Promise((x) => setTimeout(x, 250));
@@ -66,7 +72,9 @@ export async function injectWallet(page: Page, account = ME, rpc = RPC, opts: { 
               return [{ parentCapability: "eth_accounts" }];
             case "eth_sendTransaction": {
               w.__walletPrompts++;
+              if (rejectAt === w.__walletPrompts) throw Object.assign(new Error("Rejected in test wallet"), { code: 4001 });
               const [tx] = params as [Record<string, unknown>];
+              if (realExecutor) return (window as unknown as { __atomicSend: (calls: unknown[]) => Promise<string> }).__atomicSend([tx]);
               return call("eth_sendTransaction", [{ ...tx, from: account }]);
             }
             default:
@@ -82,8 +90,21 @@ export async function injectWallet(page: Page, account = ME, rpc = RPC, opts: { 
       window.addEventListener("eip6963:requestProvider", announce);
       announce();
     },
-    { account, rpc, atomic: !!opts.atomic },
+    { account, rpc, atomic: !!opts.atomic, rejectAt: opts.rejectAt, realExecutor: !!opts.realExecutor },
   );
+}
+
+/** The advertised account really executes all calls in one owner-authorized transaction. */
+export async function injectAtomicWallet(page: Page, account: `0x${string}`, owner: `0x${string}`) {
+  const { createWalletClient, http, defineChain } = await import("viem");
+  const { artifacts } = await import("@market/protocol/devchain");
+  const chain = defineChain({ id: 31337, name: "anvil", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: { default: { http: [RPC] } } });
+  const signer = createWalletClient({ account: owner, chain, transport: http(RPC) });
+  await page.exposeFunction("__atomicSend", (calls: { to: `0x${string}`; value?: string; data?: `0x${string}` }[]) => signer.writeContract({
+    address: account, abi: artifacts.AtomicWallet.abi, functionName: "executeBatch", gas: 5_000_000n,
+    args: [calls.map(c => ({ target: c.to, value: BigInt(c.value ?? "0"), data: c.data ?? "0x" }))],
+  }));
+  await injectWallet(page, account, RPC, { atomic: true, realExecutor: true });
 }
 
 /** Read the seeded addresses written by `pnpm dev:chain`. */

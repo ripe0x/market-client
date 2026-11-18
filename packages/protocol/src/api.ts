@@ -33,6 +33,10 @@ export type ApiOrder = {
   nft: Address;
   collectionName: string | null;
   tokenId: string;
+  /** Present only for canonical rights authenticated by this deployment's indexer. */
+  rightAccount?: Address;
+  underlyingNft?: Address | null;
+  underlyingTokenId?: string | null;
   anyToken: boolean;
   schedule: ApiSchedule;
   /** Bids: 0 and 1 both mean one. */
@@ -52,7 +56,7 @@ export type ApiOrder = {
   status: OrderStatus;
   /** Price at the request's `at`. */
   priceNow: Wei;
-  /** Closed and still holding the NFT or ETH. */
+  /** Closed and holding recoverable ETH or an NFT whose transfer is still permitted. */
   withdrawable: boolean;
   /** Unix seconds the order closed (sold, filled out or cancelled); null while open. */
   closedAt: number | null;
@@ -94,9 +98,9 @@ export type ApiCollection = {
 
 export type Page<T> = { items: T[]; next: string | null; total: number };
 
-export type ApiStatus = { chainId: number; block: string; timestamp: number; ready: boolean };
+export type ApiStatus = { deploymentId?: string; releaseId?: string; chainId: number; block: string; timestamp: number; ready: boolean };
 
-export type ApiPositions = { listings: ApiOrder[]; offers: ApiOrder[] };
+export type ApiPositions = { listings: ApiOrder[]; offers: ApiOrder[]; rights?: ApiRight[] };
 
 export type ApiSearch = {
   collections: Pick<ApiCollection, "address" | "name" | "symbol">[];
@@ -110,3 +114,12 @@ export const toSchedule = (s: ApiSchedule): Schedule => ({
   endTime: BigInt(s.endTime),
   expiry: BigInt(s.expiry),
 });
+
+export type ApiRightEvent = { id:string;kind:string;timestamp:number;block:string;tx:Hex;from?:Address;to?:Address;beneficiary?:Address;recipient?:Address;amount?:string;order?:Address };
+export type ApiRight = {
+  deploymentId:string;account:Address;tokenId:string;issuer:Address;holder:Address|null;residual:Address;handler:Address;
+  config:Hex|null;configError:string|null;supported:boolean;state:number;stateName?:import("./rights").RightState;stateCode?:number;isLive:boolean;effectiveExpired:boolean;deadline:string;
+  nft:Address|null;assetId:string|null;price:string|null;proceedsTo:Address|null;royaltyTo:Address|null;royalty:string;royaltyAmount?:string;
+  activationTerms:Hex;backingOwner?:Address|null;backed:boolean;balance:string;totalCredits:string;credits:{beneficiary:Address;amount:string}[];
+  listing?:ApiOrder|null;escrowOrder?:Address;listingSeller?:Address;offers?:ApiOrder[];history?:ApiRightEvent[];
+};

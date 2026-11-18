@@ -8,7 +8,7 @@ import { seed } from "./seed";
 const port = Number(process.env.PORT ?? 8645);
 const c = await startChain({ port, blockTime: process.env.BLOCK_TIME ? Number(process.env.BLOCK_TIME) : undefined });
 const s = process.env.NO_SEED ? null : await seed(c);
-const out = { rpcUrl: c.rpcUrl, chainId: 31337, collections: c.collections, seed: s && { orders: s.orders, me: s.me } };
+const out = { deploymentId:c.deployment.deploymentId,releaseId:c.deployment.releaseId,protocolCommit:c.deployment.protocolCommit,rpcUrl: c.rpcUrl, chainId: 31337, collections: c.collections, seed: s && { orders: s.orders, me: s.me } };
 writeFileSync(resolve(ROOT, ".local-chain.json"), JSON.stringify(out, (_k, v) => (typeof v === "bigint" ? v.toString() : v), 2));
 console.log(`Anvil with Market at ${c.rpcUrl}; wrote .local-chain.json`);
 const stop = () => (c.stop(), process.exit(0));

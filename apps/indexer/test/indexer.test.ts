@@ -1,7 +1,7 @@
 // The indexer against a real chain (PLAN.md §10): a seeded market, fake orders and events that
 // must be rejected, time states without events, silent top-ups, SQL price parity, and a reorg.
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, createWriteStream } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import {
@@ -16,10 +16,17 @@ import {
   type ApiPositions,
   type Page,
   type SaleConfig,
+  encodeCoveredConfig,
+  encodeExerciseInput,
+  marketAbi,
+  rightAbi,
+  rightsAbi,
+  type ApiRight,
+  encodeBidConfig,
 } from "./imports";
 import { ACCOUNTS, artifacts, createdOrder, freePort, mint, send, startChain, type Chain } from "@market/protocol/devchain";
 import { seed } from "@market/protocol/devchain/seed";
-import { parseEther, type Address } from "viem";
+import { parseEther, decodeEventLog, encodeFunctionData, type Address, type Hex } from "viem";
 import { afterAll, beforeAll, expect, test } from "vitest";
 
 const E = (s: string) => parseEther(s);
@@ -62,13 +69,18 @@ beforeAll(async () => {
   const port = await freePort();
   api = `http://127.0.0.1:${port}`;
   dir = mkdtempSync(join(tmpdir(), "ponder-test-"));
-  ponder = spawn("npx", ["ponder", "dev", "--disable-ui", "--port", String(port)], {
+  // Freeze imported code for this run instead of hot-reloading a live database.
+  ponder = spawn("npx", ["ponder", "start", "--schema", "market_test", "--port", String(port)], {
     cwd: resolve(import.meta.dirname, ".."),
     env: { ...process.env, PONDER_CHAIN_ID: "31337", PONDER_RPC_URL: c.rpcUrl, PGLITE_DIR: dir },
-    stdio: "ignore",
+    stdio: ["ignore", "pipe", "pipe"],
     // Own process group, so teardown stops Ponder itself and not only the npx wrapper.
     detached: true,
   });
+  const log = createWriteStream(join(tmpdir(), `market-indexer-rights-${process.pid}.log`));
+  ponder.stdout?.pipe(log);
+  ponder.stderr?.pipe(log);
+  ponder.once("exit", () => log.end());
   await c.test.mine({ blocks: 1 });
   await synced();
   await pollCycle();
@@ -203,4 +215,163 @@ test("a reorg removes a fill", async () => {
   await c.test.mine({ blocks: 8 });
   for (let i = 0; i < 100 && (await order(o)).status === "sold"; i++) await new Promise((r) => setTimeout(r, 200));
   expect((await order(o)).status).toBe("live");
+});
+
+const rightView = (account: Address, at?: bigint) => get<ApiRight>(`/api/rights/${account}${at == null ? "" : `?at=${at}`}`);
+
+async function createRight(issuer: Address, options: { activate?: boolean; malformed?: boolean; unknown?: boolean; deadline?: bigint } = {}) {
+  const tokenId = await mint(c, s.collections.driftlines, issuer);
+  const config = options.malformed ? "0x1234" as Hex : encodeCoveredConfig({ nft: s.collections.driftlines, tokenId, price: E("1"), proceedsTo: issuer, maxRoyaltyBps: 500 });
+  const handler = options.unknown ? s.collections.refusingReceiver : c.deployment.coveredNFTPurchase!;
+  const deadline = options.deadline ?? (await c.pub.getBlock()).timestamp + 86_400n;
+  const { receipt } = await send(c, issuer, { address: c.deployment.market, abi: marketAbi, functionName: "createRight", args: [handler, config, deadline, issuer, tx.randomSalt()] });
+  const created = receipt.logs.flatMap((log) => {
+    try { const x = decodeEventLog({ abi: marketAbi, data: log.data, topics: log.topics }); return x.eventName === "RightCreated" ? [x.args] : []; } catch { return []; }
+  })[0];
+  if (!created || !("account" in created)) throw new Error("missing authenticated creation event");
+  const account = created.account as Address;
+  await send(c, issuer, tx.depositNft(s.collections.driftlines, issuer, account, tokenId));
+  if (options.activate) await send(c, issuer, { address: account, abi: rightAbi, functionName: "activate", args: [config] });
+  await pollCycle();
+  return { account, tokenId, config, deadline, id: BigInt(account) };
+}
+
+test("rights are discovered before listing and follow direct canonical transfers", async () => {
+  const issuer = ACCOUNTS[4], buyer = ACCOUNTS[5], recipient = ACCOUNTS[6];
+  const r = await createRight(issuer);
+  const pending = await rightView(r.account);
+  expect(pending).toMatchObject({ state: 0, issuer, holder: null, supported: true, backed: true, tokenId: r.id.toString() });
+  expect(r.id).toBeGreaterThan(BigInt(Number.MAX_SAFE_INTEGER));
+  const discovery = await get<Page<ApiRight>>("/api/rights");
+  expect(discovery.items.some((x) => x.account === r.account)).toBe(true);
+  const status = await fetch(api + "/api/status");
+  expect(status.headers.get("x-market-deployment")).toBe(c.deployment.deploymentId);
+  expect((await status.json()).deploymentId).toBe(c.deployment.deploymentId);
+  await send(c, issuer, { address: r.account, abi: rightAbi, functionName: "activate", args: [r.config] });
+  await send(c, issuer, tx.depositNft(c.deployment.rights!, issuer, buyer, r.id));
+  await synced();
+  expect((await rightView(r.account)).holder).toBe(buyer);
+  const positions = await get<ApiPositions>(`/api/accounts/${buyer}/positions`);
+  expect(positions.rights?.map((x) => x.account)).toContain(r.account);
+
+  await send(c, buyer, { address: r.account, abi: rightAbi, functionName: "exercise", args: [r.config, encodeExerciseInput(recipient)], value: E("1") });
+  await pollCycle();
+  expect(await c.pub.readContract({ address: s.collections.driftlines, abi: artifacts.TestNFT.abi, functionName: "ownerOf", args: [r.tokenId] })).toBe(recipient);
+  const exercised = await rightView(r.account);
+  expect(exercised).toMatchObject({ state: 2, holder: null, isLive: false });
+  expect(exercised.credits).toEqual(expect.arrayContaining([
+    { beneficiary: issuer, amount: E("0.95").toString() },
+    { beneficiary: ACCOUNTS[9], amount: E("0.05").toString() },
+  ]));
+  expect(exercised.history?.map((x) => x.kind)).toContain("exercised");
+  expect(exercised.history?.find((x) => x.kind === "exercise_delivery")).toMatchObject({ from: buyer, recipient });
+  // The delivery recipient remains historical evidence after a later ordinary nft transfer.
+  await send(c, recipient, tx.depositNft(s.collections.driftlines, recipient, issuer, r.tokenId));
+  await pollCycle();
+  expect((await rightView(r.account)).history?.find((x) => x.kind === "exercise_delivery")?.recipient).toBe(recipient);
+  expect((await get<ApiPositions>(`/api/accounts/${ACCOUNTS[9]}/positions`)).rights?.map((x) => x.account)).toContain(r.account);
+  await send(c, ACCOUNTS[8], { address: r.account, abi: rightAbi, functionName: "releaseCredit", args: [ACCOUNTS[9]] });
+  await synced();
+  expect((await rightView(r.account)).credits.find((x) => x.beneficiary === ACCOUNTS[9])?.amount).toBe("0");
+  expect((await rightView(r.account)).history?.map((x) => x.kind)).toContain("credit_withdrawn");
+});
+
+test("invalid and unsupported configurations stay inspectable without invented exercise terms", async () => {
+  const malformed = await createRight(ACCOUNTS[4], { malformed: true });
+  const unknown = await createRight(ACCOUNTS[4], { unknown: true });
+  expect(await rightView(malformed.account)).toMatchObject({ supported: false, state: 0, configError: expect.any(String) });
+  expect(await rightView(unknown.account)).toMatchObject({ supported: false, state: 0, price: null, nft: null });
+  await expect(rightView(s.collections.fakeSoldEmitter)).rejects.toThrow(/404/);
+  await send(c, ACCOUNTS[4], { address: malformed.account, abi: rightAbi, functionName: "cancelSetup", args: [] });
+  await send(c, ACCOUNTS[4], {
+    address: malformed.account, abi: rightAbi, functionName: "recover",
+    args: [s.collections.driftlines, 0n, encodeFunctionData({ abi: artifacts.TestNFT.abi, functionName: "transferFrom", args: [malformed.account, ACCOUNTS[4], malformed.tokenId] })],
+  });
+  await synced();
+  expect((await rightView(malformed.account)).state).toBe(5);
+});
+
+test("listed rights expose premiums separately and expire without finalization", async () => {
+  const issuer = ACCOUNTS[4], buyer = ACCOUNTS[5];
+  const r = await createRight(issuer, { activate: true });
+  const config = { nft: c.deployment.rights!, tokenId: r.id, schedule: fixedSchedule(E("0.2")), proceedsTo: issuer, maxRoyaltyBps: 0 };
+  const listing = createdOrder((await send(c, issuer, tx.createListing(c.deployment, config, tx.randomSalt()))).receipt);
+  await send(c, issuer, tx.depositNft(c.deployment.rights!, issuer, listing, r.id));
+  await pollCycle();
+  expect((await rightView(r.account)).listing?.address).toBe(listing);
+  expect(await order(listing)).toMatchObject({ rightAccount: r.account, underlyingNft: s.collections.driftlines, underlyingTokenId: r.tokenId.toString() });
+  // Even a perpetual listing can't advertise an expired exercise entitlement as live.
+  expect((await get<ApiOrder>(`/api/orders/${listing}?at=${r.deadline}`)).status).toBe("blocked");
+  await send(c, buyer, tx.buy(listing, encodeSaleConfig(config), buyer, E("0.2")));
+  await synced();
+  const bought = await rightView(r.account);
+  expect(bought.holder).toBe(buyer);
+  expect(bought.history?.find((x) => x.kind === "premium_sale")?.amount).toBe(E("0.2").toString());
+  const expired = await rightView(r.account, r.deadline);
+  expect(expired).toMatchObject({ state: 1, effectiveExpired: true, isLive: false });
+
+  const bidConfig = encodeBidConfig({ nft: c.deployment.rights!, anyToken: true, tokenId: 0n, schedule: fixedSchedule(E("0.1")), recipient: buyer, maxFills: 1n });
+  const bid = createdOrder((await send(c, buyer, { address: c.deployment.market, abi: marketAbi, functionName: "create", args: [c.deployment.nftBid, bidConfig, tx.randomSalt()], value: E("0.1") })).receipt);
+  await pollCycle();
+  expect((await order(bid)).status).toBe("invalid");
+});
+
+test("expiry while listed and pending cancellation retain issuer recovery records", async () => {
+  const issuer = ACCOUNTS[4];
+  const r = await createRight(issuer, { activate: true });
+  const config: SaleConfig = {
+    nft: c.deployment.rights!, tokenId: r.id, schedule: { ...fixedSchedule(E("0.2")), expiry: r.deadline - 3600n },
+    proceedsTo: issuer, maxRoyaltyBps: 0,
+  };
+  const listing = createdOrder((await send(c, issuer, tx.createListing(c.deployment, config, tx.randomSalt()))).receipt);
+  await send(c, issuer, tx.depositNft(c.deployment.rights!, issuer, listing, r.id));
+  await pollCycle();
+  expect((await rightView(r.account)).listing?.address).toBe(listing);
+  await c.test.setNextBlockTimestamp({ timestamp: r.deadline });
+  await pollCycle();
+  expect(await rightView(r.account)).toMatchObject({ state: 1, holder: listing, effectiveExpired: true, isLive: false });
+  expect((await order(listing)).status).not.toBe("live");
+  await send(c, issuer, tx.close(listing));
+  await synced();
+  expect(await rightView(r.account)).toMatchObject({ escrowOrder: listing, listingSeller: issuer });
+  expect((await rightView(r.account)).listing).toBeUndefined();
+  expect((await order(listing)).withdrawable).toBe(false);
+  await send(c, ACCOUNTS[8], { address: r.account, abi: rightAbi, functionName: "finalizeExpiry", args: [] });
+  await send(c, issuer, { address: r.account, abi: rightAbi, functionName: "recover", args: [s.collections.driftlines, 0n,
+    encodeFunctionData({ abi: artifacts.TestNFT.abi, functionName: "transferFrom", args: [r.account, issuer, r.tokenId] })] });
+  await pollCycle();
+  expect(await rightView(r.account)).toMatchObject({ state: 3, holder: null, backingOwner: issuer, backed: false });
+
+  const pending = await createRight(issuer);
+  await send(c, issuer, { address: pending.account, abi: rightAbi, functionName: "cancelSetup", args: [] });
+  await send(c, issuer, { address: pending.account, abi: rightAbi, functionName: "recover", args: [s.collections.driftlines, 0n,
+    encodeFunctionData({ abi: artifacts.TestNFT.abi, functionName: "transferFrom", args: [pending.account, issuer, pending.tokenId] })] });
+  await pollCycle();
+  expect(await rightView(pending.account)).toMatchObject({ state: 5, holder: null, backingOwner: issuer, backed: false });
+});
+
+test("live listing cancellation preserves the right and surrender gives no premium refund", async () => {
+  const issuer = ACCOUNTS[4], buyer = ACCOUNTS[5];
+  const r = await createRight(issuer, { activate: true });
+  const config: SaleConfig = { nft: c.deployment.rights!, tokenId: r.id, schedule: fixedSchedule(E("0.2")), proceedsTo: issuer, maxRoyaltyBps: 0 };
+  const listing = createdOrder((await send(c, issuer, tx.createListing(c.deployment, config, tx.randomSalt()))).receipt);
+  await send(c, issuer, tx.depositNft(c.deployment.rights!, issuer, listing, r.id));
+  await send(c, issuer, tx.close(listing));
+  await send(c, issuer, tx.withdrawNft(listing, c.deployment.rights!, issuer, r.id));
+  await pollCycle();
+  expect(await rightView(r.account)).toMatchObject({ state: 1, holder: issuer, isLive: true, backed: true, deadline: r.deadline.toString() });
+  // The right still has the same commitment after the independent listing is canceled.
+  const sale = createdOrder((await send(c, issuer, tx.createListing(c.deployment, config, tx.randomSalt()))).receipt);
+  await send(c, issuer, tx.depositNft(c.deployment.rights!, issuer, sale, r.id));
+  await send(c, buyer, tx.buy(sale, encodeSaleConfig(config), buyer, E("0.2")));
+  await send(c, buyer, { address: r.account, abi: rightAbi, functionName: "surrender", args: [] });
+  await pollCycle();
+  const surrendered = await rightView(r.account);
+  expect(surrendered).toMatchObject({ state: 4, holder: null, residual: issuer, totalCredits: "0", balance: "0", backed: true });
+  expect(surrendered.history?.some((x) => x.kind === "premium_sale" && x.amount === E("0.2").toString())).toBe(true);
+  expect(surrendered.history?.some((x) => x.kind === "surrendered" && x.from === buyer)).toBe(true);
+  await send(c, issuer, { address: r.account, abi: rightAbi, functionName: "recover", args: [s.collections.driftlines, 0n,
+    encodeFunctionData({ abi: artifacts.TestNFT.abi, functionName: "transferFrom", args: [r.account, issuer, r.tokenId] })] });
+  await pollCycle();
+  expect((await rightView(r.account)).backingOwner).toBe(issuer);
 });

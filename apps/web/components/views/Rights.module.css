@@ -1,0 +1,25 @@
+.header { padding: 40px 0 28px; border-bottom: 1px solid var(--line); }
+.header h1 { font-size: clamp(40px, 6vw, 76px); font-weight: 800; letter-spacing: -.05em; line-height: 1; margin: 0 0 18px; overflow-wrap: anywhere; }
+.header p, .note { color: var(--ink-2); font-size: 14px; line-height: 1.5; max-width: 680px; }
+.toolbar, .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 20px 0; }
+.toolbar input { flex: 1; min-width: 240px; padding: 12px; background: transparent; color: var(--ink); border: 1px solid var(--line-control); font: 14px var(--font-mono); }
+.layout { display: grid; grid-template-columns: 1fr minmax(320px, 520px); }
+.main { padding: 32px 36px 32px 0; min-width: 0; }
+.panel { padding: 32px 0 32px 36px; border-left: 1px solid var(--line); min-width: 0; }
+.section { border-top: 1px solid var(--line); padding: 24px 0; }
+.section h2 { font-size: 28px; font-weight: 800; letter-spacing: -.03em; margin: 0 0 18px; }
+.label { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; font-family: var(--font-mono); font-size: 12px; }
+.label input, .label select { width: 100%; min-width: 0; background: transparent; color: var(--ink); border: 1px solid var(--line-control); border-radius: 0; padding: 12px; font-family: var(--font-ui); font-size: 16px; }
+.label select option { background: #000; }
+.mono { font-family: var(--font-mono); font-size: 12px; overflow-wrap: anywhere; }
+.figure { font-size: 40px; font-weight: 700; letter-spacing: -.03em; margin: 12px 0; }
+.table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.table th { color: var(--ink-3); font: 11px var(--font-mono); text-align: left; padding: 16px 8px; text-transform: uppercase; }
+.table td { padding: 18px 8px; border-top: 1px solid var(--line-soft); vertical-align: top; overflow-wrap: anywhere; }
+.table a { text-decoration: underline; text-underline-offset: 4px; }
+.error { color: var(--ink); border-left: 2px solid var(--ink); padding-left: 12px; font-size: 14px; }
+.mode { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0; font-size: 13px; }
+.mode input, .check input { accent-color: var(--ink); }
+.check { display: flex; align-items: flex-start; gap: 10px; margin: 20px 0; font-size: 14px; line-height: 1.5; }
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .main { padding: 24px 0; } .panel { padding: 24px 0; border-left: 0; border-top: 1px solid var(--line); } }
+@media (max-width: 767px) { .header { padding-top: 28px; } .table th, .table td { padding: 14px 4px; font-size: 12px; } .figure { font-size: 32px; } .actions > * { flex: 1 1 160px; } }

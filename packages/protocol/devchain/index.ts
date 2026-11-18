@@ -2,7 +2,8 @@
 // protocol repo's own Deploy.s.sol (the production deployment path) and real test collections.
 // Node only; never imported by the web app.
 import { spawn, execFile, type ChildProcess } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync,mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { createServer } from "node:net";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
@@ -15,9 +16,10 @@ import {
   parseEther,
   type Address,
   type Hex,
+  keccak256,
 } from "viem";
 import { foundry } from "viem/chains";
-import { deploymentFor, MULTICALL3 } from "../src/addresses";
+import { deploymentFor, MULTICALL3, type Deployment, type ContractName } from "../src/addresses";
 import * as A from "./artifacts";
 
 const exec = promisify(execFile);
@@ -79,12 +81,26 @@ export async function startChain(opts: { port?: number; collections?: boolean; b
   const wallet = (account: Address) => createWalletClient({ chain, transport, account });
 
   await test.setCode({ address: MULTICALL3, bytecode: readFileSync(resolve(ROOT, "scripts/multicall3.hex"), "utf8").trim() as Hex });
-  await exec(
+  const broadcastDir=mkdtempSync(resolve(tmpdir(),"market-client-deploy-"));
+  const deploymentRun = await exec(
     "forge",
     ["script", "script/Deploy.s.sol", "--rpc-url", rpcUrl, "--unlocked", "--sender", ACCOUNTS[0], "--broadcast"],
-    { cwd: resolve(ROOT, "contracts/market"), maxBuffer: 1 << 24 },
+    { cwd: resolve(ROOT, "contracts/market"), maxBuffer: 1 << 24, env:{...process.env,FOUNDRY_BROADCAST:broadcastDir} },
   );
-  const deployment = { ...deploymentFor(31337), rpcUrl };
+  const names = {market:"Market",orderImplementation:"Order implementation",rightImplementation:"Right implementation",rights:"Rights ERC721",feeConfig:"FeeConfig",nftSale:"NFTSale",nftBid:"NFTBid",coveredNFTPurchase:"CoveredNFTPurchase",fillVerifier:"FillVerifier"} as const;
+  const broadcast=JSON.parse(readFileSync(resolve(broadcastDir,"Deploy.s.sol/31337/run-latest.json"),"utf8")) as {receipts:{transactionHash:Hex}[]};
+  const deploymentReceipts=await Promise.all(broadcast.receipts.map(r=>pub.getTransactionReceipt({hash:r.transactionHash})));
+  const deployedAt=deploymentReceipts.reduce((m,r)=>r.blockNumber<m?r.blockNumber:m,deploymentReceipts[0]!.blockNumber);
+  const {stdout:source}=await exec("git",["rev-parse","HEAD"],{cwd:resolve(ROOT,"contracts/market")});
+  const actual: Partial<Record<ContractName, Address>> = {};
+  for(const [key,label] of Object.entries(names)) {
+    const match=deploymentRun.stdout.match(new RegExp(`${label} (0x[0-9a-fA-F]{40})`));
+    if(match) actual[key as ContractName]=getAddress(match[1]!);
+  }
+  if(!actual.market || !actual.rights) throw new Error("Deploy script did not report the rights release identity");
+  const codehash:Deployment["codehash"]={};
+  for(const [name,address] of Object.entries(actual)) codehash[name as ContractName]=keccak256((await pub.getCode({address}))!);
+  const deployment = { ...deploymentFor(31337,"rights-v1"), ...actual, rpcUrl, codehash, startBlock:deployedAt, protocolCommit:source.trim(), status:"deployed" as const, deploymentId:`31337:rights-v1:${actual.market.toLowerCase()}` };
   for (const a of [deployment.market, deployment.feeConfig, deployment.nftSale, deployment.nftBid]) {
     if (!(await pub.getCode({ address: a }))) throw new Error(`protocol not deployed at ${a}`);
   }
@@ -99,6 +115,7 @@ export async function startChain(opts: { port?: number; collections?: boolean; b
     test,
     wallet,
     deployment,
+    deploymentReceipts,
     collections,
     stop: () => anvil.kill(),
   };

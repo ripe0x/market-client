@@ -8,6 +8,7 @@ import { Positions, ApprovalsRow, Loading, ErrorNote } from "@/components/screen
 import { useHead, useIndexer } from "@/data/hooks";
 import { paths } from "@/data/indexer";
 import { LagBanner } from "@/components/app/Trading";
+import { RightsSection } from "./RightsView";
 import { FlowModal } from "./FlowModal";
 import { cancelSteps, depositStep, topUpSteps, revokeAllSteps } from "@/data/flows";
 import type { Step as FlowStep } from "@/data/txflow";
@@ -90,6 +91,7 @@ export function PositionsView() {
         onMoveNft={onMoveNft}
         onAddFunds={(o) => setTopUp(o)}
       />
+      {DEPLOYMENT.rights ? <div className="gutter"><RightsSection items={positions.rights ?? []} /></div> : null}
       <ApprovalsRow
         items={approvals.map((a) => ({
           label: `Approval for all ${a.name ?? "this collection"}`,
