@@ -12,7 +12,7 @@ async function send(from: Address, call: ContractCall) {
 }
 async function issue(activate = true, residual: Address = ACC.me) {
   const { plain: nft } = await collections(), id = await mint(nft, ACC.me);
-  const deadline = (await pub.getBlock()).timestamp + 86400n;
+  const deadline = (await pub.getBlock()).timestamp + 10800n;
   const config = { nft, tokenId: id, price: parseEther("1"), proceedsTo: ACC.me, maxRoyaltyBps: 0 };
   const bytes = encodeCoveredConfig(config);
   const receipt = await send(ACC.me, rightsTx.createRight(D, config, deadline, residual, randomSalt()));
@@ -25,6 +25,7 @@ async function issue(activate = true, residual: Address = ACC.me) {
 async function list(r: Awaited<ReturnType<typeof issue>>) {
   const now = (await pub.getBlock()).timestamp, expiry = now + 120n;
   const config = { nft: D.rights!, tokenId: r.tokenId, schedule: { startPrice: parseEther("0.2"), endPrice: parseEther("0.2"), startTime: now, endTime: now, expiry }, proceedsTo: ACC.me, maxRoyaltyBps: 0 };
+  expect(r.deadline - expiry).toBeGreaterThan(3600n);
   const bytes = encodeSaleConfig(config), salt = randomSalt();
   const order = await pub.readContract({ address: D.market, abi: marketAbi, functionName: "orderAddress", args: [ACC.me, D.nftSale, configHash(bytes), salt] });
   await send(ACC.me, tx.createListing(D, config, salt));
@@ -67,6 +68,12 @@ test("Positions closes an expired escrowed right without a withdrawal in an atom
   await open(page, "/positions", ACC.me, true);
   const row = page.locator('[role="row"]').filter({ hasText: `#${r.tokenId}` });
   await expect(row.getByRole("button", { name: "Close stale listing", exact: true })).toBeVisible();
+  if (info.project.name === "desktop") expect(await row.getByText(`#${r.tokenId}`, { exact: true }).evaluate(el => {
+    const row = el.closest('[role="row"]')!;
+    return el.getBoundingClientRect().right <= row.children[1]!.getBoundingClientRect().left;
+  })).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: `test-results/positions-stale-listing-${info.project.name}.png`, fullPage: true });
   await row.getByRole("button", { name: "Close stale listing", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Close stale listing", exact: true }).click();
   await waitFor(() => pub.readContract({ address: l.order, abi: orderAbi, functionName: "closed" }), Boolean);
