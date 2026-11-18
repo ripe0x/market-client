@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { createTestClient, decodeEventLog, getAbiItem, http, parseEther, type Address } from "viem";
+import { decodeEventLog, getAbiItem, parseEther, type Address } from "viem";
 import { encodeCoveredConfig, marketAbi, randomSalt, rightAbi, rightsTx, tx, verifyRightDeposit, type ContractCall } from "@market/protocol";
 import { artifacts } from "@market/protocol/devchain";
 import { injectWallet, RPC } from "./wallet";
@@ -36,19 +36,34 @@ test("manual release beneficiary never redirects your default withdrawal when th
   expect(await credit(ACC.me)).toBe(parseEther("0.95"));
   expect(await credit(royaltyTo)).toBe(parseEther("0.05"));
 
-  // Real empty blocks put creation outside the bounded discovery window before this browser opens it.
-  const anvil = createTestClient({ chain, transport: http(RPC), mode: "anvil" });
-  await anvil.mine({ blocks: 16_001, interval: 1 });
+  // Fail discovery services without changing the shared chain. Older-account discovery is
+  // separately exercised after 16,001 real blocks in the isolated protocol-package suite.
   let failedGets = 0;
-  await page.route(url => url.pathname.toLowerCase() === `/api/rights/${account.toLowerCase()}`, async route => {
+  const indexerOrigin = new URL(process.env.E2E_INDEXER_URL ?? "http://localhost:42169").origin;
+  await page.route(url => url.origin === indexerOrigin, async route => {
     if (route.request().method() === "GET") { failedGets++; await route.abort("failed"); }
     else await route.continue();
+  });
+  let failedLogs = 0;
+  await page.route(url => url.origin === new URL(RPC).origin, async route => {
+    if (route.request().method() === "POST") {
+      const payload = route.request().postDataJSON();
+      const calls = Array.isArray(payload) ? payload : [payload];
+      if (calls.some(call => call?.method === "eth_getLogs")) {
+        failedLogs++;
+        await route.abort("failed");
+        return;
+      }
+    }
+    await route.continue();
   });
   await injectWallet(page, ACC.me);
   await page.goto(`/rights/${account}`);
   await connect(page);
   await expect(page.getByRole("heading", { name: "Unresolved payments", exact: true })).toBeVisible();
   await expect(page.getByText("The creation config is unavailable. Actions requiring it are disabled.", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expect(page.getByRole("button", { name: /^Exercise for / })).toHaveCount(0);
   await expect(page.getByText(/There are 1\.00 eth in outstanding credits/)).toBeVisible();
   await page.getByLabel("Payment beneficiary", { exact: true }).fill(royaltyTo);
   await expect(page.getByLabel("Alternate recipient for your own credit", { exact: true })).toHaveValue("");
@@ -69,6 +84,7 @@ test("manual release beneficiary never redirects your default withdrawal when th
   expect(await credit(royaltyTo)).toBe(parseEther("0.05"));
   expect(await pub.getBalance({ address: account })).toBe(parseEther("0.05"));
   expect(failedGets).toBeGreaterThan(0);
+  expect(failedLogs).toBeGreaterThan(0);
   await expect(page.getByRole("dialog")).toHaveCount(0, { timeout: 60_000 });
   await page.screenshot({ path: `test-results/rights-unresolved-payment-${info.project.name}.png`, fullPage: true });
 });

@@ -37,7 +37,8 @@ async function creationConfig(pub: PublicClient, d: Deployment, account: Address
   // Public RPC logs are bounded; only the selected Market and indexed account can supply config.
   for (let to = head, requests = 0; to >= first && requests < 8; requests++) {
     const from = to > first + 1999n ? to - 1999n : first;
-    const logs = await pub.getLogs({ address: d.market, event, args: { account }, fromBlock: from, toBlock: to, strict: true });
+    const logs = await pub.getLogs({ address: d.market, event, args: { account }, fromBlock: from, toBlock: to, strict: true }).catch(() => null);
+    if (!logs) return null;
     const config = logs[0]?.args.config;
     if (config) { creationCache.set(key, config); return config; }
     if (from === first) break;

@@ -4,8 +4,8 @@
 .toolbar, .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 20px 0; }
 .toolbar input { flex: 1; min-width: 240px; padding: 12px; background: transparent; color: var(--ink); border: 1px solid var(--line-control); font: 14px var(--font-mono); }
 .layout { display: grid; grid-template-columns: 1fr minmax(320px, 520px); }
-.main { padding: 32px 36px 32px 0; min-width: 0; }
-.panel { padding: 32px 0 32px 36px; border-left: 1px solid var(--line); min-width: 0; }
+.main { padding: 32px 36px 32px 0; min-width: 0; overflow-wrap: anywhere; }
+.panel { padding: 32px 0 32px 36px; border-left: 1px solid var(--line); min-width: 0; overflow-wrap: anywhere; }
 .section { border-top: 1px solid var(--line); padding: 24px 0; }
 .section h2 { font-size: 28px; font-weight: 800; letter-spacing: -.03em; margin: 0 0 18px; }
 .label { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; font-family: var(--font-mono); font-size: 12px; }
