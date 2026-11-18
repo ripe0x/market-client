@@ -3,7 +3,7 @@
   "releaseId": "rights-v1",
   "chainId": 31337,
   "name": "Local",
-  "protocolCommit": "cf7f48d8fae716740c59f882dcc2761497c2a63b",
+  "protocolCommit": "c211808cf3dd6ed36f41e92d885e6f866a4b9436",
   "status": "deployed",
   "startBlock": "1",
   "contracts": {
