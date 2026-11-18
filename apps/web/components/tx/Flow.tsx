@@ -29,7 +29,7 @@ export function useFlowUi(flowSteps: FlowStep[], ctx: ErrorContext, mode: Execut
 
 function phaseOf(flow: Flow): TxPhase | null {
   if (flow.error) return { kind: "failed", message: flow.error };
-  if (flow.note) return { kind: "rejected" };
+  if (flow.note === "Cancelled in wallet.") return { kind: "rejected" };
   if (flow.done) return { kind: "confirmed" };
   if (flow.running) {
     const i = flow.current;
@@ -89,6 +89,7 @@ export function FlowButton({
           {flow.error ? "Try again" : label}
         </Button>
       )}
+      {flow.note && flow.note !== "Cancelled in wallet." ? <p>{flow.note}</p> : null}
       {phase && (
         <div className={styles.status}>
           <TxStatus phase={phase} />

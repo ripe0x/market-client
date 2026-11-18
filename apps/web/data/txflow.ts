@@ -18,6 +18,7 @@ export type StepState = "todo" | "wallet" | "pending" | "done" | "failed";
 export type Step = {
   key: string;
   label: string;
+  skippedNote?: string;
   /** True when this step's effect is already on chain (resume). */
   done?: (c: StepCtx) => Promise<boolean>;
   /** Live checks, then the call. Throw an Error with user copy to stop before the wallet. */
@@ -115,7 +116,7 @@ export function useTxFlow(steps: Step[], ctx: ErrorContext, mode: ExecutionMode 
     // Resume: mark steps already done on chain.
     const done = await Promise.all(steps.map((st) => st.done?.(c).catch(() => false) ?? Promise.resolve(false)));
     let states: StepState[] = done.map((d) => (d ? "done" : "todo"));
-    set((p) => ({ ...p, states }));
+    set((p) => ({ ...p, states, note: steps.find((step, i) => done[i] && step.skippedNote)?.skippedNote ?? p.note }));
     const todo = steps.map((_, i) => i).filter((i) => !done[i]);
 
     let block = 0n;
@@ -157,6 +158,11 @@ export function useTxFlow(steps: Step[], ctx: ErrorContext, mode: ExecutionMode 
       }
 
       for (const i of todo) {
+        // Earlier confirmations can change later eligibility, including crossing a deadline.
+        if (await steps[i]!.done?.(c)) {
+          set(p => ({ ...p, states: p.states.map((x, j) => j === i ? "done" : x), note: steps[i]!.skippedNote ?? p.note }));
+          continue;
+        }
         set((p) => ({ ...p, current: i, states: p.states.map((x, j) => (j === i ? "wallet" : x)) }));
         const call = await steps[i]!.call(c);
         let sim: Awaited<ReturnType<typeof simulate>>;

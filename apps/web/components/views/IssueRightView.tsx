@@ -39,7 +39,7 @@ export function IssueRightView() {
   useEffect(() => { if (key && loaded === key) localStorage.setItem(key, JSON.stringify(form)); }, [key, loaded, form]);
   let draft: RightDraft | null = null;
   try {
-    if (Number.isInteger(form.maxRoyaltyBps) && form.maxRoyaltyBps >= 0 && form.maxRoyaltyBps <= 10000 && isAddress(form.nft) && /^\d{1,78}$/.test(form.tokenId) && parseEther(form.priceEth) > 0n && Number.isFinite(Date.parse(form.deadline)))
+    if (Number.isInteger(form.maxRoyaltyBps) && form.maxRoyaltyBps >= 0 && form.maxRoyaltyBps <= 10000 && isAddress(form.nft) && /^\d{1,78}$/.test(form.tokenId) && form.priceEth.trim() !== "" && parseEther(form.priceEth) >= 0n && Number.isFinite(Date.parse(form.deadline)))
       draft = { nft: getAddress(form.nft), tokenId: form.tokenId, price: parseEther(form.priceEth).toString(), deadline: BigInt(Math.floor(Date.parse(`${form.deadline}Z`) / 1000)).toString(), maxRoyaltyBps: form.maxRoyaltyBps, salt: form.salt };
   } catch {}
   const serialized = draft ? JSON.stringify(draft) : null;

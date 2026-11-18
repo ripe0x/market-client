@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAccount, usePublicClient } from "wagmi";
-import { eth, when, readRight, sameAddress, type ApiRight, randomSalt, toSchedule, buyMaxPrice, tx, verifyOrder, newOrderFeeBps, split, type Page } from "@market/protocol";
-import { getAddress, isAddress, type Address } from "viem";
+import { eth, when, readRight, sameAddress, type ApiRight, randomSalt, toSchedule, buyMaxPrice, tx, verifyOrder, newOrderFeeBps, split, verifyRightListing, verifyCoveredRecovery, decodeSaleConfig, quoteSale, erc721Abi, type Page } from "@market/protocol";
+import { getAddress, isAddress, type Address, type Hex } from "viem";
 import { Button, KeyValueRows, TokenMedia } from "@/components/ui";
 import { ErrorNote, Loading } from "@/components/screens";
 import { useHead, useIndexer, useApi } from "@/data/hooks";
@@ -55,12 +55,30 @@ export function RightDetailView({ account }: { account: Address }) {
   const pub = usePublicClient();
   const now = useHead();
   const indexed = useIndexer<ApiRight>(`/api/rights/${account}`);
-  const config = indexed.data?.config ?? undefined;
+  const [manualInput, setManualInput] = useState("");
+  const [manualConfig, setManualConfig] = useState<Hex | undefined>();
+  const [manualError, setManualError] = useState<string | null>(null);
+  const config = manualConfig ?? indexed.data?.config ?? undefined;
   const beneficiaries = indexed.data?.credits.map(c => c.beneficiary) ?? [];
   const live = useQuery({ queryKey: ["right", d.deploymentId, account, config, beneficiaries.join()], enabled: !!pub && !!d.rights,
-    queryFn: () => readRight(pub!, d, account, { config, beneficiaries }), retry: false, refetchInterval: 4_000, placeholderData: previous => sameAddress(previous?.account, account) ? previous : undefined });
+    queryFn: () => readRight(pub!, d, account, { config, beneficiaries }), retry: false, refetchInterval: 4_000, placeholderData: previous => sameAddress(previous?.account, account) && (!config || previous?.config === config) ? previous : undefined });
   const r = live.data;
   const listing = indexed.data?.listing;
+  const acquisition = useQuery({ queryKey: ["right-listing-eligibility", d.deploymentId, account, listing?.address, listing?.status, now.toString()], enabled: !!pub && !!listing,
+    queryFn: async () => {
+      const o = listing!;
+      const c = decodeSaleConfig(o.config);
+      verifyRightListing(d, account, c);
+      const verified = await verifyOrder(pub!, d, { address: o.address, kind: "sale", config: o.config });
+      if (verified.closed) return "This listing is closed.";
+      const time = (await pub!.getBlock()).timestamp;
+      if (BigInt(o.schedule.expiry) !== 0n && time >= BigInt(o.schedule.expiry)) return "This listing has expired. The right has a separate exercise deadline.";
+      if (time < BigInt(o.schedule.startTime)) return "This listing hasn't started.";
+      const owner = await pub!.readContract({ address: c.nft, abi: erc721Abi, functionName: "ownerOf", args: [c.tokenId] }).catch(() => null);
+      if (!sameAddress(owner, o.address)) return "This listing no longer holds the right token.";
+      await quoteSale(pub!, d, o.address, c);
+      return null;
+    }, retry: false, refetchInterval: 4_000 });
   const media = useApi<{ image?: string }>(r?.nft && r.assetId != null ? `/api/nfts/token?nft=${r.nft}&id=${r.assetId}` : null);
   const [action, setAction] = useState<{ title: string; label: string; steps: Step[]; destination?: Address } | null>(null);
   const [premium, setPremium] = useState("");
@@ -81,6 +99,16 @@ export function RightDetailView({ account }: { account: Address }) {
   const holder = sameAddress(address, r.holder);
   const issuer = sameAddress(address, r.issuer);
   const terminal = r.stateCode >= 2;
+  const acquisitionReason = !active ? "This right is no longer live." : r.configError || !r.supported ? "The right's exercise terms couldn't be verified." : !r.backed ? "The right's backing couldn't be verified." : listing?.closed ? "This listing is closed." : listing && BigInt(listing.schedule.expiry) !== 0n && now >= BigInt(listing.schedule.expiry) ? "This listing has expired. The right has a separate exercise deadline." : listing && now < BigInt(listing.schedule.startTime) ? "This listing hasn't started." : listing && listing.status !== "live" ? "This listing isn't currently fillable." : acquisition.isError ? "This listing can't be filled. Its current quote couldn't be verified." : acquisition.data === undefined ? "Checking listing eligibility…" : acquisition.data;
+  const verifyManual = async () => {
+    setManualError(null);
+    try {
+      if (!pub || !address) throw new Error("Connect the residual beneficiary's wallet first.");
+      if (!/^0x(?:[0-9a-fA-F]{2})+$/.test(manualInput)) throw new Error("Enter the original encoded configuration as hex bytes.");
+      await verifyCoveredRecovery(pub, d, account, address, manualInput as Hex);
+      setManualConfig(manualInput as Hex);
+    } catch (e) { setManualError(e instanceof Error ? e.message : "The recovery configuration couldn't be verified."); }
+  };
   const canExercise = active && holder && r.supported && !r.configError && r.backed;
   const activate = (title: string, kind: Parameters<typeof rightAction>[1], target?: Address) => setAction({ title, label: title, steps: rightAction(account, kind, target, config), destination: ["exercise", "transfer", "release", "withdraw"].includes(kind) ? target ?? address : undefined });
   const list = () => {
@@ -125,8 +153,8 @@ export function RightDetailView({ account }: { account: Address }) {
         { key: "Seller receives", value: `${eth(listingSplit!.proceeds)} eth` },
         { key: "Network gas", value: "Separate, shown by your wallet" },
         { key: "Listing seller", value: <span className={styles.mono}>{listing.owner}</span> },
-      ]} /><div className={styles.actions}>
-        {!sameAddress(address, listing.owner) ? <Button disabled={!!r.configError || !r.supported} onClick={() => setAction({ title: "Buy the right", label: `Pay at most ${eth(price!)} eth premium`, steps: buySteps(listing) })}>Buy the right</Button> : null}
+      ]} />{acquisitionReason ? <ErrorNote>{acquisitionReason}</ErrorNote> : null}<div className={styles.actions}>
+        {!sameAddress(address, listing.owner) ? <Button disabled={!!acquisitionReason} onClick={() => setAction({ title: "Buy the right", label: `Pay at most ${eth(price!)} eth premium`, steps: buySteps(listing, account) })}>Buy the right</Button> : null}
         {sameAddress(address, listing.owner) ? <Button onClick={() => setAction({ title: "Cancel listing and return token", label: "Cancel listing and return token", steps: cancelSteps(listing, "right") })}>Cancel listing and return token</Button> : null}
       </div><p className={styles.note}>The trading fee is included in the premium. The sale order holds the token. Its former holder can't exercise until the token is returned.</p></section> : null}
       {active && !holder ? <Button href={`/c/${d.rights}/${r.tokenId}/offer`} variant="secondary">Make an offer for this right</Button> : null}
@@ -140,7 +168,8 @@ export function RightDetailView({ account }: { account: Address }) {
       {r.stateCode === 0 && issuer ? <section className={styles.section}><h2>Pending setup</h2><p className={styles.note}>A deposit sent in a separate transaction stays here if activation fails.</p><div className={styles.actions}>{!r.backed && r.supported && !r.configError && !r.effectiveExpired ? <Button onClick={() => activate("Deposit nft", "deposit")}>Deposit nft</Button> : null}{r.backed && !r.configError && !r.effectiveExpired ? <Button onClick={() => activate("Activate right", "activate")}>Activate right</Button> : null}<Button variant="secondary" onClick={() => activate("Cancel pending setup", "cancel")}>Cancel pending setup</Button></div></section> : null}
       {active && holder ? <section className={styles.section}><h2>Surrender</h2><label className={styles.check}><input type="checkbox" checked={ack} onChange={e => setAck(e.target.checked)} />{surrenderCopy}</label><Button variant="secondary" disabled={!ack} onClick={() => activate("Surrender right", "surrender")}>Surrender right</Button></section> : null}
       {r.effectiveExpired && r.stateCode < 2 ? <section className={styles.section}><h2>Expiry</h2><p className={styles.note}>This entitlement can't be exercised or sold. Anyone can finalize it.</p><Button onClick={() => activate("Finalize expiry", "expire")}>Finalize expiry</Button></section> : null}
-      {terminal && sameAddress(address, r.residual) && r.backed ? <section className={styles.section}><h2>Recover collateral</h2><Button onClick={() => activate("Recover nft", "recover")}>Recover nft</Button></section> : null}
+      {terminal && r.supported && r.configError ? <section className={styles.section}><h2>Advanced collateral recovery</h2><p className={styles.note}>Enter the original encoded covered purchase configuration.</p><label className={styles.label}>Original encoded configuration<textarea aria-label="Original encoded configuration" rows={5} value={manualInput} onChange={e => { setManualInput(e.target.value); setManualError(null); }} /></label><Button variant="secondary" onClick={verifyManual}>Verify recovery configuration</Button>{manualError ? <ErrorNote>{manualError}</ErrorNote> : null}</section> : null}
+      {terminal && sameAddress(address, r.residual) && r.backed && !r.configError ? <section className={styles.section}><h2>Recover collateral</h2><KeyValueRows rows={[{ key: "Verified nft", value: <span className={styles.mono}>{r.nft} #{r.assetId?.toString()}</span> }, { key: "Recovery destination", value: <span className={styles.mono}>{r.residual}</span> }]} /><Button onClick={() => activate("Recover nft", "recover")}>Recover nft</Button></section> : null}
       {terminal && sameAddress(address, r.residual) && r.balance > r.totalCredits ? <section className={styles.section}><Button variant="secondary" onClick={() => activate("Recover free eth", "recoverEth")}>Recover {eth(r.balance - r.totalCredits)} free eth</Button><p className={styles.note}>Outstanding payment credits stay reserved.</p></section> : null}
       {active && holder && indexed.data?.offers?.length ? <section className={styles.section}><h2>Offers for this right</h2>{indexed.data.offers.map(o => <p key={o.address}><Link href={`/c/${d.rights}/offers/${o.address}/sell`}>Sell for {eth(BigInt(o.priceNow))} eth premium</Link></p>)}</section> : null}
       <section className={styles.section}><h2>Payments</h2>{r.credits.filter(c => c.amount > 0n).map(c => <div key={c.beneficiary}><p className={styles.mono}>{c.beneficiary}</p><p>{eth(c.amount)} eth</p><div className={styles.actions}><Button variant="secondary" onClick={() => activate("Release payment", "release", c.beneficiary)}>Release payment</Button>{sameAddress(address, c.beneficiary) ? <Button variant="secondary" disabled={!!withdrawRecipient && !isAddress(withdrawRecipient)} onClick={() => activate("Withdraw payment", "withdraw", withdrawRecipient ? getAddress(withdrawRecipient) : address)}>Withdraw to recipient</Button> : null}</div></div>)}{r.totalCredits === 0n ? <p className={styles.note}>No unpaid credits.</p> : <><label className={styles.label}>Alternate recipient for your own credit<InputAddress value={withdrawRecipient} onChange={setWithdrawRecipient} placeholder={address} /></label><p className={styles.note}>Anyone can release a payment to its recorded beneficiary. Only that beneficiary can choose another recipient. A failed payout leaves the credit available.</p></>}</section>

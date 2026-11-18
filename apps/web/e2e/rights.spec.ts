@@ -126,3 +126,21 @@ test("a genuine account issues atomically and a rejected activation never falls 
   expect(lower(await ownerOf(c.driftlines, nextId))).toBe(lower(account));
   expect(await pub.getCode({ address: getAddress(pending!.split("/").at(-1)!) })).toBeUndefined();
 });
+
+test("zero exercise price can be issued and exercised without a minimum strike", async ({ page }) => {
+  const c = await collections(), id = await mint(c.driftlines, ACC.me);
+  await injectWallet(page); await page.goto("/rights/issue"); await connect(page);
+  await page.getByLabel("nft collection address").fill(c.driftlines);
+  await page.getByLabel("nft token id").fill(id.toString());
+  await page.getByLabel("Exercise price in eth").fill("0");
+  await expect(page.getByRole("button", { name: "Issue and activate right", exact: true })).toBeEnabled();
+  await page.getByRole("button", { name: "Issue and activate right", exact: true }).click();
+  await expect(page).toHaveURL(/\/rights\/0x[0-9a-fA-F]{40}$/, { timeout: 90000 });
+  const account = getAddress(page.url().split("/").at(-1)!);
+  const before = await readRight(pub, D, account);
+  expect(before.price).toBe(0n); expect(before.royaltyAmount).toBe(0n);
+  await confirm(page, "Exercise for 0.00 eth", "Exercise right");
+  const after = await waitFor(() => readRight(pub, D, account), r => r.state === "exercised");
+  expect(after.holder).toBe(null); expect(after.totalCredits).toBe(0n);
+  expect(lower(await ownerOf(c.driftlines, id))).toBe(lower(ACC.me));
+});

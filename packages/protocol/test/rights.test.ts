@@ -5,7 +5,7 @@ import { send,warp } from "../devchain/send";
 import { runRightsRehearsal } from "../devchain/rights-rehearsal";
 import { deploymentFor } from "../src/addresses";
 import { marketAbi,rightAbi,rightsAbi } from "../src/abis";
-import { readRight,encodeCoveredConfig,decodeCoveredConfig,verifyRightDeposit,verifyRightTrade } from "../src/rights";
+import { readRight,encodeCoveredConfig,decodeCoveredConfig,verifyRightDeposit,verifyRightTrade,verifyCoveredRecovery,verifyRightListing } from "../src/rights";
 import * as rt from "../src/rightsTx";
 import * as tx from "../src/tx";
 import { fixedSchedule } from "../src/schedule";
@@ -146,4 +146,48 @@ test("cached identity cannot be reused for another Market under the same release
 test("deployment and right reads work with a public client without a chain object",async()=>{
  const r=await issue();const pub=createPublicClient({transport:http(c.rpcUrl)});
  expect((await readRight(pub,c.deployment,r.account)).stateCode).toBe(1);
+});
+
+test("manual original bytes restore old terminal collateral recovery and preserve actual pending residual",async()=>{
+ const oldId=await mint(c,c.collections!.plain,issuer),oldConfig={nft:c.collections!.plain,tokenId:oldId,price:E("1"),proceedsTo:issuer,maxRoyaltyBps:0},oldBytes=encodeCoveredConfig(oldConfig);
+ const created=await send(c,issuer,rt.createRight(c.deployment,oldConfig,(await c.pub.getBlock()).timestamp+7200n,issuer,tx.randomSalt()));
+ const oldEvent=created.receipt.logs.map(l=>{try{return decodeEventLog({abi:marketAbi,...l});}catch{return null;}}).find(x=>x?.eventName==="RightCreated");
+ const r={account:(oldEvent!.args as {account:Address}).account,config:oldConfig,id:oldId,bytes:oldBytes};
+ await send(c,issuer,tx.depositNft(oldConfig.nft,issuer,r.account,oldId));
+ await send(c,issuer,rt.cancelRightSetup(r.account));
+ await c.test.mine({blocks:16_001,interval:1});
+ const fresh=createPublicClient({transport:http(c.rpcUrl)});
+ const unavailable=await readRight(fresh,c.deployment,r.account);
+ expect(unavailable.config).toBe(null);expect(unavailable.configError).toMatch(/unavailable/);
+ const outage={...fresh,getLogs:async()=>{throw new Error("historical logs unavailable");}} as typeof fresh;
+ await expect(verifyCoveredRecovery(outage,c.deployment,r.account,issuer,"0x1234")).rejects.toThrow(/match/);
+ await expect(verifyCoveredRecovery(outage,c.deployment,r.account,buyer,r.bytes)).rejects.toThrow(/residual/);
+ const v=await verifyCoveredRecovery(outage,c.deployment,r.account,issuer,r.bytes);
+ expect(v.stateCode).toBe(5);expect(v.holder).toBe(null);expect(v.backed).toBe(true);
+ await send(c,issuer,rt.recoverRightNft(r.account,v.nft!,v.assetId!,v.residual));
+ expect(await fresh.readContract({address:r.config.nft,abi:artifacts.TestNFT.abi,functionName:"ownerOf",args:[r.id]})).toBe(issuer);
+ const active=await issue();
+ await expect(verifyCoveredRecovery(outage,c.deployment,active.account,issuer,active.bytes)).rejects.toThrow(/Finalize or cancel/);
+ await send(c,issuer,rt.surrenderRight(active.account));
+ const burned=await verifyCoveredRecovery(outage,c.deployment,active.account,issuer,active.bytes);
+ expect(burned.holder).toBe(null);expect(burned.stateCode).toBe(4);
+ const id=await mint(c,c.collections!.plain,issuer),config={nft:c.collections!.plain,tokenId:id,price:E("1"),proceedsTo:"0x0000000000000000000000000000000000000000" as Address,maxRoyaltyBps:0},bytes=encodeCoveredConfig(config);
+ const {receipt}=await send(c,issuer,rt.createRight(c.deployment,config,(await c.pub.getBlock()).timestamp+7200n,buyer,tx.randomSalt()));
+ const event=receipt.logs.map(l=>{try{return decodeEventLog({abi:marketAbi,...l});}catch{return null;}}).find(x=>x?.eventName==="RightCreated");
+ const account=(event!.args as {account:Address}).account;
+ await send(c,issuer,tx.depositNft(config.nft,issuer,account,id));
+ await expect(send(c,issuer,rt.activateRight(account,bytes))).rejects.toThrow();
+ await send(c,issuer,rt.cancelRightSetup(account));
+ await expect(verifyCoveredRecovery(outage,c.deployment,account,issuer,bytes)).rejects.toThrow(/residual/);
+ const pending=await verifyCoveredRecovery(outage,c.deployment,account,buyer,bytes);
+ expect(pending.residual).toBe(buyer);expect(pending.issuer).toBe(issuer);
+ await send(c,buyer,rt.recoverRightNft(account,pending.nft!,pending.assetId!,buyer));
+ expect(await c.pub.readContract({address:config.nft,abi:artifacts.TestNFT.abi,functionName:"ownerOf",args:[id]})).toBe(buyer);
+},120_000);
+
+test("selected right listing binding rejects another genuine token or underlying collection",()=>{
+ const d=deploymentFor(31337),account=issuer;
+ expect(()=>verifyRightListing(d,account,{nft:d.rights!,tokenId:BigInt(account)})).not.toThrow();
+ expect(()=>verifyRightListing(d,account,{nft:d.rights!,tokenId:BigInt(buyer)})).toThrow(/different asset or right/);
+ expect(()=>verifyRightListing(d,account,{nft:d.nftSale,tokenId:BigInt(account)})).toThrow(/different asset or right/);
 });

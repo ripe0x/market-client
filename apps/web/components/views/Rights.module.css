@@ -9,7 +9,7 @@
 .section { border-top: 1px solid var(--line); padding: 24px 0; }
 .section h2 { font-size: 28px; font-weight: 800; letter-spacing: -.03em; margin: 0 0 18px; }
 .label { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; font-family: var(--font-mono); font-size: 12px; }
-.label input, .label select { width: 100%; min-width: 0; background: transparent; color: var(--ink); border: 1px solid var(--line-control); border-radius: 0; padding: 12px; font-family: var(--font-ui); font-size: 16px; }
+.label input, .label select, .label textarea { width: 100%; min-width: 0; background: transparent; color: var(--ink); border: 1px solid var(--line-control); border-radius: 0; padding: 12px; font-family: var(--font-ui); font-size: 16px; }
 .label select option { background: #000; }
 .mono { font-family: var(--font-mono); font-size: 12px; overflow-wrap: anywhere; }
 .figure { font-size: 40px; font-weight: 700; letter-spacing: -.03em; margin: 12px 0; }

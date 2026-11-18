@@ -22,6 +22,8 @@ import {
   tx,
   verifyOrder,
   verifyRightTrade,
+  verifyRightListing,
+  readRight,
   type ApiOrder,
   type ApiRight,
   type BidConfig,
@@ -115,7 +117,7 @@ export function depositStep(o: ApiOrder, tokenLabel: string): Step[] {
 // Buy: maxPrice is the highest price over the headroom window (D5); value = maxPrice; the
 // contract refunds value − price.
 
-export function buySteps(o: ApiOrder): Step[] {
+export function buySteps(o: ApiOrder, expectedRight?: Address): Step[] {
   const c = decodeSaleConfig(o.config);
   return [
     {
@@ -123,6 +125,7 @@ export function buySteps(o: ApiOrder): Step[] {
       label: "Buy",
       call: async ({ pub, account, batch }) => {
         const v = await verifyOrder(pub, d, { address: o.address, kind: "sale", config: o.config });
+        if (expectedRight) verifyRightListing(d, expectedRight, c);
         if (v.closed) throw new Stop("This listing has sold or been cancelled.");
         if (sameAddress(v.owner, account)) throw new Stop("This is your listing.");
         if (!sameAddress(await ownerOf(pub, c.nft, c.tokenId), o.address)) throw new Stop("This listing doesn't hold its NFT yet.");
@@ -221,6 +224,14 @@ export function acceptSteps(o: ApiOrder, tokenId: bigint, tokenLabel: string): S
 // ---------------------------------------------------------------------------------------------
 // Cancel and withdraw: close, then execute (D15). Each step is skipped when already done.
 
+async function transferable(pub: PublicClient, o: ApiOrder): Promise<boolean> {
+  if (!d.rights || !sameAddress(o.nft, d.rights)) return true;
+  const id = BigInt(o.tokenId);
+  if (id < 0n || id >= 2n ** 160n) throw new Stop("Invalid right token id.");
+  const v = await readRight(pub, d, `0x${id.toString(16).padStart(40, "0")}`);
+  return v.stateCode === 1 && !v.effectiveExpired && v.holder !== null;
+}
+
 export function cancelSteps(o: ApiOrder, tokenLabel: string): Step[] {
   const sale = o.kind === "sale";
   const tokenId = BigInt(o.tokenId);
@@ -237,8 +248,13 @@ export function cancelSteps(o: ApiOrder, tokenLabel: string): Step[] {
     ? {
         key: "withdraw",
         label: `Withdraw ${tokenLabel}`,
-        done: async ({ pub }) => !sameAddress(await ownerOf(pub, o.nft, tokenId), o.address),
-        call: async ({ account }) => tx.withdrawNft(o.address, o.nft, account, tokenId),
+        done: async ({ pub }) => !sameAddress(await ownerOf(pub, o.nft, tokenId), o.address) || !await transferable(pub, o),
+        skippedNote: "No token return is required or possible from this listing. Inspect the right account for expiry finalization and authorized recovery. Confirmed listing closure is preserved.",
+        call: async ({ pub, account }) => {
+          await verifyOrder(pub, d, { address: o.address, kind: o.kind, config: o.config, owner: account });
+          if (!await transferable(pub, o)) throw new Stop("This right can no longer be returned. The listing stays closed. Open the right to finalize expiry and inspect authorized recovery.");
+          return tx.withdrawNft(o.address, o.nft, account, tokenId);
+        },
       }
     : {
         key: "withdraw",

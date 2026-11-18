@@ -1,6 +1,6 @@
 import {
   configHash, encodeCoveredConfig, erc721Abi, marketAbi, readRight, rightAbi,
-  rightsTx, sameAddress, type CoveredNFTConfig,
+  rightsTx, sameAddress, verifyCoveredRecovery, type CoveredNFTConfig,
 } from "@market/protocol";
 import { type Address, type Hex } from "viem";
 import { DEPLOYMENT as d } from "@/lib/deployment";
@@ -54,7 +54,7 @@ export function issuanceSteps(draft: RightDraft): Step[] {
         const a = await predictedRight(c, draft);
         if (!c.batch) {
           const r = await readRight(c.pub, d, a, { config: encodeCoveredConfig(configOf(draft, c.account)) });
-          if (!r.supported || r.configError || r.stateCode !== 0 || !r.backed || !sameAddress(r.issuer, c.account) || !sameAddress(r.residual, c.account))
+          if (!r.supported || r.configError || r.stateCode !== 0 || !r.backed || r.proceedsTo === "0x0000000000000000000000000000000000000000" || !sameAddress(r.residual, r.issuer) || !sameAddress(r.issuer, c.account) || !sameAddress(r.residual, c.account))
             throw new Stop("The pending right isn't ready to activate.");
         }
         return rightsTx.activateRight(a, encodeCoveredConfig(configOf(draft, c.account)));
@@ -68,10 +68,10 @@ export function rightAction(account: Address, action: "activate" | "deposit" | "
     if (["activate", "deposit", "exercise"].includes(action) && (!r.supported || r.configError || !r.config)) throw new Stop(r.configError || "Exercise terms couldn't be verified.");
     switch (action) {
       case "activate":
-        if (r.stateCode !== 0 || !r.backed || !sameAddress(r.issuer, c.account)) throw new Stop("This right isn't ready to activate.");
+        if (r.stateCode !== 0 || !r.backed || r.proceedsTo === "0x0000000000000000000000000000000000000000" || !sameAddress(r.residual, r.issuer) || !sameAddress(r.issuer, c.account)) throw new Stop("This right isn't ready to activate.");
         return rightsTx.activateRight(account, r.config!);
       case "deposit":
-        if (r.stateCode !== 0 || r.effectiveExpired || !sameAddress(r.issuer, c.account) || !sameAddress(r.residual, c.account)) throw new Stop("The pending deposit terms don't match your wallet.");
+        if (r.stateCode !== 0 || r.effectiveExpired || r.proceedsTo === "0x0000000000000000000000000000000000000000" || !sameAddress(r.issuer, c.account) || !sameAddress(r.residual, c.account)) throw new Stop("The pending deposit terms don't match your wallet.");
         return { address: r.nft!, abi: erc721Abi, functionName: "transferFrom", args: [c.account, account, r.assetId!] } as const;
       case "exercise":
         if (r.stateCode !== 1 || !(r.stateCode === 1 && !r.effectiveExpired) || !r.backed || !sameAddress(r.holder, c.account)) throw new Stop("Only the current holder of a live backed right can exercise.");
@@ -86,8 +86,8 @@ export function rightAction(account: Address, action: "activate" | "deposit" | "
         if (r.stateCode !== 0 || !sameAddress(r.issuer, c.account)) throw new Stop("Only the issuer can cancel pending setup.");
         return rightsTx.cancelRightSetup(account);
       case "recover":
-        if (r.stateCode < 2 || !sameAddress(r.residual, c.account) || !r.nft || r.assetId === null) throw new Stop("Only the residual beneficiary can recover terminal backing.");
-        return rightsTx.recoverRightNft(account, r.nft, r.assetId, c.account);
+        const verified = await verifyCoveredRecovery(c.pub, d, account, c.account, config ?? r.config ?? "0x");
+        return rightsTx.recoverRightNft(account, verified.nft!, verified.assetId!, c.account);
       case "transfer":
         if (r.stateCode !== 1 || r.effectiveExpired || !sameAddress(r.holder, c.account) || !recipient || sameAddress(recipient, account)) throw new Stop("Only the holder can transfer this live entitlement to another account.");
         return { address: d.rights!, abi: erc721Abi, functionName: "transferFrom", args: [c.account, recipient, r.tokenId] } as const;

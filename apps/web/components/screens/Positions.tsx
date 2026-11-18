@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import { useState } from "react";
 import { eth, when, shortAddress, sameAddress, type ApiOrder, type ApiFill, type OrderStatus } from "@market/protocol";
@@ -9,7 +10,7 @@ import { cx } from "@/lib/cx";
 import common from "./common.module.css";
 import styles from "./Positions.module.css";
 
-type Action = { label: string; primary?: boolean; onClick?: () => void };
+type Action = { href?: string; label: string; primary?: boolean; onClick?: () => void };
 
 export type PositionsCallbacks = {
   onCancel?: (o: ApiOrder) => void;
@@ -42,6 +43,11 @@ const LISTING_STATUS: Record<OrderStatus, string> = {
 
 function listingActions(o: ApiOrder, cb: PositionsCallbacks): Action[] {
   const tok = `#${o.tokenId}`;
+  if (o.rightAccount && o.rightTransferable === false) return [
+    ...(!o.closed ? [{ label: "Close stale listing", onClick: () => cb.onCancel?.(o) }] : []),
+    { label: "Inspect right", href: `/rights/${o.rightAccount}` },
+  ];
+  if (o.closed && !o.withdrawable) return [];
   if (o.withdrawable) return [{ label: `Withdraw ${tok}`, primary: true, onClick: () => cb.onWithdraw?.(o) }];
   if (o.status === "sold") return [];
   if (o.status === "awaiting_nft")
@@ -88,7 +94,7 @@ export function Positions(props: PositionsProps) {
 
       {/* Listings */}
       <section className={cx(styles.section, tab !== "listings" && styles.hideMobile)}>
-        <SectionHead title={`Listings ${listings.length}`} note="Cancel, then withdraw the NFT: two confirmations" />
+        <SectionHead title={`Listings ${listings.length}`} note="Close listings and recover transferable tokens" />
         <HeaderRow columns={LISTING_COLS}>
           <HeaderCell>Token</HeaderCell>
           <HeaderCell>Price</HeaderCell>
@@ -205,7 +211,7 @@ function SectionHead({ title, note }: { title: string; note: string }) {
 function Actions({ actions }: { actions: Action[] }) {
   return (
     <span className={styles.actions}>
-      {actions.map((a, i) => (
+      {actions.map((a, i) => a.href ? <Link key={i} href={a.href} className={common.pill}>{a.label}</Link> : (
         <button key={i} type="button" className={a.primary ? common.pillPrimary : common.pill} onClick={a.onClick}>
           {a.label}
         </button>

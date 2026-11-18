@@ -79,7 +79,6 @@ export async function readRight(pub: PublicClient, d: Deployment, account: Addre
       const code = await pub.getCode({address:handler});
       if (!code || keccak256(code) !== handlerCodehash) throw new Error("The committed handler code does not match.");
       c = decodeCoveredConfig(config);
-      if (!sameAddress(residual,issuer) || c.proceedsTo === "0x0000000000000000000000000000000000000000") throw new Error("The covered purchase terms are invalid.");
     }
   } catch(e) { configError=e instanceof Error?e.message:"The config could not be verified."; config=null; }
   let royaltyTo: Address | null=null, royaltyAmount=0n;
@@ -97,7 +96,7 @@ export async function readRight(pub: PublicClient, d: Deployment, account: Addre
 /** Pending deposits are a separate irreversible transaction unless the wallet truly batches. */
 export async function verifyRightDeposit(pub: PublicClient,d:Deployment,account:Address,issuer:Address,config:CoveredNFTConfig,deadline:bigint):Promise<RightView> {
   const v=await readRight(pub,d,account,{config:encodeCoveredConfig(config)});
-  if (!v.supported || v.configError || v.state!=="pending" || v.effectiveExpired || !sameAddress(v.issuer,issuer) || !sameAddress(v.residual,issuer) || v.deadline!==deadline || !sameAddress(v.nft,config.nft) || v.assetId!==config.tokenId || v.price!==config.price) throw new RightCheckError("The pending account does not match this issuance. Do not deposit.");
+  if (!v.supported || v.configError || v.state!=="pending" || v.effectiveExpired || !sameAddress(v.issuer,issuer) || !sameAddress(v.residual,issuer) || v.proceedsTo === "0x0000000000000000000000000000000000000000" || v.deadline!==deadline || !sameAddress(v.nft,config.nft) || v.assetId!==config.tokenId || v.price!==config.price) throw new RightCheckError("The pending account does not match this issuance. Do not deposit.");
   const owner=await pub.readContract({address:config.nft,abi:erc721Abi,functionName:"ownerOf",args:[config.tokenId]});
   if (!sameAddress(owner,issuer)&&!sameAddress(owner,account)) throw new RightCheckError("The signing account no longer owns this nft.");
   return v;
@@ -112,4 +111,21 @@ export async function verifyRightTrade(pub:PublicClient,d:Deployment,nft:Address
   if(v.deadline!==0n && v.deadline-now<MIN_EXERCISE_WINDOW) throw new RightCheckError("Less than one hour remains to exercise this right.");
   if(listingExpiry!==undefined && v.deadline!==0n && (listingExpiry===0n||listingExpiry>v.deadline-MIN_EXERCISE_WINDOW)) throw new RightCheckError("The listing must end at least one hour before exercise expires.");
   return v;
+}
+
+/** Original creation bytes authenticate the asset even when discovery services are unavailable. */
+export async function verifyCoveredRecovery(pub: PublicClient, d: Deployment, account: Address, caller: Address, originalConfig: Hex): Promise<RightView> {
+  const v = await readRight(pub, d, account, { config: originalConfig });
+  if (!v.supported || v.configError || !v.config || !v.nft || v.assetId === null)
+    throw new RightCheckError(v.configError || "This recovery decoder only supports covered nft purchase rights.");
+  if (v.stateCode < 2) throw new RightCheckError("Finalize or cancel this right before terminal recovery.");
+  if (!sameAddress(v.residual, caller)) throw new RightCheckError("Only the committed residual beneficiary can recover this collateral.");
+  if (!v.backed) throw new RightCheckError("The backing account no longer holds this nft.");
+  return v;
+}
+
+/** Bind a sale's authenticated configuration to the entitlement being inspected. */
+export function verifyRightListing(d: Deployment, account: Address, sale: { nft: Address; tokenId: bigint }): void {
+  if (!d.rights || !sameAddress(sale.nft, d.rights) || sale.tokenId !== BigInt(account))
+    throw new RightCheckError("This listing is for a different asset or right.");
 }

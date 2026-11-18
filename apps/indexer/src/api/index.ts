@@ -114,7 +114,7 @@ function toApi(r: Row): ApiOrder {
     nft: getAddress(x.nft),
     collectionName: r.collectionName,
     tokenId: x.tokenId.toString(),
-    ...(r.rightAccount ? { rightAccount: getAddress(r.rightAccount), underlyingNft: r.underlyingNft ? getAddress(r.underlyingNft) : null, underlyingTokenId: r.underlyingTokenId } : {}),
+    ...(r.rightAccount ? { rightAccount: getAddress(r.rightAccount), rightTransferable: r.rightTransferable === true, underlyingNft: r.underlyingNft ? getAddress(r.underlyingNft) : null, underlyingTokenId: r.underlyingTokenId } : {}),
     anyToken: x.anyToken,
     schedule: {
       startPrice: x.startPrice.toString(),
@@ -388,15 +388,18 @@ function toRightEvent(e: typeof rightEvent.$inferSelect): ApiRightEvent {
 }
 
 async function toRight(r: typeof right.$inferSelect, at: bigint): Promise<ApiRight> {
-  const [credits, history, orders] = await Promise.all([
+  const [credits, history, orders, burns] = await Promise.all([
     db.select().from(rightCredit).where(eq(rightCredit.account, r.address)),
     db.select().from(rightEvent).where(eq(rightEvent.account, r.address)).orderBy(desc(rightEvent.block), desc(rightEvent.id)).limit(50),
     d.rights ? baseQuery(at).where(and(eq(o.nft, d.rights), eq(o.tokenId, r.tokenId), eq(o.valid, true))).orderBy(desc(o.createdAt)).limit(50) : [],
+    r.state >= 2 ? db.select().from(rightEvent).where(and(eq(rightEvent.account, r.address), eq(rightEvent.kind, "transfer"), eq(rightEvent.to, "0x0000000000000000000000000000000000000000"))).orderBy(desc(rightEvent.block)).limit(1) : [],
   ]);
   const effectiveExpired = r.deadline !== 0n && at >= r.deadline && (r.state === 0 || r.state === 1);
   const totalCredits = credits.reduce((sum, x) => sum + x.amount, 0n);
-  const escrow = (orders as Row[]).find((x) => x.row.kind === "sale" && r.holder?.toLowerCase() === x.row.address.toLowerCase());
-  const listing = escrow && !escrow.row.closed ? escrow : null;
+  const lastHolder = r.holder ?? burns[0]?.from;
+  // The canonical burn records the actual last custody address, regardless of later listings.
+  const [escrow] = lastHolder && d.rights ? await baseQuery(at).where(and(eq(o.address, lastHolder), eq(o.kind, "sale"), eq(o.nft, d.rights), eq(o.tokenId, r.tokenId), eq(o.valid, true))).limit(1) : [];
+  const listing = escrow;
   const offers = (orders as Row[]).filter((x) => x.row.kind === "bid" && !x.row.anyToken && (x.status === "live" || x.status === "underfunded")).map(toApi);
   return {
     deploymentId: d.deploymentId, account: getAddress(r.address), tokenId: r.tokenId.toString(), issuer: getAddress(r.issuer),

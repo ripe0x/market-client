@@ -35,6 +35,7 @@ export type ApiOrder = {
   tokenId: string;
   /** Present only for canonical rights authenticated by this deployment's indexer. */
   rightAccount?: Address;
+  rightTransferable?: boolean;
   underlyingNft?: Address | null;
   underlyingTokenId?: string | null;
   anyToken: boolean;

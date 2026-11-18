@@ -334,13 +334,17 @@ test("expiry while listed and pending cancellation retain issuer recovery record
   await send(c, issuer, tx.close(listing));
   await synced();
   expect(await rightView(r.account)).toMatchObject({ escrowOrder: listing, listingSeller: issuer });
-  expect((await rightView(r.account)).listing).toBeUndefined();
+  expect((await rightView(r.account)).listing).toMatchObject({ address: listing, rightAccount: r.account, closed: true, rightTransferable: false, withdrawable: false });
   expect((await order(listing)).withdrawable).toBe(false);
+  const decoy = createdOrder((await send(c, ACCOUNTS[8], tx.createListing(c.deployment, { ...config, proceedsTo: ACCOUNTS[8] }, tx.randomSalt()))).receipt);
+  await synced();
+  expect((await order(decoy)).escrowed).toBe(false);
   await send(c, ACCOUNTS[8], { address: r.account, abi: rightAbi, functionName: "finalizeExpiry", args: [] });
   await send(c, issuer, { address: r.account, abi: rightAbi, functionName: "recover", args: [s.collections.driftlines, 0n,
     encodeFunctionData({ abi: artifacts.TestNFT.abi, functionName: "transferFrom", args: [r.account, issuer, r.tokenId] })] });
   await pollCycle();
-  expect(await rightView(r.account)).toMatchObject({ state: 3, holder: null, backingOwner: issuer, backed: false });
+  expect(await rightView(r.account)).toMatchObject({ state: 3, holder: null, backingOwner: issuer, backed: false, escrowOrder: listing, listingSeller: issuer, listing: { address: listing, closed: true, rightTransferable: false } });
+  expect((await rightView(r.account)).listing?.address).not.toBe(decoy);
 
   const pending = await createRight(issuer);
   await send(c, issuer, { address: pending.account, abi: rightAbi, functionName: "cancelSetup", args: [] });
