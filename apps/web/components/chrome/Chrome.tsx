@@ -6,6 +6,7 @@ import { WalletButton } from "./WalletButton";
 import { MobileNav } from "./MobileNav";
 import { Empty } from "@/components/screens/states";
 import { DEPLOYMENT } from "@/lib/deployment";
+import { LEGACY_MARKET_URL } from "@/lib/env";
 import styles from "./Chrome.module.css";
 
 export type MobileNavProps = React.ComponentProps<typeof MobileNav>;
@@ -33,6 +34,8 @@ export function Chrome({
           <Link href="/sell" className={cx(styles.sell, sellActive && styles.sellActive)}>
             Sell
           </Link>
+          <Link href="/rights" className={styles.sell}>Rights</Link>
+          {DEPLOYMENT.releaseId === "rights-v1" && DEPLOYMENT.chainId !== 31337 ? <a href={LEGACY_MARKET_URL} className={styles.sell}>Legacy positions</a> : null}
           <WalletButton />
         </div>
       </header>
@@ -48,7 +51,8 @@ export function Chrome({
             <Logo size={20} />
             <WalletButton />
           </div>
-          <div className={styles.mobileSearch}>
+          <div className={styles.mobileSearch}><Link href="/rights">Rights</Link> · <Link href="/rights/issue">Issue</Link> · <Link href="/positions">Positions</Link>
+            {DEPLOYMENT.releaseId === "rights-v1" && DEPLOYMENT.chainId !== 31337 ? <> · <a href={LEGACY_MARKET_URL}>Legacy positions</a></> : null}
             <SearchField mobile />
           </div>
         </div>

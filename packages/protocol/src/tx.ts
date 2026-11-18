@@ -4,6 +4,7 @@
 import { encodeAbiParameters, encodeFunctionData, zeroAddress, type Address, type Hex } from "viem";
 import { marketAbi, orderAbi } from "./abis";
 import type { Deployment } from "./addresses";
+import type { RightCall } from "./rightsTx";
 import { encodeBidConfig, encodeSaleConfig, type BidConfig, type SaleConfig } from "./config";
 import { erc721Abi } from "./erc721";
 
@@ -32,8 +33,10 @@ export const buy = (order: Address, config: Hex, recipient: Address, maxPrice: b
   }) as const;
 
 /** Offer: `Market.create{value}(NFTBid, config, salt)`. */
-export const createOffer = (d: Deployment, c: BidConfig, salt: Hex, value: bigint) =>
-  ({ address: d.market, abi: marketAbi, functionName: "create", args: [d.nftBid, encodeBidConfig(c), salt], value }) as const;
+export const createOffer = (d: Deployment, c: BidConfig, salt: Hex, value: bigint) => {
+  if (d.rights && c.nft.toLowerCase() === d.rights.toLowerCase() && c.anyToken) throw new Error("Offers for the rights collection must name one token.");
+  return ({ address: d.market, abi: marketAbi, functionName: "create", args: [d.nftBid, encodeBidConfig(c), salt], value }) as const;
+};
 
 /** Approval goes to the NFTBid handler, never to an order (finding A1). */
 export const approveForOffers = (d: Deployment, nft: Address, tokenId: bigint) =>
@@ -77,6 +80,7 @@ export const withdrawEth = (order: Address, owner: Address, amount: bigint) =>
 export const topUp = (order: Address, value: bigint) => ({ to: order, value }) as const;
 
 export type ContractCall =
+  | RightCall
   | ReturnType<typeof createListing>
   | ReturnType<typeof depositNft>
   | ReturnType<typeof buy>
@@ -87,7 +91,8 @@ export type ContractCall =
   | ReturnType<typeof sellToOffer>
   | ReturnType<typeof close>
   | ReturnType<typeof withdrawNft>
-  | ReturnType<typeof withdrawEth>;
+  | ReturnType<typeof withdrawEth>
+  | RightCall;
 
 /**
  * Gas limit for a write: the estimate plus 30%. A fill estimated at the quote's block can take

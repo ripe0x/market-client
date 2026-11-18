@@ -9,9 +9,9 @@ import {
 } from "@rainbow-me/rainbowkit/wallets";
 import { defineChain, type Chain } from "viem";
 import { deploymentFor } from "@market/protocol";
-import { CHAIN_ID, RPC_URL_OVERRIDE, WALLETCONNECT_PROJECT_ID } from "./env";
+import { CHAIN_ID, RELEASE_ID, RPC_URL_OVERRIDE, WALLETCONNECT_PROJECT_ID } from "./env";
 
-const deployment = deploymentFor(CHAIN_ID);
+const deployment = deploymentFor(CHAIN_ID, RELEASE_ID);
 const rpcUrl = RPC_URL_OVERRIDE ?? deployment.rpcUrl;
 
 // Local Anvil has no viem chain preset; build one. Sepolia is the viem preset with the RPC pinned

@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import type { ErrorContext } from "@market/protocol";
-import { useTxFlow, type Step as FlowStep, type StepState as FlowStepState } from "@/data/txflow";
+import { useTxFlow, type Step as FlowStep, type StepState as FlowStepState, type ExecutionMode } from "@/data/txflow";
 import { Button, StepList, type Step as UiStep, type StepState as UiStepState } from "@/components/ui";
 import { ErrorNote, TxStatus, type TxPhase } from "@/components/screens";
 import { useTradingGuard } from "@/components/app/Trading";
@@ -18,8 +18,8 @@ const mapState = (s: FlowStepState, current: boolean): UiStepState =>
 
 /** Bind a flow's steps to my StepList + a CTA button. The form renders `uiSteps` in place and the
  * returned `button` drives it, so a reload resumes at the right step (PLAN.md §6). */
-export function useFlowUi(flowSteps: FlowStep[], ctx: ErrorContext) {
-  const flow = useTxFlow(flowSteps, ctx);
+export function useFlowUi(flowSteps: FlowStep[], ctx: ErrorContext, mode: ExecutionMode = "auto") {
+  const flow = useTxFlow(flowSteps, ctx, mode);
   const uiSteps: UiStep[] = flowSteps.map((s, i) => ({
     label: s.label,
     state: mapState(flow.states[i] ?? "todo", flow.current === i),
@@ -29,7 +29,7 @@ export function useFlowUi(flowSteps: FlowStep[], ctx: ErrorContext) {
 
 function phaseOf(flow: Flow): TxPhase | null {
   if (flow.error) return { kind: "failed", message: flow.error };
-  if (flow.note) return { kind: "rejected" };
+  if (flow.note === "Cancelled in wallet.") return { kind: "rejected" };
   if (flow.done) return { kind: "confirmed" };
   if (flow.running) {
     const i = flow.current;
@@ -70,7 +70,9 @@ export function FlowButton({
 
   return (
     <div className={styles.wrap}>
-      {guard.state === "not_deployed" ? (
+      {guard.state === "checking" ? (
+        <Button size={size} block disabled>Checking deployment</Button>
+      ) : guard.state === "not_deployed" ? (
         <ErrorNote>{`Market isn't deployed on ${guard.chainName} yet.`}</ErrorNote>
       ) : guard.state === "mismatch" ? (
         <ErrorNote emphasis>The deployed contracts don't match the expected build, so trading is disabled.</ErrorNote>
@@ -87,6 +89,7 @@ export function FlowButton({
           {flow.error ? "Try again" : label}
         </Button>
       )}
+      {flow.note && flow.note !== "Cancelled in wallet." ? <p>{flow.note}</p> : null}
       {phase && (
         <div className={styles.status}>
           <TxStatus phase={phase} />

@@ -37,7 +37,7 @@ export function LagBanner() {
   return <IndexerBehind text={`Showing data from ${mins} minute${mins === 1 ? "" : "s"} ago.`} />;
 }
 
-type GuardState = "ok" | "wrong_network" | "not_deployed" | "mismatch";
+type GuardState = "checking" | "ok" | "wrong_network" | "not_deployed" | "mismatch";
 
 /** Gate trading when the deployment is missing or its code hashes don't match, or the wallet is on
  * the wrong network (PLAN.md §8.4, §7). Checked once per session for the code-hash check. */
@@ -46,14 +46,14 @@ export function useTradingGuard(): { state: GuardState; switchChain?: () => void
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
   const pub = usePublicClient();
-  const [mismatch, setMismatch] = useState(false);
+  const [verified, setVerified] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!pub || DEPLOYMENT.startBlock === null) return;
     let live = true;
     verifyDeployment(pub, DEPLOYMENT)
-      .then((bad) => live && setMismatch(bad.length > 0))
-      .catch(() => {});
+      .then((bad) => live && setVerified(bad.length === 0))
+      .catch(() => live && setVerified(false));
     return () => {
       live = false;
     };
@@ -61,7 +61,8 @@ export function useTradingGuard(): { state: GuardState; switchChain?: () => void
 
   let state: GuardState = "ok";
   if (DEPLOYMENT.startBlock === null) state = "not_deployed";
-  else if (mismatch) state = "mismatch";
+  else if (verified === false) state = "mismatch";
+  else if (verified === null) state = "checking";
   else if (isConnected && chainId !== CHAIN_ID) state = "wrong_network";
   return { state, switchChain: () => switchChain({ chainId: CHAIN_ID }), chainName: CHAIN_NAME };
 }

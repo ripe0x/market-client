@@ -13,7 +13,7 @@ test("accept an offer with a batching wallet: one prompt, token delivered, proce
   const id = await mint(c.driftlines, ACC.me);
   await waitFor(() => ownerOf(c.driftlines, id), (o) => lower(o) === lower(ACC.me));
   const COLLECTION_OFFER = await offerOnChain(OFFER_OWNER, c.driftlines, true, 0n, eth("0.5"));
-  await waitFor(() => fetch(`http://localhost:42169/api/orders/${COLLECTION_OFFER}`).then((r) => r.status), (s) => s === 200);
+  await waitFor(() => fetch(`${process.env.E2E_INDEXER_URL ?? "http://localhost:42169"}/api/orders/${COLLECTION_OFFER}`).then((r) => r.status), (s) => s === 200);
 
   await injectWallet(page, undefined, undefined, { atomic: true });
   await page.goto(`/c/${c.driftlines}/offers/${COLLECTION_OFFER}/sell`);

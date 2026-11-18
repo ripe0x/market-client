@@ -1,0 +1,828 @@
+{
+  "deploymentId": "31337:rights-v1:0x5796242872bcaa3fb0e16a4388c70f2e80ab966c",
+  "protocolCommit": "c211808cf3dd6ed36f41e92d885e6f866a4b9436",
+  "chainId": 31337,
+  "contracts": {
+    "market": "0x5796242872BCAA3Fb0e16a4388c70f2e80aB966c",
+    "rightImplementation": "0x6fBf0eB3B39e5841c5a42B78419585d079413C27",
+    "rights": "0x342589F108327aF8809D02F52304852BF6C76382",
+    "coveredNFTPurchase": "0xE0eF13aD270d514580D01cEd6f5716A3D7B8B569",
+    "nft": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+    "atomicWallet": "0xc76a71c4492c11bbadc841342c4cb470b5d12193"
+  },
+  "actors": {
+    "issuer": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "buyerA": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+    "buyerB": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+    "finalizer": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"
+  },
+  "rights": {
+    "exercised": "0x89A718422b31DBd9c5c36570090Ac183Fb306CE6",
+    "surrendered": "0xE84df5bE5b63E584B009c8C5971E3b2290E43060",
+    "listingExpired": "0xE7f309093AAc0AdEFfb1E25825edF75D16471d35",
+    "expired": "0x37A08735194ce34e4098E25089666E26630aF00D",
+    "canceled": "0xF628542B01880cC4Bc00082a2a3e51d1911b15A6",
+    "atomic": "0x8cd8a4E7C7443a4F3bdB9656ad912f76070DaA76",
+    "rolledBack": "0x6d35189714e08bb780D224c5c4C559CeBe17eD8c"
+  },
+  "premiumReceipts": {
+    "primarySeller": "198000000000000000",
+    "secondarySeller": "297000000000000000",
+    "tradingFees": "5000000000000000"
+  },
+  "paymentReceipts": {
+    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8": "950000000000000000",
+    "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720": "50000000000000000"
+  },
+  "authoritativeState": [
+    {
+      "account": "0x89A718422b31DBd9c5c36570090Ac183Fb306CE6",
+      "tokenId": "785858073261934893378674104661345045735286009062",
+      "state": "exercised",
+      "stateCode": 2,
+      "holder": null,
+      "issuer": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "residual": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "nft": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+      "assetId": "1",
+      "backingOwner": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+      "price": "1000000000000000000",
+      "deadline": "1795118155",
+      "royaltyTo": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+      "royaltyAmount": "50000000000000000",
+      "totalCredits": "0",
+      "accountBalance": "0",
+      "credits": [
+        {
+          "beneficiary": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          "amount": "0"
+        },
+        {
+          "beneficiary": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+          "amount": "0"
+        }
+      ]
+    },
+    {
+      "account": "0xE84df5bE5b63E584B009c8C5971E3b2290E43060",
+      "tokenId": "1326224423496599064032544281516697177004414611552",
+      "state": "surrendered",
+      "stateCode": 4,
+      "holder": null,
+      "issuer": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "residual": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "nft": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+      "assetId": "2",
+      "backingOwner": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "price": "1000000000000000000",
+      "deadline": "1795118156",
+      "royaltyTo": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+      "royaltyAmount": "50000000000000000",
+      "totalCredits": "0",
+      "accountBalance": "0",
+      "credits": [
+        {
+          "beneficiary": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          "amount": "0"
+        },
+        {
+          "beneficiary": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+          "amount": "0"
+        }
+      ]
+    },
+    {
+      "account": "0xE7f309093AAc0AdEFfb1E25825edF75D16471d35",
+      "tokenId": "1324196736294653078958990358016355789090702433589",
+      "state": "active",
+      "stateCode": 1,
+      "holder": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "issuer": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "residual": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "nft": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+      "assetId": "3",
+      "backingOwner": "0xE7f309093AAc0AdEFfb1E25825edF75D16471d35",
+      "price": "1000000000000000000",
+      "deadline": "1795118157",
+      "royaltyTo": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+      "royaltyAmount": "50000000000000000",
+      "totalCredits": "0",
+      "accountBalance": "0",
+      "credits": [
+        {
+          "beneficiary": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          "amount": "0"
+        },
+        {
+          "beneficiary": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+          "amount": "0"
+        }
+      ]
+    },
+    {
+      "account": "0x37A08735194ce34e4098E25089666E26630aF00D",
+      "tokenId": "317574389854272232741144600845580650600257482765",
+      "state": "expired",
+      "stateCode": 3,
+      "holder": null,
+      "issuer": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "residual": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "nft": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+      "assetId": "4",
+      "backingOwner": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "price": "1000000000000000000",
+      "deadline": "1795200957",
+      "royaltyTo": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+      "royaltyAmount": "50000000000000000",
+      "totalCredits": "0",
+      "accountBalance": "0",
+      "credits": [
+        {
+          "beneficiary": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          "amount": "0"
+        },
+        {
+          "beneficiary": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+          "amount": "0"
+        }
+      ]
+    },
+    {
+      "account": "0xF628542B01880cC4Bc00082a2a3e51d1911b15A6",
+      "tokenId": "1405311091496801432692451037451266638565093348774",
+      "state": "canceled",
+      "stateCode": 5,
+      "holder": null,
+      "issuer": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "residual": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "nft": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+      "assetId": "5",
+      "backingOwner": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "price": "1000000000000000000",
+      "deadline": "1795287357",
+      "royaltyTo": null,
+      "royaltyAmount": "0",
+      "totalCredits": "0",
+      "accountBalance": "0",
+      "credits": [
+        {
+          "beneficiary": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          "amount": "0"
+        }
+      ]
+    },
+    {
+      "account": "0x8cd8a4E7C7443a4F3bdB9656ad912f76070DaA76",
+      "tokenId": "804090034163210345413332522095881205585380485750",
+      "state": "active",
+      "stateCode": 1,
+      "holder": "0xC76A71C4492c11bbaDC841342C4Cb470b5d12193",
+      "issuer": "0xC76A71C4492c11bbaDC841342C4Cb470b5d12193",
+      "residual": "0xC76A71C4492c11bbaDC841342C4Cb470b5d12193",
+      "nft": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+      "assetId": "6",
+      "backingOwner": "0x8cd8a4E7C7443a4F3bdB9656ad912f76070DaA76",
+      "price": "1000000000000000000",
+      "deadline": "1795287358",
+      "royaltyTo": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+      "royaltyAmount": "50000000000000000",
+      "totalCredits": "0",
+      "accountBalance": "0",
+      "credits": [
+        {
+          "beneficiary": "0xC76A71C4492c11bbaDC841342C4Cb470b5d12193",
+          "amount": "0"
+        },
+        {
+          "beneficiary": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+          "amount": "0"
+        }
+      ]
+    }
+  ],
+  "atomicRollback": {
+    "tx": "0x9e688105ff997a4c3b401ba46049c1ae35451abb1b8a0fe185b83b628f9ba743",
+    "status": "reverted",
+    "created": false,
+    "deposited": false,
+    "nftOwner": "0xc76a71c4492c11bbadc841342c4cb470b5d12193"
+  },
+  "transactions": [
+    {
+      "label": "protocol deployment",
+      "hash": "0x30dd192e5248f4792faf828462782fcedb31913e8ebf7f467cdccbfd4246bcd8",
+      "block": "1",
+      "gasUsed": "4229477",
+      "gasPrice": "1000000001",
+      "gasCost": "4229477004229477",
+      "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "to": "0x4e59b44847b379578588920ca78fbf26c0b4956c",
+      "status": "success"
+    },
+    {
+      "label": "protocol deployment",
+      "hash": "0x397f2fc3296b2d4b168654692f4a3962dac7976293835a847295df007696d984",
+      "block": "1",
+      "gasUsed": "567167",
+      "gasPrice": "1000000001",
+      "gasCost": "567167000567167",
+      "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "to": "0x4e59b44847b379578588920ca78fbf26c0b4956c",
+      "status": "success"
+    },
+    {
+      "label": "protocol deployment",
+      "hash": "0x53f24c4c6322da24863a1cded2c541e6654cc42883391e2866f87dfb775283e2",
+      "block": "1",
+      "gasUsed": "889895",
+      "gasPrice": "1000000001",
+      "gasCost": "889895000889895",
+      "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "to": "0x4e59b44847b379578588920ca78fbf26c0b4956c",
+      "status": "success"
+    },
+    {
+      "label": "protocol deployment",
+      "hash": "0xffc1e662ca3a799b92e0c5046a02d383e9a6dae23ce16e626233e85dd44e71c1",
+      "block": "1",
+      "gasUsed": "950253",
+      "gasPrice": "1000000001",
+      "gasCost": "950253000950253",
+      "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "to": "0x4e59b44847b379578588920ca78fbf26c0b4956c",
+      "status": "success"
+    },
+    {
+      "label": "protocol deployment",
+      "hash": "0x9ed4c599cd32f57f5ef94ca4ef59c2108e28fcdc470d91800762c844c0c02d45",
+      "block": "1",
+      "gasUsed": "837401",
+      "gasPrice": "1000000001",
+      "gasCost": "837401000837401",
+      "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "to": "0x4e59b44847b379578588920ca78fbf26c0b4956c",
+      "status": "success"
+    },
+    {
+      "label": "protocol deployment",
+      "hash": "0xf9adcf826038cd266e4500821773aafdc8566e1db76ba437f85403bac3a0c7c8",
+      "block": "1",
+      "gasUsed": "282870",
+      "gasPrice": "1000000001",
+      "gasCost": "282870000282870",
+      "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "to": "0x4e59b44847b379578588920ca78fbf26c0b4956c",
+      "status": "success"
+    },
+    {
+      "label": "mint rehearsal collateral",
+      "hash": "0x3d4b632f45e5b3168c38146813b9edc8526f03785ed9da1e9278b1de60376544",
+      "block": "13",
+      "gasUsed": "92252",
+      "gasPrice": "1256490576",
+      "gasCost": "115913768617152",
+      "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "to": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "status": "success"
+    },
+    {
+      "label": "purchase: create",
+      "hash": "0xa29e473cd04b4b497d6b6effd3d5d87cbf51b5e2b9a39475178c0279b4973c70",
+      "block": "14",
+      "gasUsed": "127531",
+      "gasPrice": "1224626436",
+      "gasCost": "156177834009516",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x5796242872bcaa3fb0e16a4388c70f2e80ab966c",
+      "status": "success"
+    },
+    {
+      "label": "purchase: deposit",
+      "hash": "0x02656439b55f41c08bd063eb34f804311942ec60358501ef1d3c3c2c4d7245e6",
+      "block": "15",
+      "gasUsed": "55607",
+      "gasPrice": "1196786856",
+      "gasCost": "66549726701592",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "status": "success"
+    },
+    {
+      "label": "purchase: activate",
+      "hash": "0xf2f26f531dd9376e326cdbcd4ab31925499d13071de22236af6e569bba2a9b2e",
+      "block": "16",
+      "gasUsed": "212919",
+      "gasPrice": "1172279689",
+      "gasCost": "249600619102191",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x89a718422b31dbd9c5c36570090ac183fb306ce6",
+      "status": "success"
+    },
+    {
+      "label": "primary: list",
+      "hash": "0x251d50a05779c82718c5f7b7e7b1de9374eb73401f8df2bd2880ab94bfcd63e8",
+      "block": "17",
+      "gasUsed": "118241",
+      "gasPrice": "1151050409",
+      "gasCost": "136101351410569",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x5796242872bcaa3fb0e16a4388c70f2e80ab966c",
+      "status": "success"
+    },
+    {
+      "label": "primary: escrow",
+      "hash": "0x0e77461670b26dc4ac051cb835e3db1dbb4285a1535edacfe2f4726bedd80bfa",
+      "block": "18",
+      "gasUsed": "71255",
+      "gasPrice": "1132317945",
+      "gasCost": "80683315170975",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x342589f108327af8809d02f52304852bf6c76382",
+      "status": "success"
+    },
+    {
+      "label": "A buys entitlement",
+      "hash": "0x87a90f7e092f9b8858a5688e0bb0ef1e7d905d5c5f8940ae7897e42400894fe9",
+      "block": "19",
+      "gasUsed": "190587",
+      "gasPrice": "1115856772",
+      "gasCost": "212667794605164",
+      "from": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "to": "0x751595ceae19de69eed6f1abb89166b8436ad0cc",
+      "status": "success"
+    },
+    {
+      "label": "secondary: list",
+      "hash": "0x069e8316502c5af2d77e26a6ab042452acadf420a9cca6f9878dab3a076551a1",
+      "block": "20",
+      "gasUsed": "118229",
+      "gasPrice": "1101558683",
+      "gasCost": "130236181532407",
+      "from": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "to": "0x5796242872bcaa3fb0e16a4388c70f2e80ab966c",
+      "status": "success"
+    },
+    {
+      "label": "secondary: escrow",
+      "hash": "0x141652d4e66b6184adabfdf8834ccffccd5920be5c9dfc98caaf48db245768ec",
+      "block": "21",
+      "gasUsed": "71243",
+      "gasPrice": "1088963908",
+      "gasCost": "77581055697644",
+      "from": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "to": "0x342589f108327af8809d02f52304852bf6c76382",
+      "status": "success"
+    },
+    {
+      "label": "B buys entitlement",
+      "hash": "0x3142dbfcc0dcc2967ef3dd1f29c33fd625132ffa857af215f54e44064069379d",
+      "block": "22",
+      "gasUsed": "165587",
+      "gasPrice": "1077896237",
+      "gasCost": "178485604196119",
+      "from": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+      "to": "0x1e3c29bf967d2597a6caca9fe883a1ff696fb8c5",
+      "status": "success"
+    },
+    {
+      "label": "B exercises",
+      "hash": "0x6b7f567b1f57fcb26790cde6166821825aca50303741adeba4f47108a33f6577",
+      "block": "23",
+      "gasUsed": "201212",
+      "gasPrice": "1068266696",
+      "gasCost": "214948078435552",
+      "from": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+      "to": "0x89a718422b31dbd9c5c36570090ac183fb306ce6",
+      "status": "success"
+    },
+    {
+      "label": "release 0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "hash": "0xa66aa0f57f0c39da76a804332866b6905daabadaa0c113945be965ca5dd4e8ea",
+      "block": "24",
+      "gasUsed": "46728",
+      "gasPrice": "1059847827",
+      "gasCost": "49524569260056",
+      "from": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+      "to": "0x89a718422b31dbd9c5c36570090ac183fb306ce6",
+      "status": "success"
+    },
+    {
+      "label": "release 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+      "hash": "0x8a91ae36cc084944b337c4df857fda3f33494c29bc523c9b8244ad810ce3645f",
+      "block": "25",
+      "gasUsed": "41928",
+      "gasPrice": "1052390154",
+      "gasCost": "44124614376912",
+      "from": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+      "to": "0x89a718422b31dbd9c5c36570090ac183fb306ce6",
+      "status": "success"
+    },
+    {
+      "label": "mint rehearsal collateral",
+      "hash": "0x16760dd51cc1e61238cf1ddf3cc4fcf17eda7f7a937d07120099d82b73e7b6f3",
+      "block": "26",
+      "gasUsed": "75152",
+      "gasPrice": "1045859690",
+      "gasCost": "78598447422880",
+      "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "to": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "status": "success"
+    },
+    {
+      "label": "listing cancellation: create",
+      "hash": "0xc62ea8f24089d776e75003f2252dbe0934029acbcc57195126c5b61ef5b8e243",
+      "block": "27",
+      "gasUsed": "127531",
+      "gasPrice": "1040155950",
+      "gasCost": "132652128459450",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x5796242872bcaa3fb0e16a4388c70f2e80ab966c",
+      "status": "success"
+    },
+    {
+      "label": "listing cancellation: deposit",
+      "hash": "0x9cb3d11e009134eeba1faf575abeef412733679b6ecbd4db9025f67930abf66a",
+      "block": "28",
+      "gasUsed": "55607",
+      "gasPrice": "1035179133",
+      "gasCost": "57563206048731",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "status": "success"
+    },
+    {
+      "label": "listing cancellation: activate",
+      "hash": "0xed4de206613e47b59f8522999870bcb28ca8d25533fd323c5f5d245078a5d894",
+      "block": "29",
+      "gasUsed": "212919",
+      "gasPrice": "1030798044",
+      "gasCost": "219476488730436",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xe84df5be5b63e584b009c8c5971e3b2290e43060",
+      "status": "success"
+    },
+    {
+      "label": "cancelable premium: list",
+      "hash": "0xda807369031d4042bd6543214a5136f7d4bb72ac9e478632798fd69ce94069f4",
+      "block": "30",
+      "gasUsed": "118241",
+      "gasPrice": "1027002935",
+      "gasCost": "121433854037335",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x5796242872bcaa3fb0e16a4388c70f2e80ab966c",
+      "status": "success"
+    },
+    {
+      "label": "cancelable premium: escrow",
+      "hash": "0x8ac313d3b3ae965af506c7edb23d699b196c52d6100172a859aad8ebba81e220",
+      "block": "31",
+      "gasUsed": "71255",
+      "gasPrice": "1023654176",
+      "gasCost": "72940478310880",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x342589f108327af8809d02f52304852bf6c76382",
+      "status": "success"
+    },
+    {
+      "label": "cancel listing only",
+      "hash": "0x5c6a88a997ddd33cd78ac965260e1788a919fd0dc5ff7a12d3ed6e849180b01f",
+      "block": "32",
+      "gasUsed": "47129",
+      "gasPrice": "1020711450",
+      "gasCost": "48105109927050",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xd7be825ff25dbec65224f9240923a45e702464f3",
+      "status": "success"
+    },
+    {
+      "label": "return right token",
+      "hash": "0xb8e4b3a2fd9e1881db778045c715df41a19ca10ceb1404c3b44ff1600773897f",
+      "block": "33",
+      "gasUsed": "80834",
+      "gasPrice": "1018130653",
+      "gasCost": "82299573204602",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xd7be825ff25dbec65224f9240923a45e702464f3",
+      "status": "success"
+    },
+    {
+      "label": "issuer surrenders",
+      "hash": "0x7a3549531a5ccce0281dc80d340ad3d3847af65998b32db9dc7d9098b1d8a321",
+      "block": "34",
+      "gasUsed": "51436",
+      "gasPrice": "1015876535",
+      "gasCost": "52252625454260",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xe84df5be5b63e584b009c8c5971e3b2290e43060",
+      "status": "success"
+    },
+    {
+      "label": "issuer recovers surrendered collateral",
+      "hash": "0x1cc02cfcc0f2f1cecac20d62f0289e86b69c3007e0766ba36d714573facfb9e3",
+      "block": "35",
+      "gasUsed": "74045",
+      "gasPrice": "1013898774",
+      "gasCost": "75074134720830",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xe84df5be5b63e584b009c8c5971e3b2290e43060",
+      "status": "success"
+    },
+    {
+      "label": "mint rehearsal collateral",
+      "hash": "0xfc9d797914e69e563b48670b4c0261591bfcbcd43e84b403aca32b9deaf370dc",
+      "block": "36",
+      "gasUsed": "58052",
+      "gasPrice": "1012170004",
+      "gasCost": "58758493072208",
+      "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "to": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "status": "success"
+    },
+    {
+      "label": "listing expiry before right: create",
+      "hash": "0x6a2c880d79e4462f5ee296ab1d8013fa616d58d69729653928d18b277041392e",
+      "block": "37",
+      "gasUsed": "127531",
+      "gasPrice": "1010654641",
+      "gasCost": "128889797021371",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x5796242872bcaa3fb0e16a4388c70f2e80ab966c",
+      "status": "success"
+    },
+    {
+      "label": "listing expiry before right: deposit",
+      "hash": "0x2cc927ba76ed4caada25d7449d5a77c2d9a12c7352564b6122bd41a383fa628a",
+      "block": "38",
+      "gasUsed": "60407",
+      "gasPrice": "1009334135",
+      "gasCost": "60970847092945",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "status": "success"
+    },
+    {
+      "label": "listing expiry before right: activate",
+      "hash": "0x863d7a6c9f3830f20c32c25cf1f32c1c141866ce5c12d2e516258f2423f3f3de",
+      "block": "39",
+      "gasUsed": "212919",
+      "gasPrice": "1008172067",
+      "gasCost": "214658988333573",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xe7f309093aac0adeffb1e25825edf75d16471d35",
+      "status": "success"
+    },
+    {
+      "label": "short premium: list",
+      "hash": "0x2f6cbf8c55ac27e927bcff634d2d852893566660795857e092f915bb146f1d79",
+      "block": "40",
+      "gasUsed": "118241",
+      "gasPrice": "1007165059",
+      "gasCost": "119088203741219",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x5796242872bcaa3fb0e16a4388c70f2e80ab966c",
+      "status": "success"
+    },
+    {
+      "label": "short premium: escrow",
+      "hash": "0xa29c1313c3f7d9cade87ca84208910bf133eb99eebc5d77cc1f190f6de3e8305",
+      "block": "41",
+      "gasUsed": "71255",
+      "gasPrice": "1006276487",
+      "gasCost": "71702231081185",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x342589f108327af8809d02f52304852bf6c76382",
+      "status": "success"
+    },
+    {
+      "label": "close expired listing with live right",
+      "hash": "0xc3ef1b749c304b40b0c534514a515ef2871e202d67c8c94bcd9670dc2f87f5d1",
+      "block": "43",
+      "gasUsed": "47129",
+      "gasPrice": "1004808698",
+      "gasCost": "47355629128042",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xd4a539e9c18c52656ca5d29d7aa23813c0ce3b11",
+      "status": "success"
+    },
+    {
+      "label": "return live right after listing expiry",
+      "hash": "0xb4d36a62e8f9ee358b0140bdbe52ae8aa8c8f521d2108a248ec8fbf13c340da6",
+      "block": "44",
+      "gasUsed": "80834",
+      "gasPrice": "1004209500",
+      "gasCost": "81174270723000",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xd4a539e9c18c52656ca5d29d7aa23813c0ce3b11",
+      "status": "success"
+    },
+    {
+      "label": "mint rehearsal collateral",
+      "hash": "0xf5c0bf673c14d8ad0ef06f0b091405f0b096d03a2526858715b02f1753995a39",
+      "block": "45",
+      "gasUsed": "58052",
+      "gasPrice": "1003686149",
+      "gasCost": "58265988321748",
+      "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "to": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "status": "success"
+    },
+    {
+      "label": "listed expiry: create",
+      "hash": "0x682406c67ea6fe1314929af4979c620f2a72cf77d8b349903eeceff104f0421d",
+      "block": "46",
+      "gasUsed": "127519",
+      "gasPrice": "1003227164",
+      "gasCost": "127930524726116",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x5796242872bcaa3fb0e16a4388c70f2e80ab966c",
+      "status": "success"
+    },
+    {
+      "label": "listed expiry: deposit",
+      "hash": "0x47954d0430fbeff0269f78ddf3e3aa8ffc0093f6148392b1b399821f6a7f0395",
+      "block": "47",
+      "gasUsed": "60407",
+      "gasPrice": "1002827198",
+      "gasCost": "60577782549586",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "status": "success"
+    },
+    {
+      "label": "listed expiry: activate",
+      "hash": "0x32d8cd0a02c8792c1a57f6977d8521b8a9ce947cbdb8ee0898454650ce8c8877",
+      "block": "48",
+      "gasUsed": "195819",
+      "gasPrice": "1002475222",
+      "gasCost": "196303695496818",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x37a08735194ce34e4098e25089666e26630af00d",
+      "status": "success"
+    },
+    {
+      "label": "expiring premium: list",
+      "hash": "0x6c73b22fc17aac4b30ca447bd8c07c012a3a680cad6eec4e21de11c81716105d",
+      "block": "49",
+      "gasUsed": "118229",
+      "gasPrice": "1002169859",
+      "gasCost": "118485540259711",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x5796242872bcaa3fb0e16a4388c70f2e80ab966c",
+      "status": "success"
+    },
+    {
+      "label": "expiring premium: escrow",
+      "hash": "0x01e34bbc2f1bfe9c98c95308c4db7d10d12c8cc1e76561116d87b93ca7b06494",
+      "block": "50",
+      "gasUsed": "76055",
+      "gasPrice": "1001900765",
+      "gasCost": "76199562682075",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x342589f108327af8809d02f52304852bf6c76382",
+      "status": "success"
+    },
+    {
+      "label": "close listing without impossible token return",
+      "hash": "0x0387341317a3a17024d9b7614c6265d8c936e149b87f4a5fd6abcfc16aeebe58",
+      "block": "52",
+      "gasUsed": "47129",
+      "gasPrice": "1001456329",
+      "gasCost": "47197635329441",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x2f43495933d8497ce1748ee48efbb46aefd3ee0c",
+      "status": "success"
+    },
+    {
+      "label": "anyone finalizes expiry",
+      "hash": "0x91df0a1eb23f7275a5ab4449cf1700979ef875380044e12fe69561c5443ca47d",
+      "block": "53",
+      "gasUsed": "49966",
+      "gasPrice": "1001274860",
+      "gasCost": "50029699654760",
+      "from": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+      "to": "0x37a08735194ce34e4098e25089666e26630af00d",
+      "status": "success"
+    },
+    {
+      "label": "issuer manual-config recovery after burn",
+      "hash": "0xda478341b686c4870604548d467f316560d926a269bcd2e7d2160d8345302d25",
+      "block": "54",
+      "gasUsed": "56945",
+      "gasPrice": "1001116034",
+      "gasCost": "57008552556130",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x37a08735194ce34e4098e25089666e26630af00d",
+      "status": "success"
+    },
+    {
+      "label": "mint rehearsal collateral",
+      "hash": "0x6b0f97fec9b48beb56440b5863057f594eab39c2c480b43c82fef96e40676786",
+      "block": "55",
+      "gasUsed": "58052",
+      "gasPrice": "1000977060",
+      "gasCost": "58108720287120",
+      "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "to": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "status": "success"
+    },
+    {
+      "label": "abandoned setup: create",
+      "hash": "0xff5a55aa472429f5de37cd6c8eafd50561bdd9e73bc4294f8e67e990a4ab7f02",
+      "block": "56",
+      "gasUsed": "127531",
+      "gasPrice": "1000855401",
+      "gasCost": "127640090144931",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0x5796242872bcaa3fb0e16a4388c70f2e80ab966c",
+      "status": "success"
+    },
+    {
+      "label": "abandoned setup: deposit",
+      "hash": "0x95d46c737db3c37d95e5587c9af4349c919af5914906921e3d33343762c7a66b",
+      "block": "57",
+      "gasUsed": "60395",
+      "gasPrice": "1000749385",
+      "gasCost": "60440259107075",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "status": "success"
+    },
+    {
+      "label": "cancel pending",
+      "hash": "0xba7563e6daf72e7ee4c9ba8fe3e2098f765536e718807027ac695b234f130fa1",
+      "block": "58",
+      "gasUsed": "53989",
+      "gasPrice": "1000656090",
+      "gasCost": "54024421643010",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xf628542b01880cc4bc00082a2a3e51d1911b15a6",
+      "status": "success"
+    },
+    {
+      "label": "recover pending deposit",
+      "hash": "0x1095a554fed2827a80561fbb1862f7c6a81a3af7f80a2bf0d77b42e41736c941",
+      "block": "59",
+      "gasUsed": "56933",
+      "gasPrice": "1000574374",
+      "gasCost": "56965700834942",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xf628542b01880cc4bc00082a2a3e51d1911b15a6",
+      "status": "success"
+    },
+    {
+      "label": "deploy atomic wallet",
+      "hash": "0xea228fa1773ad50944dcb890fd770a6c9283797a71e0b001570439e2cb375beb",
+      "block": "60",
+      "gasUsed": "360054",
+      "gasPrice": "1000502850",
+      "gasCost": "360235053153900",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": null,
+      "status": "success"
+    },
+    {
+      "label": "mint rehearsal collateral",
+      "hash": "0x1dcc64e8eaf45dc2de667c0caa5025ceacde643619cd690ef8d8eb33f2094f0c",
+      "block": "61",
+      "gasUsed": "75152",
+      "gasPrice": "1000441503",
+      "gasCost": "75185179833456",
+      "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "to": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "status": "success"
+    },
+    {
+      "label": "atomic create deposit activate",
+      "hash": "0xfaf16e376d0be4e6b396e3b374702a728b7a8cc35d785005da9e9cffe715856d",
+      "block": "62",
+      "gasUsed": "356238",
+      "gasPrice": "1000386592",
+      "gasCost": "356375718760896",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xc76a71c4492c11bbadc841342c4cb470b5d12193",
+      "status": "success"
+    },
+    {
+      "label": "mint rehearsal collateral",
+      "hash": "0x35d2ee19226ca67a9a8fb41bfae168c795713b66f7fd78e7e1b33b4c6c488303",
+      "block": "63",
+      "gasUsed": "75152",
+      "gasPrice": "1000339416",
+      "gasCost": "75177507791232",
+      "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "to": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "status": "success"
+    },
+    {
+      "label": "failed atomic activation rollback",
+      "hash": "0x9e688105ff997a4c3b401ba46049c1ae35451abb1b8a0fe185b83b628f9ba743",
+      "block": "64",
+      "gasUsed": "204178",
+      "gasPrice": "1000297202",
+      "gasCost": "204238682109956",
+      "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "to": "0xc76a71c4492c11bbadc841342c4cb470b5d12193",
+      "status": "reverted"
+    }
+  ]
+}

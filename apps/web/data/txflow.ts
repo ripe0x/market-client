@@ -1,13 +1,15 @@
 "use client";
 // One engine for every write (PLAN.md §6): build each step's call from live reads, simulate it,
 // estimate gas with headroom, send, wait, decode failures. Multi-step flows run as one atomic
-// batch (EIP-5792) when the wallet supports it and the batch simulates; otherwise step by step.
+// batch (EIP-5792) when the wallet supports it and the batch simulates. Failed atomic preparation
+// stops; choosing separate transactions is explicit. Wallets without batching use staged steps.
 // Step state is re-derived from chain on each run, so a reload resumes where it stopped.
-import { decodeRevert, gasWithHeadroom, revertCopy, type ContractCall, type ErrorContext } from "@market/protocol";
+import { decodeRevert, gasWithHeadroom, revertCopy, verifyDeployment, type ContractCall, type ErrorContext } from "@market/protocol";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import { encodeFunctionData, type Address, type Hex, type PublicClient, type WalletClient } from "viem";
 import { usePublicClient, useWalletClient } from "wagmi";
+import { DEPLOYMENT } from "@/lib/deployment";
 import { indexer, paths } from "./indexer";
 
 export type Call = ContractCall | { to: Address; value: bigint };
@@ -16,6 +18,7 @@ export type StepState = "todo" | "wallet" | "pending" | "done" | "failed";
 export type Step = {
   key: string;
   label: string;
+  skippedNote?: string;
   /** True when this step's effect is already on chain (resume). */
   done?: (c: StepCtx) => Promise<boolean>;
   /** Live checks, then the call. Throw an Error with user copy to stop before the wallet. */
@@ -75,7 +78,9 @@ async function indexerAt(block: bigint) {
   }
 }
 
-export function useTxFlow(steps: Step[], ctx: ErrorContext) {
+export type ExecutionMode = "auto" | "atomic" | "staged";
+
+export function useTxFlow(steps: Step[], ctx: ErrorContext, mode: ExecutionMode = "auto") {
   const pub = usePublicClient();
   const { data: wallet } = useWalletClient();
   const qc = useQueryClient();
@@ -111,22 +116,29 @@ export function useTxFlow(steps: Step[], ctx: ErrorContext) {
     // Resume: mark steps already done on chain.
     const done = await Promise.all(steps.map((st) => st.done?.(c).catch(() => false) ?? Promise.resolve(false)));
     let states: StepState[] = done.map((d) => (d ? "done" : "todo"));
-    set((p) => ({ ...p, states }));
+    set((p) => ({ ...p, states, note: steps.find((step, i) => done[i] && step.skippedNote)?.skippedNote ?? p.note }));
     const todo = steps.map((_, i) => i).filter((i) => !done[i]);
 
     let block = 0n;
     try {
       // Atomic batch: every remaining call must be buildable now (later steps use predicted
       // addresses) and the batch must simulate as a whole.
-      if (todo.length > 1 && (await supportsAtomic(wallet, account, pub.chain!.id))) {
-        // Build and simulate the whole batch; if either fails, fall back to step by step, where
-        // each step is checked against the chain its predecessors left.
+      if (await pub.getChainId() !== DEPLOYMENT.chainId || wallet.chain?.id !== DEPLOYMENT.chainId)
+        throw new Stop("Switch to the selected network before signing.");
+      if (DEPLOYMENT.startBlock === null || (await verifyDeployment(pub, DEPLOYMENT)).length)
+        throw new Stop("The selected Market deployment could not be verified.");
+      const atomic = todo.length > 1 && mode !== "staged" && await supportsAtomic(wallet, account, pub.chain!.id);
+      if (todo.length > 1 && mode === "atomic" && !atomic)
+        throw new Stop("This wallet doesn't provide atomic execution. Choose separate transactions to continue.");
+      if (atomic) {
+        // A failed atomic preparation never changes into separate transactions implicitly.
         const prepared = await (async () => {
           const calls: Call[] = [];
           for (const i of todo) calls.push(await steps[i]!.call({ ...c, batch: true }));
           const sim = await pub.simulateCalls({ account, calls: calls.map(toRaw) });
           return sim.results.every((r) => r.status === "success") ? calls : null;
         })().catch(() => null);
+        if (!prepared) throw new Stop("The atomic batch could not be prepared. Nothing was sent. Choose separate transactions explicitly if you want a staged flow.");
         if (prepared) {
           const calls = prepared;
           set((p) => ({ ...p, current: todo[0]!, states: p.states.map((x, j) => (todo.includes(j) ? "wallet" : x)) }));
@@ -146,6 +158,11 @@ export function useTxFlow(steps: Step[], ctx: ErrorContext) {
       }
 
       for (const i of todo) {
+        // Earlier confirmations can change later eligibility, including crossing a deadline.
+        if (await steps[i]!.done?.(c)) {
+          set(p => ({ ...p, states: p.states.map((x, j) => j === i ? "done" : x), note: steps[i]!.skippedNote ?? p.note }));
+          continue;
+        }
         set((p) => ({ ...p, current: i, states: p.states.map((x, j) => (j === i ? "wallet" : x)) }));
         const call = await steps[i]!.call(c);
         let sim: Awaited<ReturnType<typeof simulate>>;
@@ -178,7 +195,7 @@ export function useTxFlow(steps: Step[], ctx: ErrorContext) {
       fail(null, e);
       set((p) => ({ ...p, states: p.states.map((x) => (x === "wallet" || x === "pending" ? "todo" : x)) }));
     }
-  }, [pub, wallet, steps, ctx, qc]);
+  }, [pub, wallet, steps, ctx, qc, mode]);
 
   const reset = () => set({ states: steps.map(() => "todo"), current: null, error: null, note: null, hashes: [], running: false, done: false });
   return { ...s, run, reset, ready: !!wallet?.account && !!pub };

@@ -21,13 +21,26 @@ import {
   split,
   tx,
   verifyOrder,
+  verifyRightTrade,
+  verifyRightListing,
+  readRight,
   type ApiOrder,
+  type ApiRight,
   type BidConfig,
   type SaleConfig,
 } from "@market/protocol";
 import type { Address, Hex, PublicClient } from "viem";
 import { DEPLOYMENT as d } from "@/lib/deployment";
 import { Stop, type Step } from "./txflow";
+import { indexer } from "./indexer";
+
+async function verifySupportedRight(pub: PublicClient, nft: Address, id: bigint, expiry?: bigint) {
+  if (!d.rights || !sameAddress(nft, d.rights)) return;
+  if (id < 0n || id >= 2n ** 160n) throw new Stop("Invalid right token id.");
+  const account = `0x${id.toString(16).padStart(40, "0")}` as Address;
+  const known = await indexer<ApiRight>(`/api/rights/${account}`).catch(() => null);
+  return verifyRightTrade(pub, d, nft, id, expiry, known?.config ?? undefined);
+}
 
 const head = async (pub: PublicClient) => (await pub.getBlock()).timestamp;
 const ownerOf = (pub: PublicClient, nft: Address, id: bigint) =>
@@ -61,6 +74,7 @@ export function listingSteps(draft: ListingDraft, tokenLabel: string): Step[] {
       done: async ({ pub, account }) => !!(await pub.getCode({ address: await orderOf(pub, account) })),
       call: async ({ pub, account }) => {
         if (!sameAddress(await ownerOf(pub, draft.config.nft, draft.config.tokenId), account)) throw new Stop(`You no longer hold ${tokenLabel}.`);
+        await verifySupportedRight(pub, draft.config.nft, draft.config.tokenId, draft.config.schedule.expiry);
         return tx.createListing(d, draft.config, draft.salt);
       },
     },
@@ -72,8 +86,10 @@ export function listingSteps(draft: ListingDraft, tokenLabel: string): Step[] {
         const order = await orderOf(pub, account);
         // In a batch the order does not exist yet; verify it whenever it does.
         if (results.create || (await pub.getCode({ address: order }))) {
-          await verifyOrder(pub, d, { address: order, kind: "sale", config: bytes, owner: account });
+          const verified = await verifyOrder(pub, d, { address: order, kind: "sale", config: bytes, owner: account });
+          if (verified.closed) throw new Stop("This listing is closed. Start a new listing before depositing.");
         }
+        await verifySupportedRight(pub, draft.config.nft, draft.config.tokenId, draft.config.schedule.expiry);
         return tx.depositNft(draft.config.nft, account, order, draft.config.tokenId);
       },
     },
@@ -88,7 +104,9 @@ export function depositStep(o: ApiOrder, tokenLabel: string): Step[] {
       label: `Move ${tokenLabel} into it`,
       done: async ({ pub }) => sameAddress(await ownerOf(pub, o.nft, BigInt(o.tokenId)), o.address),
       call: async ({ pub, account }) => {
-        await verifyOrder(pub, d, { address: o.address, kind: "sale", config: o.config, owner: account });
+        const verified = await verifyOrder(pub, d, { address: o.address, kind: "sale", config: o.config, owner: account });
+        if (verified.closed) throw new Stop("This listing is closed. Start a new listing before depositing.");
+        await verifySupportedRight(pub, o.nft, BigInt(o.tokenId), decodeSaleConfig(o.config).schedule.expiry);
         return tx.depositNft(o.nft, account, o.address, BigInt(o.tokenId));
       },
     },
@@ -99,7 +117,7 @@ export function depositStep(o: ApiOrder, tokenLabel: string): Step[] {
 // Buy: maxPrice is the highest price over the headroom window (D5); value = maxPrice; the
 // contract refunds value − price.
 
-export function buySteps(o: ApiOrder): Step[] {
+export function buySteps(o: ApiOrder, expectedRight?: Address): Step[] {
   const c = decodeSaleConfig(o.config);
   return [
     {
@@ -107,9 +125,11 @@ export function buySteps(o: ApiOrder): Step[] {
       label: "Buy",
       call: async ({ pub, account, batch }) => {
         const v = await verifyOrder(pub, d, { address: o.address, kind: "sale", config: o.config });
+        if (expectedRight) verifyRightListing(d, expectedRight, c);
         if (v.closed) throw new Stop("This listing has sold or been cancelled.");
         if (sameAddress(v.owner, account)) throw new Stop("This is your listing.");
         if (!sameAddress(await ownerOf(pub, c.nft, c.tokenId), o.address)) throw new Stop("This listing doesn't hold its NFT yet.");
+        await verifySupportedRight(pub, c.nft, c.tokenId);
         const q = await quoteSale(pub, d, o.address, c).catch((e) => {
           throw e; // decoded by the flow (NotStarted, Expired, RoyaltyAboveLimit, BadRoyalty…)
         });
@@ -136,7 +156,11 @@ export function offerSteps(config: BidConfig, value: bigint, salt: Hex): Step[] 
       // A retry after a create that landed must not fund a second offer: the same config and
       // salt predict the same address, and its code means the offer exists.
       done: async ({ pub, account }) => !!(await pub.getCode({ address: await predictOrder(pub, account, bytes, salt, d.nftBid) })),
-      call: async () => tx.createOffer(d, config, salt, value),
+      call: async ({ pub }) => {
+        if (d.rights && sameAddress(config.nft, d.rights) && config.anyToken) throw new Stop("Rights offers must name one token id.");
+        if (!config.anyToken) await verifySupportedRight(pub, config.nft, config.tokenId, config.schedule.expiry);
+        return tx.createOffer(d, config, salt, value);
+      },
     },
   ];
 }
@@ -169,6 +193,7 @@ export function acceptSteps(o: ApiOrder, tokenId: bigint, tokenLabel: string): S
       done: ({ pub, account }) => isApprovedForOffers(pub, c.nft, account, tokenId),
       call: async ({ pub, account }) => {
         if (!sameAddress(await ownerOf(pub, c.nft, tokenId), account)) throw new Stop(`You no longer hold ${tokenLabel}.`);
+        await verifySupportedRight(pub, c.nft, tokenId);
         const handler = await pub.readContract({ address: o.address, abi: orderAbi, functionName: "handler" });
         if (!sameAddress(handler, d.nftBid)) throw new Stop("This offer does not use Market's offer contract.");
         return tx.approveForOffers(d, c.nft, tokenId);
@@ -181,6 +206,8 @@ export function acceptSteps(o: ApiOrder, tokenId: bigint, tokenLabel: string): S
         const v = await verifyOrder(pub, d, { address: o.address, kind: "bid", config: o.config });
         if (v.closed) throw new Stop("This offer is closed.");
         if (sameAddress(v.owner, account)) throw new Stop("This is your offer.");
+        if (d.rights && sameAddress(c.nft, d.rights) && c.anyToken) throw new Stop("Collection wide offers cannot buy rights.");
+        await verifySupportedRight(pub, c.nft, tokenId);
         const q = await quoteBid(pub, d, o.address, c, tokenId);
         const { proceeds } = await acceptQuote(pub, o, tokenId);
         const call = tx.sellToOffer(o.address, o.config, tokenId, proceeds, account);
@@ -196,6 +223,14 @@ export function acceptSteps(o: ApiOrder, tokenId: bigint, tokenLabel: string): S
 
 // ---------------------------------------------------------------------------------------------
 // Cancel and withdraw: close, then execute (D15). Each step is skipped when already done.
+
+async function transferable(pub: PublicClient, o: ApiOrder): Promise<boolean> {
+  if (!d.rights || !sameAddress(o.nft, d.rights)) return true;
+  const id = BigInt(o.tokenId);
+  if (id < 0n || id >= 2n ** 160n) throw new Stop("Invalid right token id.");
+  const v = await readRight(pub, d, `0x${id.toString(16).padStart(40, "0")}`);
+  return v.stateCode === 1 && !v.effectiveExpired && v.holder !== null;
+}
 
 export function cancelSteps(o: ApiOrder, tokenLabel: string): Step[] {
   const sale = o.kind === "sale";
@@ -213,8 +248,13 @@ export function cancelSteps(o: ApiOrder, tokenLabel: string): Step[] {
     ? {
         key: "withdraw",
         label: `Withdraw ${tokenLabel}`,
-        done: async ({ pub }) => !sameAddress(await ownerOf(pub, o.nft, tokenId), o.address),
-        call: async ({ account }) => tx.withdrawNft(o.address, o.nft, account, tokenId),
+        done: async ({ pub }) => !sameAddress(await ownerOf(pub, o.nft, tokenId), o.address) || !await transferable(pub, o),
+        skippedNote: "No token return is required or possible from this listing. Inspect the right account for expiry finalization and authorized recovery. Confirmed listing closure is preserved.",
+        call: async ({ pub, account }) => {
+          await verifyOrder(pub, d, { address: o.address, kind: o.kind, config: o.config, owner: account });
+          if (!await transferable(pub, o)) throw new Stop("This right can no longer be returned. The listing stays closed. Open the right to finalize expiry and inspect authorized recovery.");
+          return tx.withdrawNft(o.address, o.nft, account, tokenId);
+        },
       }
     : {
         key: "withdraw",

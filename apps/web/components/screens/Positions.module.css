@@ -24,6 +24,8 @@
   font-weight: 700;
 }
 .actions {
+  max-width: 100%;
+  flex-wrap: wrap;
   justify-self: end;
   display: flex;
   gap: 8px;
@@ -130,4 +132,19 @@
     flex-wrap: wrap;
     justify-content: flex-end;
   }
+}
+
+.positionRow { overflow-wrap: anywhere; }
+.positionRow > * { min-width: 0; }
+
+@media (max-width: 767px) {
+  .tableHead { display: none; }
+  .sectionHead { height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px; padding-block: 12px; }
+  .positionRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    row-gap: 12px;
+    padding-block: 16px;
+  }
+  .positionRow > :first-child { grid-column: 1 / -1; }
+  .positionRow .actions { grid-column: 1 / -1; justify-self: stretch; justify-content: flex-start; }
 }
