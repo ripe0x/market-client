@@ -4,8 +4,20 @@
   gap: 16px;
   min-width: 0;
 }
+.mediaLink {
+  flex: none;
+}
+.titleLink {
+  min-width: 0;
+  overflow: hidden;
+}
+/* Clip any over-long label (e.g. a uint160-size Actions token id) instead of overflowing the row. */
 .text {
   min-width: 0;
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .title {
   font-weight: 700;

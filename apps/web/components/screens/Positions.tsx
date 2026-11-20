@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { eth, when, shortAddress, sameAddress, type ApiOrder, type ApiFill, type OrderStatus } from "@market/protocol";
 import { Row, HeaderRow, HeaderCell, TokenCell, PriceFigure, ProgressBar, Button, Sheet, Address } from "@/components/ui";
-import { priceNow, pricingText, pricingProgress, isChanging, isClosed, deadlineOf, remaining } from "@/lib/orderDisplay";
+import { priceNow, pricingText, pricingProgress, isChanging, isClosed, deadlineOf, remaining, shortId } from "@/lib/orderDisplay";
 import { EXPLORER } from "@/lib/deployment";
 import { cx } from "@/lib/cx";
 import common from "./common.module.css";
@@ -105,7 +105,7 @@ export function Positions(props: PositionsProps) {
           const attn = acts.some((a) => a.primary);
           return (
             <Row key={o.address} columns={LISTING_COLS} height={76} className={styles.positionRow}>
-              <TokenCell src={mediaOf?.(o)} title={o.collectionName ?? "Collection"} meta={`#${o.tokenId}`} size={48} />
+              <TokenCell src={mediaOf?.(o)} title={o.collectionName ?? "Collection"} meta={`#${shortId(o.tokenId ?? "")}`} size={48} />
               <PriceFigure wei={priceNow(o, now)} size={20} />
               <div className={common.pricing}>
                 <span>{pricingText(o, now) ?? ""}</span>

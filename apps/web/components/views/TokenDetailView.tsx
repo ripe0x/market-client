@@ -40,6 +40,12 @@ export function TokenDetailView({ nft, tokenId }: { nft: Address; tokenId: strin
   const own = !!(listing && address && sameAddress(controllerOf(listing), address));
   const { flow } = useFlowUi(listing ? buySteps(listing) : [], { kind: "sale", token: `#${tokenId}`, owner: own });
 
+  // Independent eligibility: a sale whose collection royalty exceeds the seller's committed limit
+  // reverts on every buy (RoyaltyAboveLimit). Determine this from the on-chain royalty (royaltyBps)
+  // against the order's own limit, so a buy is withheld even if the indexer still reports "live"
+  // (owner spec: check eligibility from chain data, not the possibly-lagging indexer).
+  const royaltyBlocked = !!listing && listing.kind === "sale" && royaltyBps != null && royaltyBps > (listing.maxRoyaltyBps ?? 0);
+
   if (!token) return <Loading />;
 
   const offerHref = `/c/${nft}/${tokenId}/offer`;
@@ -49,8 +55,10 @@ export function TokenDetailView({ nft, tokenId }: { nft: Address; tokenId: strin
     </Button>
   );
 
-  const buyable = listing && listing.status === "live" && !own;
-  const note = listing ? statusNote(listing, now) : null;
+  const buyable = listing && listing.status === "live" && !own && !royaltyBlocked;
+  const note = royaltyBlocked
+    ? "Sale stopped: the collection's royalty is above the seller's limit."
+    : listing ? statusNote(listing, now) : null;
 
   let cta: React.ReactNode;
   let payNote = false;

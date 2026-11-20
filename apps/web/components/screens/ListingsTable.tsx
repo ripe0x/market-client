@@ -1,6 +1,6 @@
 import { ago, type ApiOrder } from "@market/protocol";
 import { Table, HeaderRow, HeaderCell, Row, TableFooter, TokenCell, PriceFigure, ProgressBar } from "@/components/ui";
-import { priceNow, pricingText, pricingProgress, isChanging } from "@/lib/orderDisplay";
+import { priceNow, pricingText, pricingProgress, isChanging, shortId } from "@/lib/orderDisplay";
 import { cx } from "@/lib/cx";
 import common from "./common.module.css";
 
@@ -38,7 +38,7 @@ export function ListingsTable({ orders, now, mediaOf, moreLabel, moreHref, onMor
             <TokenCell
               src={mediaOf?.(o)}
               title={o.collectionName ?? "Collection"}
-              meta={`#${o.tokenId}`}
+              meta={`#${shortId(o.tokenId ?? "")}`}
               href={href}
             />
             <PriceFigure wei={priceNow(o, now)} round="up" size={22} />

@@ -28,7 +28,7 @@
 // - Zero-exercise-price issue+exercise, and rights-view viewport fit: minor; the exercise test uses
 //   a nonzero price, and create/manage specs already assert no horizontal overflow at mobile width.
 import { test, expect } from "@playwright/test";
-import { readOrder, OrderState } from "@market/protocol";
+import { readOrder, orderAbi, OrderState } from "@market/protocol";
 import { injectWallet } from "./wallet";
 import { ACC, D, pub, collections, mint, ownerOf, waitFor, connect, eth, issueCovered, warpPast, blockTime } from "./helpers";
 
@@ -65,16 +65,24 @@ test("issue a covered right, exercise it to a chosen recipient, and release the 
   expect(lower(await ownerOf(c.meridian, id))).toBe(lower(ACC.other));
 
   // Exercise proceeds are held as a reserved credit for the issuer (the proceeds recipient).
-  const credited = await waitFor(() => info(account).then((i) => i.totalCredits), (v) => v > 0n);
-  expect(credited).toBeGreaterThan(0n);
+  // Covered exercise credits BOTH the proceeds (price − royalty) to the issuer and the royalty to
+  // the collection's receiver, so there are two separate beneficiaries. Assert the proceeds credit,
+  // then release it and check the issuer's own credit clears and the total drops by that amount
+  // (the royalty credit to the other beneficiary legitimately remains).
+  const creditOf = (who: `0x${string}`) =>
+    pub.readContract({ address: account, abi: orderAbi, functionName: "creditOf", args: [who] }) as Promise<bigint>;
+  const proceeds = await waitFor(() => creditOf(ACC.me), (v) => v > 0n);
+  const before = await info(account).then((i) => i.totalCredits);
+  expect(before).toBeGreaterThanOrEqual(proceeds);
 
-  // Release the credit to its beneficiary; the reserved credit clears on chain.
+  // Release the issuer's proceeds credit; its reserved credit clears on chain.
   await page.getByLabel("Beneficiary", { exact: true }).fill(ACC.me);
   await page.getByRole("button", { name: "Release to beneficiary" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Release payment" }).click();
 
-  await waitFor(() => info(account).then((i) => i.totalCredits), (v) => v === 0n);
-  expect(await info(account).then((i) => i.totalCredits)).toBe(0n);
+  await waitFor(() => creditOf(ACC.me), (v) => v === 0n);
+  expect(await creditOf(ACC.me)).toBe(0n);
+  expect(await info(account).then((i) => i.totalCredits)).toBe(before - proceeds);
 });
 
 test("surrender a held right, then the issuer recovers the NFT", async ({ page }) => {

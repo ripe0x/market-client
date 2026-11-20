@@ -1,5 +1,6 @@
 import { ago, eth, priceAt, toSchedule, type ApiOrder } from "@market/protocol";
 import { Table, HeaderRow, HeaderCell, Row, GroupHeaderRow, TokenCell, PriceFigure } from "@/components/ui";
+import { shortId } from "@/lib/orderDisplay";
 import { cx } from "@/lib/cx";
 import common from "./common.module.css";
 
@@ -49,7 +50,7 @@ export function PastOrdersTable({ orders, title = "Past" }: { orders: ApiOrder[]
           <Row key={o.address} columns={COLS}>
             <TokenCell
               title={o.collectionName ?? "Collection"}
-              meta={any ? "Any token" : `#${o.tokenId}`}
+              meta={any ? "Any token" : `#${shortId(o.tokenId ?? "")}`}
               href={href}
             />
             {/* A finished price is a record, not a bound: show it to 6 decimals, not rounded to 4. */}

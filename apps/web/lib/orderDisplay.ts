@@ -75,6 +75,11 @@ export function pricingShort(o: Pick<ApiOrder, "schedule">, now: bigint): string
 /** Share of the change completed, for the 72×2 progress bar. */
 export const pricingProgress = (o: Pick<ApiOrder, "schedule">, now: bigint): number => progress(scheduleOf(o), now);
 
+/** Middle-truncate a long numeric token id so uint160-size Actions ids never overflow (STYLE_GUIDE
+ * §7: truncate long identifiers in the middle). Short ids are returned unchanged. */
+export const shortId = (tokenId: string): string =>
+  tokenId.length > 12 ? `${tokenId.slice(0, 6)}…${tokenId.slice(-4)}` : tokenId;
+
 /** Token label: "Driftlines #212" / "#212" when the collection name is unknown. */
 export const tokenLabel = (o: Pick<ApiOrder, "collectionName" | "tokenId">): string =>
-  o.collectionName ? `${o.collectionName} #${o.tokenId}` : `#${o.tokenId}`;
+  o.collectionName ? `${o.collectionName} #${shortId(o.tokenId ?? "")}` : `#${shortId(o.tokenId ?? "")}`;

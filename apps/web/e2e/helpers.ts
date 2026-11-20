@@ -65,6 +65,8 @@ export async function listFixed(seller: Address, nft: Address, tokenId: bigint, 
   await send(seller, tx.create(D, spec, salt));
   await send(seller, tx.depositNft(nft, seller, order, tokenId));
   await send(seller, tx.activate(order));
+  await mineBlocks();
+  await waitIndexer();
   return order;
 }
 
@@ -77,6 +79,8 @@ export async function listSchedule(seller: Address, nft: Address, tokenId: bigin
   await send(seller, tx.create(D, spec, salt));
   await send(seller, tx.depositNft(nft, seller, order, tokenId));
   await send(seller, tx.activate(order));
+  await mineBlocks();
+  await waitIndexer();
   return order;
 }
 
@@ -89,6 +93,8 @@ export async function offerOnChain(owner: Address, nft: Address, anyToken: boole
   const value = valueWei ?? priceWei * maxExecutions;
   const order = await predict(owner, spec, salt);
   await send(owner, tx.createAndActivate(D, spec, salt, value));
+  await mineBlocks();
+  await waitIndexer();
   return order;
 }
 
@@ -102,6 +108,8 @@ export async function issueCovered(issuer: Address, nft: Address, tokenId: bigin
   await send(issuer, tx.create(D, spec, salt));
   await send(issuer, tx.depositNft(nft, issuer, order, tokenId));
   await send(issuer, tx.activate(order));
+  await mineBlocks();
+  await waitIndexer();
   return order;
 }
 

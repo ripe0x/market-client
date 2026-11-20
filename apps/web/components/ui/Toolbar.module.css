@@ -31,8 +31,17 @@
 @media (max-width: 767px) {
   .hero {
     padding: 22px var(--gutter) 16px;
+    flex-wrap: wrap;
+    row-gap: 14px;
   }
   .left {
     gap: 24px;
+  }
+  /* Narrow screens: let toolbar controls wrap to a second row instead of overflowing the viewport. */
+  .toolbar {
+    flex-wrap: wrap;
+    row-gap: 10px;
+    padding-top: 10px;
+    padding-bottom: 10px;
   }
 }

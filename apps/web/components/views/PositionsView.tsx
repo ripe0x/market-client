@@ -58,8 +58,8 @@ export function PositionsView() {
 
   const onCancel = (o: ApiOrder) =>
     setAction({
-      title: o.kind === "sale" ? "Cancel and recover" : "Cancel offer",
-      label: o.kind === "sale" ? "Cancel and recover" : `Cancel and refund ${eth(BigInt(o.balance))}`,
+      title: o.kind === "sale" ? "Cancel and withdraw" : "Cancel offer",
+      label: o.kind === "sale" ? "Cancel and withdraw" : `Cancel and refund ${eth(BigInt(o.balance))}`,
       steps: cancelSteps(o),
       ctx: ctxOf(o),
     });
