@@ -139,6 +139,37 @@ collections, collection, token-detail, make-offer, sell, positions, rights, issu
 - **AcquireAndExecute can't be driven from the UI** until the indexer exposes the resale listing for
   an Actions token (address + activation-terms hash). The builder is ready; the discovery is missing.
 
+### Follow-up: lead-review fixes (actions-v1 web), 2026-11-19 — commit `e21b688`
+
+Three safety/correctness notes from the protocol/lead review, applied to `apps/web` only:
+- **Reserved-action front-running.** A target's reservation record is permanent per executor address,
+  so a third party can front-run `reserve(predictedOrder, …)` and poison that order address (no funds
+  lost; address unusable). `data/flows.ts` now has `reservedIssuanceSteps` ordered create → reserve →
+  activate with a **fresh per-order salt** (caller passes `randomSalt()`): the staged path reserves the
+  *real deployed* order address (never a predicted one); an EIP-5792 batch reserves the predicted
+  address atomically (no gap to front-run — the txflow engine batches when the wallet supports it); a
+  poisoned address reverts at activation and the fix is to retry with a new salt.
+- **Actions-token sale release.** When cancelling a sale of an Actions token whose underlying order is
+  no longer live, `release` reverts `ActionNotLive` by design. `cancelSteps` now detects this (the
+  listed Actions-token id is its underlying order address) and skips the release step with a plain
+  explanation that nothing can be returned; `cancel` still runs.
+- **Actions ERC721 kept out of ordinary browse/search.** The indexer lists the Actions collection in
+  `/api/collections`; `isActionsCollection` (lib/deployment) now filters it from `CollectionsView`,
+  `CollectionMenu` and `SearchField`, so it is never presented as an ordinary collection and its stats
+  are not aggregated. Its tokens are reached through their own action/resale views.
+
+Verification of this commit: `cd apps/web && pnpm typecheck` → **exit 0, 0 errors**; `pnpm --filter
+@market/web build` → **exit 0**; `npx vitest run apps/web/lib/orderDisplay.test.ts` → **exit 0, 1
+passed**. No existing e2e spec exercises the three changed branches (Actions-collection browse,
+Actions-token-sale cancel, reserved issuance — see below), so the integrated 28/28 run above still
+covers their preserved behaviour; these specific deltas are **not** themselves covered by e2e.
+
+Untested / known gaps from this follow-up:
+- `reservedIssuanceSteps` has no dedicated screen yet (no Artwork/reserved-action UI this slice), so
+  the front-run mitigation is verified by construction and typecheck, not by a live run.
+- The Actions-token-sale `ActionNotLive` release skip is not seeded in e2e (no seeded dead-underlying
+  Actions resale), so it is verified by code inspection + typecheck, not a live revert.
+
 
 ## Focused improvements candidate, 2026-11-18
 
