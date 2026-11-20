@@ -1,0 +1,366 @@
+{
+  "protocolCommit": "152bf41532a6f7f57539aa2819511ae7103521e7",
+  "deploymentId": "31337:actions-v1:0x610d05061201112c90bf59d4465a8d880d3ef795",
+  "rpcUrl": "http://127.0.0.1:50289",
+  "chainId": 31337,
+  "signers": {
+    "seller": "0x824d53b9EF115cB24E21E18DCb924F23bc6f8754",
+    "buyer": "0x48630782eF4aE4B5A2Ec0Ec2D015D4CbA7b7B3B7",
+    "saleProceeds": "0xA68e51f84693C60A8d66F2b3D220432e1A618F3C",
+    "bidder": "0x891C9bF423BD162EFa9d19e255d5946ebbc0B466",
+    "bidSeller": "0x64cC7bdD056aCf0343310AE97bDF124ac9De986D",
+    "bidProceeds": "0xFA03763d38009271AE97f3F429CbB8b90985cc37",
+    "coverIssuer": "0xBf8A1059c3494c666C5c84922D8b39Bf98886fF1",
+    "coverBuyer": "0x645f13C5178129C50Db7e04852b662Fa3C1A06E0",
+    "premiumSink": "0x72361fb234889FCdaFc0664893Fd1c0219F259eE",
+    "execProceeds": "0xab5700549ba3E25987672edC657beE991799f026",
+    "creditSink": "0x2A2BE94381274a3010482AFdc99f28f0238dE8B0",
+    "artOwner": "0xc9BbB5B452E48fE1eB403E1aC482F0BddaCE33D0",
+    "artExec": "0xc066103d1bd9d5bd19ceB1656e63fD6d5aA2f8c4",
+    "artProceeds": "0x07C9d388937e4aC1F7c512f68A7eC22edd53a16f",
+    "recoverIssuer": "0xF54cf834982BefcC38e26517fEbC4Cb239De7d2e",
+    "recoverSink": "0xe8320238606B27002Ead4c60370Db0c172fE47cB",
+    "revSeller": "0x438fD496ADBD549cddAa8CD802F3ED080a0C7AFf",
+    "revBuyer": "0xE21e076cB92ACf79be410EDDABdd9bFB5201c30E"
+  },
+  "flows": [
+    {
+      "name": "sale",
+      "steps": [
+        {
+          "label": "create sale",
+          "tx": "0x42e3a1ed1e430b6e88d156d47b6177a534b759a7f0cb04cef671915fd4e2e867",
+          "gasUsed": "205348",
+          "status": "success"
+        },
+        {
+          "label": "deposit nft",
+          "tx": "0xaf13423226c4de8195f8b64e966ae947967873ad269e0b221069893a9e49e239",
+          "gasUsed": "55607",
+          "status": "success"
+        },
+        {
+          "label": "activate",
+          "tx": "0x140e860b2a291f0493918556810aa2dad2545a5921a2ff43d3a7f4b1e095390a",
+          "gasUsed": "125034",
+          "status": "success"
+        },
+        {
+          "label": "buy (pays 1.2 ETH)",
+          "tx": "0x7a8df9b8db7f81185f543bf7b650f7252b1b13962579a0e45db0e83c71d0394f",
+          "gasUsed": "225660",
+          "status": "success"
+        }
+      ],
+      "money": [
+        {
+          "label": "fee -> FeeConfig recipient",
+          "who": "0xD4ba7cA95f3983514DDa317C4428CDb8F59c7e72",
+          "wei": "10000000000000000"
+        },
+        {
+          "label": "royalty -> ERC2981 receiver",
+          "who": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+          "wei": "50000000000000000"
+        },
+        {
+          "label": "proceeds -> seller sink",
+          "who": "0xA68e51f84693C60A8d66F2b3D220432e1A618F3C",
+          "wei": "940000000000000000"
+        },
+        {
+          "label": "buyer net spent",
+          "who": "0x48630782eF4aE4B5A2Ec0Ec2D015D4CbA7b7B3B7",
+          "wei": "1000000000000000000"
+        }
+      ]
+    },
+    {
+      "name": "bid",
+      "steps": [
+        {
+          "label": "create+fund bid (0.5 ETH)",
+          "tx": "0xb6db7f8751cb04a237be3daf827dda912025386c826b525f4d93799ab4d1b0a7",
+          "gasUsed": "218994",
+          "status": "success"
+        },
+        {
+          "label": "activate",
+          "tx": "0x676e8ce3b6c3a3753b1bc17fd7037843f2640e2b5eff6037ec00d82fcfc4a2b6",
+          "gasUsed": "121879",
+          "status": "success"
+        },
+        {
+          "label": "approve ExchangeAction (single token)",
+          "tx": "0x9de638a1e9283b68802fce695edddee7000dbe50e1ed4f648457fc2a7faf3906",
+          "gasUsed": "49078",
+          "status": "success"
+        },
+        {
+          "label": "sell into bid",
+          "tx": "0xb44f921d5f8f2dd0f3e426ae0a1e6793724e04fbc66b7f0b1fc2eea076866fad",
+          "gasUsed": "212267",
+          "status": "success"
+        }
+      ],
+      "money": [
+        {
+          "label": "fee -> FeeConfig recipient",
+          "who": "0xD4ba7cA95f3983514DDa317C4428CDb8F59c7e72",
+          "wei": "5000000000000000"
+        },
+        {
+          "label": "royalty -> ERC2981 receiver",
+          "who": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+          "wei": "12500000000000000"
+        },
+        {
+          "label": "proceeds -> seller sink",
+          "who": "0xFA03763d38009271AE97f3F429CbB8b90985cc37",
+          "wei": "482500000000000000"
+        }
+      ]
+    },
+    {
+      "name": "covered+acquire",
+      "steps": [
+        {
+          "label": "create covered right",
+          "tx": "0xa39cf488a44b06838625223ab033dc955c1ba7c96c40fd604c8d91912b6fc820",
+          "gasUsed": "150823",
+          "status": "success"
+        },
+        {
+          "label": "deposit nft",
+          "tx": "0xc55c7f6c99a425e4e58e2525b098920a2cffa321030e7aae3b8d3fcb016a4e63",
+          "gasUsed": "55607",
+          "status": "success"
+        },
+        {
+          "label": "activate (mints Actions token)",
+          "tx": "0x0f2482a92f1ddcac134b98712b0bef3fb211813d530e450fbf23338f01fc48d5",
+          "gasUsed": "204508",
+          "status": "success"
+        },
+        {
+          "label": "create Actions-token listing",
+          "tx": "0x967e8f015da33438abe45fe7b3f51d0ffbd8aeb3518ce6a8085b0c1a1e34d06e",
+          "gasUsed": "205564",
+          "status": "success"
+        },
+        {
+          "label": "deposit Actions token",
+          "tx": "0xf66b928b0ea1bab46f89601e242fec1d5e4ef1e8162e4ccf6ad1b8b54a422bbe",
+          "gasUsed": "69584",
+          "status": "success"
+        },
+        {
+          "label": "activate listing",
+          "tx": "0xf4e84e08d2815662d32647777ead6ea5ceb25c9c57da3b774e3ab24989a593ae",
+          "gasUsed": "134914",
+          "status": "success"
+        },
+        {
+          "label": "acquireAndExecute (premium 0.2 + exec 0.5)",
+          "tx": "0xb9e01e2ac3dd350a622ee44413b19a8dc4997ad7cb86d19c3350ca9ca4b77385",
+          "gasUsed": "386514",
+          "status": "success"
+        },
+        {
+          "label": "releaseCredit(royaltyTo)",
+          "tx": "0xda9fc6c4580005ed97f736b9d4a0d8c712f2c289ccf8173a7840547f18f081c4",
+          "gasUsed": "41847",
+          "status": "success"
+        },
+        {
+          "label": "withdrawCredit(proceeds -> sink)",
+          "tx": "0x7acb1886217e03aec03539d228504605ed03d1aea086a8d04c374bfda24081c2",
+          "gasUsed": "62156",
+          "status": "success"
+        }
+      ],
+      "money": [
+        {
+          "label": "premium fee -> FeeConfig recipient",
+          "who": "0xD4ba7cA95f3983514DDa317C4428CDb8F59c7e72",
+          "wei": "2000000000000000"
+        },
+        {
+          "label": "premium proceeds -> issuer sink",
+          "who": "0x72361fb234889FCdaFc0664893Fd1c0219F259eE",
+          "wei": "198000000000000000"
+        },
+        {
+          "label": "execution royalty credit",
+          "who": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+          "wei": "12500000000000000"
+        },
+        {
+          "label": "execution proceeds credit",
+          "who": "0xab5700549ba3E25987672edC657beE991799f026",
+          "wei": "487500000000000000"
+        }
+      ]
+    },
+    {
+      "name": "reserved(artwork)",
+      "steps": [
+        {
+          "label": "owner reserves change for order",
+          "tx": "0x29251c7bc5ad7125da137d5b37231621781503d8a35cf4b7da60c8705e0930c0",
+          "gasUsed": "164060",
+          "status": "success"
+        },
+        {
+          "label": "create reserved order",
+          "tx": "0xd327c5c3e79c12fd0809b8d551a74255e375117a816e79c0b79b95bc65c60c9c",
+          "gasUsed": "184642",
+          "status": "success"
+        },
+        {
+          "label": "activate",
+          "tx": "0x47a8bd8456b689691606d0eb981b56de7e367c9b991daa3ac1b704d756a300f8",
+          "gasUsed": "121601",
+          "status": "success"
+        },
+        {
+          "label": "execute (pays 0.1, forwards 0.05)",
+          "tx": "0xea42fa2881159efbd9f518ced67d0a0aef1517ad3064b657ce82cbb44bd8eebf",
+          "gasUsed": "171734",
+          "status": "success"
+        },
+        {
+          "label": "releaseCredit(surplus)",
+          "tx": "0xab0784672db13b3c83966ede9172766c7b467d94f0a5ac1972334965c61d573d",
+          "gasUsed": "62047",
+          "status": "success"
+        }
+      ],
+      "money": [
+        {
+          "label": "surplus credit -> proceeds",
+          "who": "0x07C9d388937e4aC1F7c512f68A7eC22edd53a16f",
+          "wei": "50000000000000000"
+        }
+      ]
+    },
+    {
+      "name": "recovery",
+      "steps": [
+        {
+          "label": "create+fund bid (0.5)",
+          "tx": "0x9a1a24db92222a8a208e41e05a12b7431cfee1a37f3160d0d3c51ac910ec2eae",
+          "gasUsed": "218994",
+          "status": "success"
+        },
+        {
+          "label": "activate",
+          "tx": "0x858f210cdd14872588c60c40f901f2253efed15b47bb6ab24554c2d168222b60",
+          "gasUsed": "121911",
+          "status": "success"
+        },
+        {
+          "label": "cancel",
+          "tx": "0x4fb852000e048050007333b73d935b6ba47a9e189e3a0300fc875b7686d04fb3",
+          "gasUsed": "31442",
+          "status": "success"
+        },
+        {
+          "label": "withdrawSurplus -> sink",
+          "tx": "0x16c326499b53339ec5ba338b1e52fdd66b502e0f2a004aa1446226838e8fcb04",
+          "gasUsed": "66053",
+          "status": "success"
+        },
+        {
+          "label": "create covered",
+          "tx": "0x458f6d423d331c6f2b9fdbab4cfb3ac3386e1e50b66af2c6cb0ffb6f809515f5",
+          "gasUsed": "150847",
+          "status": "success"
+        },
+        {
+          "label": "deposit nft",
+          "tx": "0xc8651316a17cf087c4dc59449e1b8ba8bfa8c6e91453bffdbecec747d1c7a8f7",
+          "gasUsed": "55607",
+          "status": "success"
+        },
+        {
+          "label": "activate",
+          "tx": "0xfad00b2fa17b1b6f2ac52ebb00db0fd105b800f23db22abaf5c427b479bb9375",
+          "gasUsed": "204508",
+          "status": "success"
+        },
+        {
+          "label": "surrender (burns token)",
+          "tx": "0x59b86914875b5aaee3c0d84061e2ba94197ee94ee501328bbc6cda6d0d114cb7",
+          "gasUsed": "48476",
+          "status": "success"
+        },
+        {
+          "label": "release (recover NFT)",
+          "tx": "0x48ae1877d15f6c9170c6c6715dff9e49660c9b6fab4377f9fe6f145c0319161b",
+          "gasUsed": "106511",
+          "status": "success"
+        }
+      ],
+      "money": [
+        {
+          "label": "surplus recovered",
+          "who": "0xe8320238606B27002Ead4c60370Db0c172fE47cB",
+          "wei": "500000000000000000"
+        }
+      ]
+    }
+  ],
+  "reverts": [
+    {
+      "label": "sell before approving ExchangeAction -> ERC721InsufficientApproval",
+      "expected": "ERC721InsufficientApproval",
+      "tx": "0xc4ffa386d24fc3cdd717ffc0c9c5ebe178fafb8ca50d9a8b42920e5c8eda8648",
+      "status": "reverted"
+    },
+    {
+      "label": "buy with maxPrice below price -> AboveMaxPrice",
+      "expected": "AboveMaxPrice",
+      "tx": "0x4b43c0aa77d54ece1147f7c4234ca0144cbf02e448285874ae51eb0cc01b6d7c",
+      "status": "reverted"
+    }
+  ],
+  "transactions": [
+    "0x42e3a1ed1e430b6e88d156d47b6177a534b759a7f0cb04cef671915fd4e2e867",
+    "0xaf13423226c4de8195f8b64e966ae947967873ad269e0b221069893a9e49e239",
+    "0x140e860b2a291f0493918556810aa2dad2545a5921a2ff43d3a7f4b1e095390a",
+    "0x7a8df9b8db7f81185f543bf7b650f7252b1b13962579a0e45db0e83c71d0394f",
+    "0xb6db7f8751cb04a237be3daf827dda912025386c826b525f4d93799ab4d1b0a7",
+    "0x676e8ce3b6c3a3753b1bc17fd7037843f2640e2b5eff6037ec00d82fcfc4a2b6",
+    "0xc4ffa386d24fc3cdd717ffc0c9c5ebe178fafb8ca50d9a8b42920e5c8eda8648",
+    "0x9de638a1e9283b68802fce695edddee7000dbe50e1ed4f648457fc2a7faf3906",
+    "0xb44f921d5f8f2dd0f3e426ae0a1e6793724e04fbc66b7f0b1fc2eea076866fad",
+    "0xa39cf488a44b06838625223ab033dc955c1ba7c96c40fd604c8d91912b6fc820",
+    "0xc55c7f6c99a425e4e58e2525b098920a2cffa321030e7aae3b8d3fcb016a4e63",
+    "0x0f2482a92f1ddcac134b98712b0bef3fb211813d530e450fbf23338f01fc48d5",
+    "0x967e8f015da33438abe45fe7b3f51d0ffbd8aeb3518ce6a8085b0c1a1e34d06e",
+    "0xf66b928b0ea1bab46f89601e242fec1d5e4ef1e8162e4ccf6ad1b8b54a422bbe",
+    "0xf4e84e08d2815662d32647777ead6ea5ceb25c9c57da3b774e3ab24989a593ae",
+    "0xb9e01e2ac3dd350a622ee44413b19a8dc4997ad7cb86d19c3350ca9ca4b77385",
+    "0xda9fc6c4580005ed97f736b9d4a0d8c712f2c289ccf8173a7840547f18f081c4",
+    "0x7acb1886217e03aec03539d228504605ed03d1aea086a8d04c374bfda24081c2",
+    "0x29251c7bc5ad7125da137d5b37231621781503d8a35cf4b7da60c8705e0930c0",
+    "0xd327c5c3e79c12fd0809b8d551a74255e375117a816e79c0b79b95bc65c60c9c",
+    "0x47a8bd8456b689691606d0eb981b56de7e367c9b991daa3ac1b704d756a300f8",
+    "0xea42fa2881159efbd9f518ced67d0a0aef1517ad3064b657ce82cbb44bd8eebf",
+    "0xab0784672db13b3c83966ede9172766c7b467d94f0a5ac1972334965c61d573d",
+    "0x9a1a24db92222a8a208e41e05a12b7431cfee1a37f3160d0d3c51ac910ec2eae",
+    "0x858f210cdd14872588c60c40f901f2253efed15b47bb6ab24554c2d168222b60",
+    "0x4fb852000e048050007333b73d935b6ba47a9e189e3a0300fc875b7686d04fb3",
+    "0x16c326499b53339ec5ba338b1e52fdd66b502e0f2a004aa1446226838e8fcb04",
+    "0x458f6d423d331c6f2b9fdbab4cfb3ac3386e1e50b66af2c6cb0ffb6f809515f5",
+    "0xc8651316a17cf087c4dc59449e1b8ba8bfa8c6e91453bffdbecec747d1c7a8f7",
+    "0xfad00b2fa17b1b6f2ac52ebb00db0fd105b800f23db22abaf5c427b479bb9375",
+    "0x59b86914875b5aaee3c0d84061e2ba94197ee94ee501328bbc6cda6d0d114cb7",
+    "0x48ae1877d15f6c9170c6c6715dff9e49660c9b6fab4377f9fe6f145c0319161b",
+    "0x624839a3039798e020a657b6e1481756352d3089721596163ffd78c88a9f604a",
+    "0x7734405de11c465c4b31f956a2e2e8c4b69ced0a985a71d89304f0fff311ca88",
+    "0x00a76f97bc53dcadd3147d3b42432026a9fab8eb8d1de2cebccac972c212e260",
+    "0x4b43c0aa77d54ece1147f7c4234ca0144cbf02e448285874ae51eb0cc01b6d7c"
+  ]
+}

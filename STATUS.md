@@ -1,5 +1,34 @@
 # Status
 
+## Unified Actions candidate (actions-v1) — protocol-package foundation, 2026-11-19
+
+Branch `claude/unified-actions`. Protocol submodule re-pinned to the unified Order/Action model at `152bf41532a6f7f57539aa2819511ae7103521e7` (ripe0x/market `claude/unified-actions`). This is an **undeployed local candidate**. The legacy `legacy-v1` and historical `rights-v1` manifests are untouched; the new release has its own id `actions-v1` and manifests `deployments/actions-local.json` (local, deployed) and `deployments/actions-sepolia.json` (Sepolia, candidate, `startBlock: null`, deterministic CREATE2 addresses, not deployed). Public Sepolia still defaults to `legacy-v1`. ABI, codehash and manifest generation are reproducible from the pinned submodule: `pnpm build:contracts && pnpm --filter @market/protocol gen`.
+
+**Done and verified (protocol package `packages/protocol`):**
+- `scripts/gen-abis.ts` regenerated for the new contract set (Market, Order, Actions, ExchangeAction, CoveredNFTPurchase, ReservedAction, FeeConfig, AcquireAndExecute, FillVerifier, Artwork target, ERC721 errors).
+- Codecs (`src/config.ts`): `OrderSpec`, ExchangeAction `Config`/`SaleTerms`/`BidTerms`, covered and reserved configs, sale/bid/covered/reserved execution inputs. `Schedule` and `Quote` are ABI-derived (drift-proof); the action configs travel as `bytes`, so their struct shapes are hand-written and checked on chain by the rehearsal.
+- Pricing/split (`src/split.ts`): royalty capped at `price - fee`; sale `maxRoyaltyBps` checked against the **capped** royalty (ExchangeAction `_quote`, confirmed by the lead).
+- Reads (`src/orders.ts`): `readOrder` authenticates provenance against `Market.isOrder`, reads `config()` on chain, and requires `actionCodehash` to equal the hash of the action's deployed code; `verifyDeployment` checks the new wiring; `quoteExchange`, `predictOrderAddress`, `isExpiredAt(deadline, now)` for the deadline boundary.
+- Call builders + presets (`src/tx.ts`): create/createAndActivate/activate/execute(sale,bid)/exercise covered/execute reserved/cancel/surrender/finalizeExpiry/release/withdrawSurplus/releaseCredit/withdrawCredit/bid funding/action transfer/acquireAndExecute/artwork reserve, with trust-boundary validation (contradictory token selection, invalid window, empty operation, `minActionTimeLeft` 0 for ordinary bids). Incoming bid approval targets **ExchangeAction**, never the order.
+- Error decoding/copy (`src/errors.ts`) for the new custom errors; sale/bid/covered/reserved contexts.
+- `src/api.ts` redefines the indexer↔client contract for the unified model (sets the shape the indexer rewrite targets).
+
+**Verification run (local, this candidate):**
+- `pnpm --filter @market/protocol typecheck`: pass. Unit suite (`test/codecs|split|schedule|errors`): **32/32**. (No chain, no mocks — pure codec/pricing/error logic.)
+- Signed local Anvil rehearsal `pnpm --filter @market/protocol rehearse:actions` at pin `152bf41`: **36 signed transactions across 5 flows and 2 genuine on-chain reverts**, all absolute-amount assertions held. Evidence: `packages/protocol/evidence/actions-local.json`. Measured results: sale fee 0.01 / royalty 0.05 / proceeds 0.94 with 0.2 refunded; bid fee 0.005 / royalty 0.0125 / proceeds 0.4825; covered+acquire premium (fee 0.002, proceeds 0.198) and execution credited (royalty 0.0125, proceeds 0.4875, withdrawn); artwork reserved surplus credit 0.05; recovery 0.5 ETH via cancel+withdrawSurplus and NFT via surrender+release. Reverts: `ERC721InsufficientApproval` (approval must target ExchangeAction) and `AboveMaxPrice`, both actual reverted transactions. Example prices and 1%/5%/2.5% rates are local test conditions, not launch settings.
+
+**NOT done in this slice (explicit lost/untested coverage):**
+- **Indexer (`apps/indexer`) is not migrated.** It still indexes the old `fill`/handler/Rights model and will not compile or run against the new package. No new-model event handlers, schema, or REST API yet.
+- **Web app (`apps/web`) is not migrated.** All UI (creation, activation, sale, bid, resale, execution, surrender, expiry, credit/collateral recovery, artwork example, atomic covered purchase), the Playwright e2e suite, and the production build still target the old model and will fail to typecheck/build against the new package.
+- Because of the above, **workspace-wide `pnpm -r typecheck` and the web/indexer builds currently fail.** This commit is a clearly-labelled checkpoint of a verified package foundation, not a release-ready state.
+- No real wallet-extension verification was done (not possible here); only simulated local signing with disposable keys.
+- `devchain/seed.ts` was rewritten for the new model (compiles, used by `pnpm dev:chain`) but its downstream consumers (indexer, e2e) are not migrated, so it is not exercised end to end.
+
+Nothing was deployed, broadcast, or pushed. No secrets written. The lead will provide the final protocol pin at freeze; regeneration is reproducible from the submodule.
+
+---
+
+
 ## Focused improvements candidate, 2026-11-18
 
 Verified implementation: `578e1b163ac1f458b7a6547ed9b90125da0800f1`; final protocol/submodule and artifact source: `c211808cf3dd6ed36f41e92d885e6f866a4b9436`. The complete protocol pin and repeated signed rehearsal are committed in `1d37cd8`; `4c86a5a` records the initial artifact generation. This supersedes the rights metadata-only candidate described in the historical status below. Current rights Market candidate is `0x5796242872BCAA3Fb0e16a4388c70f2e80aB966c`; Sepolia remains candidate/startBlock null. Legacy deployment and production selection remain unchanged.

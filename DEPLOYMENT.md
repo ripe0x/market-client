@@ -4,6 +4,8 @@
 
 **Rights candidate:** `rights-v1` pins protocol `484223e`. `deployments/rights-sepolia.json` contains deterministic CREATE2 address and hash predictions but has `status: "candidate"` and `startBlock: null`. No right-enabled contract is deployed on public Sepolia. `deployments/rights-local.json` is the actual isolated Anvil deployment record. Never copy its `deployed` status to the public manifest without public receipts and readbacks.
 
+**Unified Actions candidate:** `actions-v1` pins protocol `152bf41` (unified Order/Action model). `deployments/actions-sepolia.json` is `status: "candidate"`, `startBlock: null`, with deterministic CREATE2 addresses that are **not** deployed on public Sepolia. `deployments/actions-local.json` is the local Anvil record. Regenerate both reproducibly from the pinned submodule with `pnpm build:contracts && pnpm --filter @market/protocol gen`. The local signed rehearsal is `pnpm --filter @market/protocol rehearse:actions` (evidence `packages/protocol/evidence/actions-local.json`). The indexer and web app for this release are not yet migrated; see STATUS.md.
+
 ## Reproduce the local lifecycle
 
 From this repository root, with Node 22, pnpm 9 and Foundry installed:
