@@ -6,7 +6,7 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "build:contracts": "cd contracts/market && forge build && cd ../test-collections && forge build",
+    "build:contracts": "cd contracts/market && forge build --ast && cd ../test-collections && forge build",
     "gen": "pnpm --filter @market/protocol gen",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
