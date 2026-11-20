@@ -10,7 +10,7 @@ import { useHead, useIndexer, useApi } from "@/data/hooks";
 import { paths } from "@/data/indexer";
 import { LagBanner } from "@/components/app/Trading";
 import { FlowButton, useFlowUi } from "@/components/tx/Flow";
-import { acceptSteps, acceptQuote, isApprovedForOffers } from "@/data/flows";
+import { acceptSteps, acceptQuote, isApprovedForBids } from "@/data/flows";
 
 type Owned = { nft: Address; tokenId: string; image: string | null }[];
 const ZERO: AcceptBreakdown = { offer: 0n, royalty: 0n, royaltyBps: 0, fee: 0n, receive: 0n };
@@ -45,7 +45,7 @@ export function AcceptView({ nft, order: orderAddr }: { nft: Address; order: Add
         setBreakdown({ offer: q.price, royalty: q.royalty, royaltyBps, fee: q.fee, receive: q.proceeds });
       })
       .catch(() => live && setBreakdown(ZERO));
-    isApprovedForOffers(pub, nft, address, id).then((a) => live && setApproved(a));
+    isApprovedForBids(pub, nft, address, id).then((a) => live && setApproved(a));
     return () => {
       live = false;
     };

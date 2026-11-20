@@ -6,7 +6,6 @@ import { useAccount, usePublicClient } from "wagmi";
 import { getAddress, isAddress, type Address, type Hex } from "viem";
 import {
   collectionKind,
-  previewSplits,
   randomSalt,
   royaltyBpsCeil,
   sameAddress,
@@ -19,8 +18,8 @@ import { useHead, useIndexer, useApi } from "@/data/hooks";
 import { paths } from "@/data/indexer";
 import { LagBanner, useRoyaltyBps } from "@/components/app/Trading";
 import { FlowButton, useFlowUi } from "@/components/tx/Flow";
-import { listingSteps, depositStep } from "@/data/flows";
-import { buildSaleConfig, parseEth } from "@/lib/listingConfig";
+import { escrowListingSteps, depositStep, previewSplits } from "@/data/flows";
+import { buildSaleSpec, parseEth } from "@/lib/listingConfig";
 import { CHAIN_ID } from "@/lib/env";
 import { DEPLOYMENT } from "@/lib/deployment";
 import { Button } from "@/components/ui";
@@ -57,8 +56,8 @@ export function SellView({ nft, id }: { nft?: string; id?: string }) {
   const walletNfts: WalletNft[] = useMemo(() => {
     const held: WalletNft[] = holdings.map((h) => ({ nft: h.nft, tokenId: h.tokenId, collectionName: h.collectionName, mediaSrc: h.image, listed: false }));
     const listed: WalletNft[] = openListings
-      .filter((l) => !held.some((h) => sameAddress(h.nft, l.nft) && h.tokenId === l.tokenId))
-      .map((l) => ({ nft: l.nft, tokenId: l.tokenId, collectionName: l.collectionName, listed: true }));
+      .filter((l) => l.nft && l.tokenId && !held.some((h) => sameAddress(h.nft, l.nft!) && h.tokenId === l.tokenId))
+      .map((l) => ({ nft: l.nft!, tokenId: l.tokenId!, collectionName: l.collectionName ?? null, listed: true }));
     const all = [...held, ...listed];
     if (manual && !all.some((n) => sameAddress(n.nft, manual.nft) && n.tokenId === manual.tokenId))
       all.unshift({ nft: manual.nft, tokenId: manual.tokenId, collectionName: null, listed: false });
@@ -114,7 +113,7 @@ export function SellView({ nft, id }: { nft?: string; id?: string }) {
     if (start === 0n) return;
     let live = true;
     (async () => {
-      const [a, b] = await previewSplits(pub, DEPLOYMENT, selNft, BigInt(selId), [start, end]).catch(() => null) ?? [null];
+      const [a, b] = await previewSplits(pub, selNft, BigInt(selId), [start, end]).catch(() => null) ?? [null];
       if (live && a) {
         const bps = Math.max(Number(royaltyBpsCeil(a.royaltyAsked, start)), b ? Number(royaltyBpsCeil(b.royaltyAsked, end)) : 0);
         if (!royaltyTouched.current) setValue((v) => ({ ...v, maxRoyaltyBps: bps }));
@@ -152,7 +151,7 @@ export function SellView({ nft, id }: { nft?: string; id?: string }) {
     let live = true;
     (async () => {
       const prices = value.changeOverTime ? [start, end] : [start];
-      const rows = await previewSplits(pub, DEPLOYMENT, selNft, BigInt(selId), prices).catch(() => null);
+      const rows = await previewSplits(pub, selNft, BigInt(selId), prices).catch(() => null);
       if (!live || !rows) return;
       const fig = (r: (typeof rows)[number]): SplitFigures => ({ salePrice: r.price, royalty: r.royalty, royaltyBps: askedBps ?? 0, fee: r.fee, receive: r.proceeds });
       setBreakdown(value.changeOverTime && rows[1] ? { atStart: fig(rows[0]!), atEnd: fig(rows[1]) } : { atStart: fig(rows[0]!) });
@@ -175,8 +174,8 @@ export function SellView({ nft, id }: { nft?: string; id?: string }) {
 
   // Flow: resume an awaiting_nft listing with just the deposit, else create + deposit.
   const awaiting = positions?.listings.find((l) => selNft && sameAddress(l.nft, selNft) && l.tokenId === selId && l.status === "awaiting_nft");
-  const config = anchor && selNft && selId && address ? buildSaleConfig(value, selNft, BigInt(selId), address, anchor) : null;
-  const flowSteps = awaiting ? depositStep(awaiting, tok) : config && salt ? listingSteps({ config, salt }, tok) : [];
+  const spec = anchor && selNft && selId && address ? buildSaleSpec(DEPLOYMENT, value, { nft: selNft, tokenId: BigInt(selId), proceedsTo: address }, anchor) : null;
+  const flowSteps = awaiting ? depositStep(awaiting, tok) : spec && salt && selNft && selId ? escrowListingSteps(spec, salt, { nft: selNft, tokenId: BigInt(selId), kind: "sale" }, tok) : [];
   const { flow, uiSteps } = useFlowUi(flowSteps, { kind: "sale", token: tok });
 
   // A changing price starts at `anchor` and the expiry counts from it, so keep it at the current

@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { injectWallet } from "./wallet";
 import { ACC, collections, positionsOf, balance, waitFor, connect, eth } from "./helpers";
 
-const lower = (a: string) => a.toLowerCase();
+const lower = (a?: string) => (a ?? "").toLowerCase();
 
 test("make a collection offer; deposit equals amount × quantity", async ({ page }) => {
   const c = await collections();

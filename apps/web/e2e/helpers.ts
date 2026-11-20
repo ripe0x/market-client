@@ -1,6 +1,8 @@
 // Node-side helpers for e2e: a viem client against the seeded Anvil (:8645, accounts unlocked),
 // minting fresh tokens from the test collections, and setting up orders directly on chain so the
-// UI flow under test is the only thing exercised through the app.
+// UI flow under test is the only thing exercised through the app. Everything here is the unified
+// Order/Action model: sales/covered rights escrow an NFT then activate; bids create-and-activate
+// in one funded call. Incoming-bid NFT approval always targets ExchangeAction, never an order.
 import {
   createPublicClient,
   createTestClient,
@@ -11,14 +13,13 @@ import {
   type Address,
 } from "viem";
 import {
-  configHash,
   deploymentFor,
-  encodeSaleConfig,
   erc721Abi,
   fixedSchedule,
-  marketAbi,
+  predictOrderAddress,
   randomSalt,
   tx,
+  type ApiPositions,
 } from "@market/protocol";
 import { artifacts } from "@market/protocol/devchain";
 import { expect, type Page } from "@playwright/test";
@@ -46,6 +47,9 @@ const send = async (account: Address, call: { address: Address; abi: readonly un
   return pub.waitForTransactionReceipt({ hash });
 };
 
+const predict = (issuer: Address, spec: Parameters<typeof tx.create>[1], salt: `0x${string}`) =>
+  predictOrderAddress(pub, D, issuer, spec, salt) as Promise<Address>;
+
 /** Mint `count` tokens of a test collection to `to`; returns the first id. */
 export async function mint(nft: Address, to: Address, count = 1n): Promise<bigint> {
   const { result } = await pub.simulateContract({ address: nft, abi: artifacts.TestNFT.abi, functionName: "mint", args: [to, count], account: ACC.deployer });
@@ -53,46 +57,71 @@ export async function mint(nft: Address, to: Address, count = 1n): Promise<bigin
   return result as bigint;
 }
 
-/** Create a fixed-price listing on chain (create + deposit), returning the order address. */
+/** Create a live fixed-price sale on chain (create → deposit → activate), returning the order. */
 export async function listFixed(seller: Address, nft: Address, tokenId: bigint, priceWei: bigint, maxRoyaltyBps = 10000): Promise<Address> {
-  const config = { nft, tokenId, schedule: fixedSchedule(priceWei), proceedsTo: seller, maxRoyaltyBps };
+  const spec = tx.saleSpec(D, { issuer: seller, nft, tokenId, schedule: fixedSchedule(priceWei), proceedsTo: seller, maxRoyaltyBps });
   const salt = randomSalt();
-  const bytes = encodeSaleConfig(config);
-  const order = (await pub.readContract({ address: D.market, abi: marketAbi, functionName: "orderAddress", args: [seller, D.nftSale, configHash(bytes), salt] })) as Address;
-  await send(seller, tx.createListing(D, config, salt));
+  const order = await predict(seller, spec, salt);
+  await send(seller, tx.create(D, spec, salt));
   await send(seller, tx.depositNft(nft, seller, order, tokenId));
+  await send(seller, tx.activate(order));
   return order;
 }
 
-/** Create a falling (or rising) listing on chain over `durationSec`. */
+/** Create a live falling (or rising) sale on chain over `durationSec`. */
 export async function listSchedule(seller: Address, nft: Address, tokenId: bigint, startWei: bigint, endWei: bigint, durationSec: bigint): Promise<Address> {
   const t = (await pub.getBlock()).timestamp;
-  const config = { nft, tokenId, schedule: { startPrice: startWei, endPrice: endWei, startTime: t, endTime: t + durationSec, expiry: 0n }, proceedsTo: seller, maxRoyaltyBps: 10000 };
+  const spec = tx.saleSpec(D, { issuer: seller, nft, tokenId, schedule: { startPrice: startWei, endPrice: endWei, startTime: t, endTime: t + durationSec }, proceedsTo: seller, maxRoyaltyBps: 10000 });
   const salt = randomSalt();
-  const bytes = encodeSaleConfig(config);
-  const order = (await pub.readContract({ address: D.market, abi: marketAbi, functionName: "orderAddress", args: [seller, D.nftSale, configHash(bytes), salt] })) as Address;
-  await send(seller, tx.createListing(D, config, salt));
+  const order = await predict(seller, spec, salt);
+  await send(seller, tx.create(D, spec, salt));
   await send(seller, tx.depositNft(nft, seller, order, tokenId));
+  await send(seller, tx.activate(order));
   return order;
 }
 
-/** Create a bid (offer) on chain, returning the order address. `priceWei` is the per-NFT amount;
- * `valueWei` (default price × maxFills) funds it — pass a smaller value to make it underfunded. */
-export async function offerOnChain(owner: Address, nft: Address, anyToken: boolean, tokenId: bigint, priceWei: bigint, maxFills = 1n, valueWei?: bigint): Promise<Address> {
-  const config = { nft, anyToken, tokenId, schedule: fixedSchedule(priceWei), recipient: owner, maxFills };
+/** Create a live bid (offer) on chain, returning the order address. `priceWei` is the per-NFT
+ * amount; `valueWei` (default price × maxExecutions) funds it — pass a smaller value to make it
+ * underfunded. A bid needs no custody, so it is created and activated in one funded call. */
+export async function offerOnChain(owner: Address, nft: Address, anyToken: boolean, tokenId: bigint, priceWei: bigint, maxExecutions = 1n, valueWei?: bigint): Promise<Address> {
+  const spec = tx.bidSpec(D, { issuer: owner, nft, schedule: fixedSchedule(priceWei), recipient: owner, anyToken, tokenId: anyToken ? undefined : tokenId, maxExecutions });
   const salt = randomSalt();
-  const value = valueWei ?? priceWei * maxFills;
-  const bytes = (await import("@market/protocol")).encodeBidConfig(config);
-  const order = (await pub.readContract({ address: D.market, abi: marketAbi, functionName: "orderAddress", args: [owner, D.nftBid, configHash(bytes), salt] })) as Address;
-  await send(owner, { ...tx.createOffer(D, config, salt, value) });
+  const value = valueWei ?? priceWei * maxExecutions;
+  const order = await predict(owner, spec, salt);
+  await send(owner, tx.createAndActivate(D, spec, salt, value));
   return order;
 }
+
+/** Issue a live covered purchase right on chain (create → deposit → activate), returning the
+ * backing account (== the order address, == the Actions-token id). The issuer holds the freshly
+ * minted Actions token. Used to set up terminal-action UI tests (surrender, finalize). */
+export async function issueCovered(issuer: Address, nft: Address, tokenId: bigint, priceWei: bigint, opts: { deadline?: bigint; maxRoyaltyBps?: number } = {}): Promise<Address> {
+  const spec = tx.coveredSpec(D, { issuer, nft, tokenId, price: priceWei, proceedsTo: issuer, maxRoyaltyBps: opts.maxRoyaltyBps ?? 1000, deadline: opts.deadline ?? 0n });
+  const salt = randomSalt();
+  const order = await predict(issuer, spec, salt);
+  await send(issuer, tx.create(D, spec, salt));
+  await send(issuer, tx.depositNft(nft, issuer, order, tokenId));
+  await send(issuer, tx.activate(order));
+  return order;
+}
+
+/** Advance the dev chain's clock just past `ts` (workers=1, so serial tests own the clock). Real
+ * chain time, not a mock: the next block carries the new timestamp and later blocks stay monotonic. */
+export async function warpPast(ts: bigint) {
+  const now = (await pub.getBlock()).timestamp;
+  if (ts >= now) {
+    await test.setNextBlockTimestamp({ timestamp: ts + 1n });
+    await test.mine({ blocks: 1 });
+  }
+}
+
+export const blockTime = async () => (await pub.getBlock()).timestamp;
 
 const INDEXER = process.env.E2E_INDEXER_URL ?? "http://localhost:42169";
 export const getToken = async (nft: Address, id: bigint) =>
   (await (await fetch(`${INDEXER}/api/tokens/${nft}/${id}`)).json()) as { listing: { status: string } | null };
 export const positionsOf = async (a: Address) =>
-  (await (await fetch(`${INDEXER}/api/accounts/${a}/positions`)).json()) as { listings: { address: Address; status: string; nft: Address; tokenId: string; balance: string }[]; offers: { address: Address; status: string; nft: Address; tokenId: string; anyToken: boolean; balance: string; fills: number; maxFills: string }[] };
+  (await (await fetch(`${INDEXER}/api/accounts/${a}/positions`)).json()) as ApiPositions;
 
 /** Poll the indexer until `pred` holds. */
 export async function waitFor<T>(get: () => Promise<T>, pred: (v: T) => boolean, tries = 60): Promise<T> {
@@ -138,7 +167,9 @@ export async function connect(page: Page) {
   await expect(connectBtn).toHaveCount(0, { timeout: 20_000 });
 }
 
-export const NFTBID = D.nftBid;
+/** The incoming-bid NFT approval target: ExchangeAction (A1 — never an order, never a legacy bid
+ * contract). Revoke-all targets this too. */
+export const EXCHANGE = D.exchange!;
 
 /** Click a Positions tab if the (mobile-only) tab bar is visible; no-op on desktop. */
 export async function selectTab(page: Page, label: string) {

@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { injectWallet } from "./wallet";
 import { ACC, collections, mint, positionsOf, ownerOf, waitFor, connect } from "./helpers";
 
-const lower = (a: string) => a.toLowerCase();
+const lower = (a?: string) => (a ?? "").toLowerCase();
 
 test("create a listing in two steps, then it is live", async ({ page }, info) => {
   const c = await collections();

@@ -1,7 +1,7 @@
 import { eth, until, shortAddress, isFixed, when, type ApiOrder } from "@market/protocol";
 import { Table, HeaderRow, HeaderCell, Row, TableFooter } from "@/components/ui";
 import { PriceFigure } from "@/components/ui";
-import { scheduleOf, priceNow, moveWords } from "@/lib/orderDisplay";
+import { scheduleOf, priceNow, moveWords, remaining, deadlineOf } from "@/lib/orderDisplay";
 import { cx } from "@/lib/cx";
 import common from "./common.module.css";
 import styles from "./OffersTable.module.css";
@@ -10,8 +10,6 @@ const COLS = "minmax(0,1.5fr) minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax
 
 const forLabel = (o: ApiOrder) =>
   o.anyToken ? `Any ${o.collectionName ?? "collection"}` : `#${o.tokenId}`;
-
-const remaining = (o: ApiOrder) => (o.maxFills === "0" ? 1 : Number(o.maxFills)) - o.fills;
 
 // Screen 04 (README): Offer ↓ | For | Remaining | Expires | Buyer | Sell (when eligible, D12).
 export function OffersTable({
@@ -58,8 +56,8 @@ export function OffersTable({
               <span>{remaining(o)}</span>
               {o.status === "underfunded" && <span className={styles.under}>Underfunded</span>}
             </span>
-            <span className={common.right}>{until(BigInt(o.schedule.expiry), now)}</span>
-            <span className={cx(common.right, common.monoMeta)}>{shortAddress(o.owner)}</span>
+            <span className={common.right}>{until(deadlineOf(o), now)}</span>
+            <span className={cx(common.right, common.monoMeta)}>{shortAddress(o.issuer)}</span>
             {eligible && sellHrefOf ? (
               <a href={sellHrefOf(o)} className={common.pill}>
                 Sell

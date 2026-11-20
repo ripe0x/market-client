@@ -1,4 +1,4 @@
-import { eth, ago, type ApiOrder } from "@market/protocol";
+import { ago, type ApiOrder } from "@market/protocol";
 import { Table, HeaderRow, HeaderCell, Row, TableFooter, TokenCell, PriceFigure, ProgressBar } from "@/components/ui";
 import { priceNow, pricingText, pricingProgress, isChanging } from "@/lib/orderDisplay";
 import { cx } from "@/lib/cx";
@@ -46,7 +46,7 @@ export function ListingsTable({ orders, now, mediaOf, moreLabel, moreHref, onMor
               <span>{pt ?? ""}</span>
               {isChanging(o) && <ProgressBar value={pricingProgress(o, now)} />}
             </div>
-            <span className={common.right}>{o.lastSalePrice ? eth(BigInt(o.lastSalePrice)) : "—"}</span>
+            <span className={common.right}>—</span>
             <span className={cx(common.right, common.muted)}>{ago(o.createdAt, now)}</span>
             <a href={href} className={common.pill}>
               Buy

@@ -2,7 +2,7 @@
 
 import { useAccount } from "wagmi";
 import type { Address } from "viem";
-import { eth, when, until, buyMaxPrice, sameAddress, toSchedule, priceAt, type ApiOrder } from "@market/protocol";
+import { eth, when, until, sameAddress, priceAt, type ApiOrder } from "@market/protocol";
 import { TokenDetail, ErrorNote, Loading, type TokenOffer } from "@/components/screens";
 import { Button } from "@/components/ui";
 import { useHead, useIndexer, useApi } from "@/data/hooks";
@@ -10,14 +10,15 @@ import { paths, type TokenView } from "@/data/indexer";
 import { LagBanner, useRoyaltyBps } from "@/components/app/Trading";
 import { FlowButton, useFlowUi } from "@/components/tx/Flow";
 import { buySteps } from "@/data/flows";
+import { buyMaxPrice, controllerOf, deadlineOf, remaining, scheduleOf } from "@/lib/orderDisplay";
 
 const statusNote = (o: ApiOrder, now: bigint): string | null => {
-  const s = toSchedule(o.schedule);
+  const s = scheduleOf(o);
   switch (o.status) {
     case "not_started":
       return `This listing opens ${when(s.startTime, now)}.`;
     case "expired":
-      return `This listing expired ${when(s.expiry, now)}.`;
+      return `This listing expired ${when(deadlineOf(o), now)}.`;
     case "awaiting_nft":
       return "This listing isn't ready: its NFT hasn't been deposited yet.";
     case "blocked":
@@ -36,7 +37,7 @@ export function TokenDetailView({ nft, tokenId }: { nft: Address; tokenId: strin
   const moreFrom = useIndexer<{ items: ApiOrder[] }>(paths.listings({ collection: nft, limit: 7 })).data?.items ?? [];
 
   const listing = token?.listing ?? null;
-  const own = !!(listing && address && sameAddress(listing.owner, address));
+  const own = !!(listing && address && sameAddress(controllerOf(listing), address));
   const { flow } = useFlowUi(listing ? buySteps(listing) : [], { kind: "sale", token: `#${tokenId}`, owner: own });
 
   if (!token) return <Loading />;
@@ -56,7 +57,7 @@ export function TokenDetailView({ nft, tokenId }: { nft: Address; tokenId: strin
   if (buyable && listing) {
     cta = (
       <>
-        <FlowButton flow={flow} label={`Buy for ${eth(buyMaxPrice(toSchedule(listing.schedule), now), "up")} ETH`} />
+        <FlowButton flow={flow} label={`Buy for ${eth(buyMaxPrice(scheduleOf(listing), now), "up")} ETH`} />
         {offerBtn}
       </>
     );
@@ -72,11 +73,11 @@ export function TokenDetailView({ nft, tokenId }: { nft: Address; tokenId: strin
   }
 
   const offers: TokenOffer[] = (token.offers ?? []).map((o) => {
-    const remaining = (o.maxFills === "0" ? 1 : Number(o.maxFills)) - o.fills;
+    const rem = remaining(o);
     return {
-      price: priceAt(toSchedule(o.schedule), now),
-      desc: o.anyToken ? `Any ${o.collectionName ?? "collection"}${remaining > 1 ? ` · ${remaining} left` : ""}` : `For #${o.tokenId} only`,
-      expires: until(BigInt(o.schedule.expiry), now),
+      price: priceAt(scheduleOf(o), now),
+      desc: o.anyToken ? `Any ${o.collectionName ?? "collection"}${rem > 1 ? ` · ${rem} left` : ""}` : `For #${o.tokenId} only`,
+      expires: until(deadlineOf(o), now),
     };
   });
 

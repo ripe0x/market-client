@@ -4,6 +4,7 @@ import { useAccount } from "wagmi";
 import { getAddress, type Address } from "viem";
 import type { ApiCollection, ApiOrder } from "@market/protocol";
 import { sameAddress } from "@market/protocol";
+import { controllerOf } from "@/lib/orderDisplay";
 import { Toolbar, InlineTabs, SortOptions, Button } from "@/components/ui";
 import { CollectionHeader, OffersTable, Loading, Empty, PastOrdersTable } from "@/components/screens";
 import { useHead, useIndexer, useApi } from "@/data/hooks";
@@ -27,7 +28,7 @@ export function CollectionOffersView({ nft, sort = "highest" }: { nft: Address; 
 
   // Sell shows only where the wallet holds an eligible, unlisted token and it isn't your own offer.
   const eligibleOf = (o: ApiOrder) => {
-    if (!address || sameAddress(o.owner, address)) return false;
+    if (!address || sameAddress(controllerOf(o), address)) return false;
     if (o.anyToken) return holdings.some((h) => sameAddress(h.nft, nft));
     return holdings.some((h) => sameAddress(h.nft, nft) && h.tokenId === o.tokenId);
   };
