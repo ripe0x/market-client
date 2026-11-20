@@ -6,11 +6,12 @@
 // fresh chain state — block.timestamp, not wall clock or the possibly-lagging indexer.
 import {
   Side, decodeCoveredConfig, decodeExchangeConfig, decodeSaleTerms, isExpiredAt, newOrderFeeBps,
-  orderFeeBps, predictOrderAddress, quoteExchange, readOrder, refusesEth, royaltyOf, sameAddress,
-  saleInput, bidInput, split, tx, erc721Abi, decodeRevert, reservedActionTargetAbi,
+  orderFeeBps, predictOrderAddress, priceAt, quoteExchange, readOrder, refusesEth, royaltyOf,
+  sameAddress, saleInput, bidInput, split, tx, erc721Abi, artworkChoiceInput, artworkAbi,
+  decodeRevert, reservedActionTargetAbi,
   type ActionKind, type ApiOrder, type ContractCall, type Deployment, type OrderSpec, type Quote, type Schedule,
 } from "@market/protocol";
-import type { Address, Hex, PublicClient } from "viem";
+import { decodeAbiParameters, keccak256, type Address, type Hex, type PublicClient } from "viem";
 import { DEPLOYMENT as d, IS_ACTIONS } from "@/lib/deployment";
 import { buyMaxPrice, acceptFloorPrice } from "@/lib/orderDisplay";
 import { Stop, type Step } from "./txflow";
@@ -512,19 +513,144 @@ export function revokeAllSteps(nft: Address, name: string): Step[] {
 
 // ------------------------------------------------------------------------------------------------
 // Atomic covered purchase: buy a listed Actions token and exercise its covered right in one call.
-export function acquireSteps(params: tx.AcquireParams, value: bigint): Step[] {
+
+export type AcquireDiscovery = {
+  account: Address;
+  listing: Address;
+  nft: Address;
+  tokenId: bigint;
+  /** Resale premium at the current head (what the listing charges for the Actions token). */
+  premiumNow: bigint;
+  /** Headroom-max premium sent as the acquire limit (contract refunds the difference). */
+  maxPremium: bigint;
+  /** Fixed exercise price of the covered right (paid on top of the premium). */
+  executionPrice: bigint;
+  /** Trading fee rate the resale listing snapshotted (basis points). */
+  feeBps: bigint;
+  /** Royalty the exercise credits, snapshotted at the covered order's activation. */
+  royalty: bigint;
+  royaltyTo: Address;
+  proceedsTo: Address;
+  /** keccak256 of the covered order's on-chain activation terms (binds the account, A&E checks it). */
+  activationTermsHash: Hex;
+};
+
+/**
+ * Discover, entirely on chain, whether a covered right's Actions token is currently listed for
+ * resale, so it can be acquired-and-exercised atomically. The listing is NOT taken from the
+ * indexer: the Actions-token id is the covered order address, its current owner is the candidate
+ * listing, and that listing is authenticated with `readOrder` (Market provenance + action codehash)
+ * as a live ExchangeAction SALE of this exact Actions token. Returns null when there is no such
+ * listing. The activation-terms hash is read from the covered order itself.
+ */
+export async function discoverAcquire(pub: PublicClient, account: Address): Promise<AcquireDiscovery | null> {
+  if (!IS_ACTIONS || !d.acquireAndExecute) return null;
+  const covered = await readOrder(pub, d, account, { kind: "covered" }).catch(() => null);
+  if (!covered || !covered.isLive) return null;
+  const cfg = decodeCoveredConfig(covered.config);
+  const underlyingId = BigInt(account);
+  const owner = await ownerOf(pub, d.actions!, underlyingId);
+  if (!owner || sameAddress(owner, account)) return null;
+  // The Actions token's owner is the candidate resale listing; authenticate it.
+  const listing = await readOrder(pub, d, owner, { kind: "sale" }).catch(() => null);
+  if (!listing || !listing.isLive) return null;
+  const lc = decodeExchangeConfig(listing.config);
+  if (lc.side !== Side.Sale || !sameAddress(lc.nft, d.actions!)) return null;
+  if (decodeSaleTokenId(listing.config) !== underlyingId) return null;
+  const now = await head(pub);
+  const [royaltyTo, royalty] = decodeAbiParameters([{ type: "address" }, { type: "uint256" }], covered.activationTerms) as [Address, bigint];
+  return {
+    account, listing: owner, nft: cfg.nft, tokenId: cfg.tokenId,
+    premiumNow: priceAt(lc.schedule, now), maxPremium: buyMaxPrice(lc.schedule, now),
+    executionPrice: cfg.price, feeBps: orderFeeBps(listing), royalty, royaltyTo,
+    proceedsTo: cfg.proceedsTo, activationTermsHash: keccak256(covered.activationTerms),
+  };
+}
+
+/** Build AcquireParams from a discovery: premium limit = headroom-max, total = premium + execution
+ * price, refund to the payer, explicit NFT recipient, exclusive tx deadline. Send `maxTotal`. */
+export function acquireParams(disc: AcquireDiscovery, recipient: Address, refundTo: Address, deadline: bigint): tx.AcquireParams {
+  return {
+    listing: disc.listing, account: disc.account, nft: disc.nft, tokenId: disc.tokenId,
+    executionPrice: disc.executionPrice, activationTermsHash: disc.activationTermsHash,
+    maxPremium: disc.maxPremium, maxTotal: disc.maxPremium + disc.executionPrice,
+    recipient, refundTo, deadline,
+  };
+}
+
+export function acquireSteps(params: tx.AcquireParams): Step[] {
   return [{
     key: "acquire",
     label: "Buy and exercise",
     call: async ({ pub }) => {
       requireActions();
-      // Authenticate both the listing and the backing covered account against Market before acting.
-      await readOrder(pub, d, params.listing, { kind: "sale" });
-      await readOrder(pub, d, params.account, { kind: "covered" });
-      return tx.acquireAndExecute(d, params, value);
+      // Re-authenticate both the listing and the backing covered account against Market, and
+      // re-check the listing still holds the Actions token, before sending.
+      const covered = await readOrder(pub, d, params.account, { kind: "covered" });
+      if (!covered.isLive) throw new Stop("This purchase right is no longer live.");
+      if (keccak256(covered.activationTerms) !== params.activationTermsHash) throw new Stop("The right's terms changed. Refresh and try again.");
+      const listing = await readOrder(pub, d, params.listing, { kind: "sale" });
+      if (!listing.isLive) throw new Stop("This resale listing has closed.");
+      if (!sameAddress(await ownerOf(pub, d.actions!, BigInt(params.account)), params.listing)) throw new Stop("The resale listing no longer holds this right.");
+      if (isExpiredAt(listing.deadline, await head(pub)) || isExpiredAt(covered.deadline, await head(pub))) throw new Stop("The listing or the right has reached its deadline.");
+      return tx.acquireAndExecute(d, params, params.maxTotal);
     },
   }];
 }
+
+// ------------------------------------------------------------------------------------------------
+// Reserved action: the local Artwork example (palette/renderer change reserved for an order).
+
+export const ArtworkKind = { Palette: 0, Renderer: 1 } as const;
+
+/** The opaque operation bytes the target binds for (tokenId, kind, allowed bitmask). */
+export const artworkOperation = (pub: PublicClient, artwork: Address, tokenId: bigint, kind: number, allowed: bigint) =>
+  pub.readContract({ address: artwork, abi: artworkAbi, functionName: "operation", args: [tokenId, kind, allowed] }) as Promise<Hex>;
+
+export const artworkColor = (pub: PublicClient, artwork: Address, tokenId: bigint) =>
+  pub.readContract({ address: artwork, abi: artworkAbi, functionName: "colorOf", args: [tokenId] });
+export const artworkRenderer = (pub: PublicClient, artwork: Address, tokenId: bigint) =>
+  pub.readContract({ address: artwork, abi: artworkAbi, functionName: "rendererOf", args: [tokenId] });
+
+export type ArtworkReserveArgs = {
+  issuer: Address; artwork: Address; tokenId: bigint; kind: number; allowed: bigint;
+  price: bigint; targetValue: bigint; proceedsTo: Address; deadline: bigint; salt: Hex;
+};
+
+/**
+ * Plan a reserved Artwork change: create the order, have Artwork reserve the operation for the
+ * order's real deployed address, then activate (front-run-safe — see `reservedIssuanceSteps`). The
+ * reservation's forwarded value is `targetValue`; the executor later pays `price` and the surplus
+ * (`price - targetValue`) is credited to `proceedsTo`. Returns the steps and the predicted order
+ * address (so the UI can navigate to the new reserved action).
+ */
+export async function artworkIssuancePlan(pub: PublicClient, a: ArtworkReserveArgs): Promise<{ steps: Step[]; order: Address }> {
+  requireActions();
+  const operation = await artworkOperation(pub, a.artwork, a.tokenId, a.kind, a.allowed);
+  const spec = tx.reservedSpec(d, {
+    issuer: a.issuer, target: a.artwork, operation, price: a.price, targetValue: a.targetValue,
+    proceedsTo: a.proceedsTo, deadline: a.deadline,
+  });
+  const order = await predict(pub, a.issuer, spec, a.salt);
+  const steps = reservedIssuanceSteps(spec, a.salt, {
+    address: a.artwork,
+    reserve: (o) => tx.artworkReserve(a.artwork, o, a.tokenId, a.kind, a.allowed, BigInt(a.deadline), a.targetValue),
+  });
+  return { steps, order };
+}
+
+/** Execute a reserved Artwork change with a chosen option (must be in the allowed bitmask), paying
+ * exactly the reserved `price`. */
+export function executeArtworkSteps(order: ApiOrder, choice: number, price: bigint): Step[] {
+  return executeReservedSteps(order, artworkChoiceInput(choice), price);
+}
+
+/** Options allowed by a bitmask, as choice indices (0..255). */
+export const allowedChoices = (allowed: bigint): number[] => {
+  const out: number[] = [];
+  for (let i = 0; i < 256; i++) if ((allowed >> BigInt(i)) & 1n) out.push(i);
+  return out;
+};
 
 /** On-chain split preview at each price for the create-listing breakdown: the fee rate a new order
  * would snapshot (never hardcoded) and the collection's uncapped ERC2981 royalty, run through the

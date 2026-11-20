@@ -10,6 +10,10 @@ export const INDEXER_URL = process.env.NEXT_PUBLIC_INDEXER_URL || "";
 
 export const WALLETCONNECT_PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "";
 
+/** The local Artwork reserved-action example address. Deployed per local chain start (its address
+ * is written to `.local-chain.json`), so the dev/e2e runner passes it here; absent in production. */
+export const ARTWORK_ADDRESS = process.env.NEXT_PUBLIC_ARTWORK || undefined;
+
 /** Release selection is independent of chain; production defaults to verified legacy. */
 export const RELEASE_ID = process.env.NEXT_PUBLIC_MARKET_RELEASE || undefined;
 export const LEGACY_MARKET_URL = process.env.NEXT_PUBLIC_LEGACY_MARKET_URL || "https://ripe-market-v1.netlify.app/positions";

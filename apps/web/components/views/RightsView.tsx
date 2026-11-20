@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAccount, usePublicClient } from "wagmi";
 import {
-  eth, until, sameAddress, shortAddress, isExpiredAt, decodeCoveredConfig, readOrder,
+  eth, until, sameAddress, shortAddress, isExpiredAt, decodeCoveredConfig, readOrder, split,
   erc721Abi, OrderState, type ApiOrder, type ApiPositions,
 } from "@market/protocol";
 import { getAddress, isAddress, type Address } from "viem";
@@ -18,6 +18,7 @@ import { deadlineOf } from "@/lib/orderDisplay";
 import {
   exerciseSteps, surrenderSteps, finalizeExpirySteps, cancelSteps, releaseSteps,
   withdrawSurplusSteps, releaseCreditSteps, withdrawCreditSteps,
+  discoverAcquire, acquireParams, acquireSteps,
 } from "@/data/flows";
 import { FlowModal } from "./FlowModal";
 import type { Step } from "@/data/txflow";
@@ -70,6 +71,7 @@ export function RightsView() {
       </header>
       <div className={styles.toolbar}>
         <Button href="/rights/issue">Issue a right</Button>
+        <Button variant="text" href="/reserved">Reserved actions</Button>
         <Button variant="text" href="/positions">Your positions</Button>
         <input aria-label="Backing account address" placeholder="Backing account address" value={lookup} onChange={(e) => setLookup(e.target.value)} />
         {isAddress(lookup) ? <Button variant="text" href={`/rights/${getAddress(lookup)}`}>Inspect right</Button> : null}
@@ -108,9 +110,20 @@ export function RightDetailView({ account }: { account: Address }) {
   const [surplusRecipient, setSurplusRecipient] = useState("");
   const [creditBeneficiary, setCreditBeneficiary] = useState("");
   const [withdrawRecipient, setWithdrawRecipient] = useState("");
+  const [acquireRecipient, setAcquireRecipient] = useState("");
   const [ack, setAck] = useState(false);
 
   const media = useApi<{ image?: string }>(live.data ? `/api/nfts/token?nft=${live.data.cfg.nft}&id=${live.data.cfg.tokenId}` : null);
+
+  // Atomic buy-and-exercise: discover the resale listing ON CHAIN (Actions.ownerOf(underlyingId),
+  // authenticated with readOrder), never the indexer. Only relevant to a prospective buyer.
+  const acquire = useQuery({
+    queryKey: ["acquire", d.deploymentId, account],
+    enabled: !!pub && IS_ACTIONS && !!live.data?.info.isLive && !sameAddress(address, live.data?.holder),
+    retry: false,
+    refetchInterval: 6_000,
+    queryFn: () => discoverAcquire(pub!, account),
+  });
 
   if (!IS_ACTIONS) return <ErrorNote>This release doesn&apos;t support covered purchase rights.</ErrorNote>;
   if (live.error) return <ErrorNote>{live.error.message}</ErrorNote>;
@@ -173,6 +186,37 @@ export function RightDetailView({ account }: { account: Address }) {
               <Button disabled={!!exerciseRecipient && !isAddress(exerciseRecipient)} onClick={() => run("Exercise", `Exercise for ${eth(cfg.price, "up")} ETH`, exerciseSteps(o, exerciseRecipient ? getAddress(exerciseRecipient) : address!), exerciseRecipient ? getAddress(exerciseRecipient) : address)}>Exercise for {eth(cfg.price, "up")} ETH</Button>
             </section>
           ) : null}
+          {active && !isHolder && acquire.data ? (
+            (() => {
+              const a = acquire.data;
+              const feeNow = split(a.premiumNow, a.feeBps, 0n).fee;
+              const recip = acquireRecipient ? (isAddress(acquireRecipient) ? getAddress(acquireRecipient) : null) : address;
+              const txDeadline = now + 600n; // exclusive, 10-minute window
+              return (
+                <section className={styles.section}>
+                  <h2>Buy and exercise</h2>
+                  <p className={styles.note}>One transaction: pay the resale premium, then the exercise price, and receive the NFT. The unused ETH is refunded to you.</p>
+                  <KeyValueRows rows={[
+                    { key: "Resale premium", value: `${eth(a.premiumNow, "up")} ETH` },
+                    { key: "Trading fee", value: `${Number(a.feeBps) / 100}% · ${eth(feeNow)} ETH` },
+                    { key: "Exercise price", value: `${eth(a.executionPrice, "up")} ETH` },
+                    { key: "Exercise royalty credit", value: a.royalty > 0n ? `${eth(a.royalty)} ETH` : "None" },
+                    { key: "Royalty recipient", value: <span className={styles.mono}>{a.royalty > 0n ? a.royaltyTo : "None"}</span> },
+                    { key: "Premium recipient", value: <span className={styles.mono}>{a.proceedsTo}</span> },
+                    { key: "You pay at most", value: `${eth(a.maxPremium + a.executionPrice, "up")} ETH`, total: true },
+                  ]} />
+                  <label className={styles.label}>NFT recipient<InputAddress value={acquireRecipient} onChange={setAcquireRecipient} placeholder={address} /></label>
+                  <Button
+                    disabled={!recip}
+                    onClick={() => recip && run("Buy and exercise", `Buy and exercise for up to ${eth(a.maxPremium + a.executionPrice, "up")} ETH`, acquireSteps(acquireParams(a, recip, address!, txDeadline)), recip)}
+                  >
+                    Buy and exercise
+                  </Button>
+                  <p className={styles.note}>The premium goes to the seller; the exercise price pays the issuer&apos;s proceeds recipient and any royalty. The refund recipient is your wallet.</p>
+                </section>
+              );
+            })()
+          ) : null}
           {active && !isHolder ? (
             <Button href={`/c/${d.actions}/${BigInt(account).toString()}/offer`} variant="secondary">Make an offer for this right</Button>
           ) : null}
@@ -224,9 +268,6 @@ export function RightDetailView({ account }: { account: Address }) {
               <label className={styles.label}>Alternate recipient for your own credit<InputAddress value={withdrawRecipient} onChange={setWithdrawRecipient} placeholder={address} /></label>
             </section>
           ) : null}
-          {/* TODO acquireAndExecute: atomic buy-and-exercise needs the resale listing's address and
-              activation-terms hash, which require an indexer order lookup not yet available. Wire
-              acquireSteps(params, value) once the indexer exposes the listing for an Actions token. */}
         </div>
       </div>
       {action ? (

@@ -1,9 +1,18 @@
 import { deploymentFor, sameAddress } from "@market/protocol";
-import { CHAIN_ID, RELEASE_ID } from "./env";
+import { getAddress, type Address } from "viem";
+import { ARTWORK_ADDRESS, CHAIN_ID, RELEASE_ID } from "./env";
 
 export const DEPLOYMENT = deploymentFor(CHAIN_ID, RELEASE_ID);
 export const EXPLORER = DEPLOYMENT.explorer;
 export const CHAIN_NAME = DEPLOYMENT.name;
+
+/** The local Artwork reserved-action example, from env or an additive manifest field; undefined in
+ * production (the reserved-action screen then shows it is unavailable). */
+export const ARTWORK: Address | undefined = (() => {
+  const fromManifest = (DEPLOYMENT as unknown as { artwork?: string }).artwork;
+  const raw = ARTWORK_ADDRESS ?? fromManifest;
+  try { return raw ? getAddress(raw) : undefined; } catch { return undefined; }
+})();
 
 /**
  * True only when the selected release is the unified Order/Action model (actions-v1). The legacy
