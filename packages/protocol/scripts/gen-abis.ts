@@ -4,7 +4,9 @@
 // Protocol: unified Order/Action model (ripe0x/market, branch claude/unified-actions). Market is
 // the factory and Actions registry; every trade runs through an Action implementation the order
 // is bound to. ExchangeAction is the single sale/bid contract.
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "../../..");
@@ -40,64 +42,66 @@ for (const c of test) {
 writeFileSync(resolve(import.meta.dirname, "../devchain/artifacts.ts"), t);
 console.log("wrote src/abis.ts and devchain/artifacts.ts");
 
-// Drift guard: derive the action config/terms struct ABI params from the compiler AST (forge
-// build --ast), so a protocol struct change changes the generated types and breaks config.ts's
-// typecheck. These structs are not exposed by any ABI function (configs travel as `bytes`), so
-// without this they would be hand-written and could silently drift.
-type AstNode = { nodeType?: string; name?: string; members?: AstNode[]; typeName?: { typeDescriptions?: { typeString?: string } }; typeDescriptions?: { typeString?: string }; [k: string]: unknown };
+// Drift guard: derive the action config/terms struct ABI params from the compiler AST, so a
+// protocol struct change changes the generated types and breaks config.ts's typecheck. These
+// structs are not exposed by any ABI function (configs travel as `bytes`). The AST is built into a
+// THROWAWAY out dir: `forge build --ast` changes the embedded metadata and therefore the deployed
+// bytecode / CREATE2 addresses, so it must never touch the canonical `out/` used for deployment.
+const astOut = mkdtempSync(resolve(tmpdir(), "market-ast-"));
+try {
+  execFileSync("forge", ["build", "--ast", "--out", astOut], { cwd: resolve(root, "contracts/market"), stdio: "ignore" });
 
-/** Collect every StructDefinition in one contract's AST, keyed by its simple name. */
-function structsOf(file: string): Map<string, AstNode> {
-  const j = JSON.parse(readFileSync(resolve(root, "contracts/market", "out", `${file}.json`), "utf8"));
-  if (!j.ast) throw new Error(`No AST in ${file}; run 'forge build --ast' (pnpm build:contracts does).`);
-  const map = new Map<string, AstNode>();
-  const walk = (n: unknown) => {
-    if (!n || typeof n !== "object") return;
-    const node = n as AstNode;
-    if (node.nodeType === "StructDefinition" && node.name) map.set(node.name, node);
-    for (const v of Object.values(node)) {
-      if (Array.isArray(v)) v.forEach(walk);
-      else if (v && typeof v === "object") walk(v);
+  type AstNode = { nodeType?: string; name?: string; members?: AstNode[]; typeName?: { typeDescriptions?: { typeString?: string } }; typeDescriptions?: { typeString?: string }; [k: string]: unknown };
+  const structsOf = (file: string): Map<string, AstNode> => {
+    const j = JSON.parse(readFileSync(resolve(astOut, file + ".json"), "utf8"));
+    if (!j.ast) throw new Error(`No AST in ${file}; 'forge build --ast' produced no ast.`);
+    const map = new Map<string, AstNode>();
+    const walk = (n: unknown) => {
+      if (!n || typeof n !== "object") return;
+      const node = n as AstNode;
+      if (node.nodeType === "StructDefinition" && node.name) map.set(node.name, node);
+      for (const v of Object.values(node)) {
+        if (Array.isArray(v)) v.forEach(walk);
+        else if (v && typeof v === "object") walk(v);
+      }
+    };
+    walk(j.ast);
+    return map;
+  };
+  const abiType = (typeString: string, structs: Map<string, AstNode>): { type: string } | { type: "tuple"; components: unknown[] } => {
+    const ts = typeString.trim();
+    if (ts.startsWith("enum ")) return { type: "uint8" };
+    if (ts.startsWith("contract ") || ts === "address" || ts === "address payable") return { type: "address" };
+    if (ts.startsWith("struct ")) return structParam(ts.slice("struct ".length).split(".").pop()!, structs);
+    if (/^(uint(8|16|24|32|40|48|56|64|72|80|88|96|128|160|192|224|256)?|int(8|16|32|64|128|256)?|bytes([1-9]|[12]\d|3[0-2])?|bool|string)$/.test(ts)) {
+      return { type: ts === "uint" ? "uint256" : ts === "int" ? "int256" : ts };
     }
+    throw new Error(`Unsupported struct member type '${typeString}'. Update scripts/gen-abis.ts abiType().`);
   };
-  walk(j.ast);
-  return map;
-}
-
-function abiType(typeString: string, structs: Map<string, AstNode>): { type: string } | { type: "tuple"; components: unknown[] } {
-  const ts = typeString.trim();
-  if (ts.startsWith("enum ")) return { type: "uint8" };
-  if (ts.startsWith("contract ") || ts === "address" || ts === "address payable") return { type: "address" };
-  if (ts.startsWith("struct ")) return structParam(ts.slice("struct ".length).split(".").pop()!, structs);
-  if (/^(uint(8|16|24|32|40|48|56|64|72|80|88|96|128|160|192|224|256)?|int(8|16|32|64|128|256)?|bytes([1-9]|[12]\d|3[0-2])?|bool|string)$/.test(ts)) {
-    return { type: ts === "uint" ? "uint256" : ts === "int" ? "int256" : ts };
+  function structParam(name: string, structs: Map<string, AstNode>): { type: "tuple"; components: unknown[] } {
+    const st = structs.get(name);
+    if (!st?.members) throw new Error(`Struct ${name} not found in AST.`);
+    return {
+      type: "tuple",
+      components: st.members.map((m) => {
+        const t = m.typeName?.typeDescriptions?.typeString ?? m.typeDescriptions?.typeString;
+        if (!t) throw new Error(`No type for member ${m.name}.`);
+        return { name: m.name, ...abiType(t, structs) };
+      }),
+    };
   }
-  throw new Error(`Unsupported struct member type '${typeString}'. Update scripts/gen-abis.ts abiType().`);
+  const exchange = structsOf("ExchangeAction.sol/ExchangeAction");
+  const covered = structsOf("CoveredNFTPurchase.sol/CoveredNFTPurchase");
+  const reserved = structsOf("ReservedAction.sol/ReservedAction");
+  let g = "// Generated by scripts/gen-abis.ts from the contract AST (forge build --ast). Do not edit.\n// A protocol struct change here changes these params and breaks config.ts's typecheck.\n\n";
+  g += `export const scheduleParam = ${JSON.stringify({ name: "schedule", ...structParam("Schedule", exchange) })} as const;\n\n`;
+  g += `export const exchangeConfigParam = ${JSON.stringify({ name: "config", ...structParam("Config", exchange) })} as const;\n\n`;
+  g += `export const saleTermsParam = ${JSON.stringify({ name: "saleTerms", ...structParam("SaleTerms", exchange) })} as const;\n\n`;
+  g += `export const bidTermsParam = ${JSON.stringify({ name: "bidTerms", ...structParam("BidTerms", exchange) })} as const;\n\n`;
+  g += `export const coveredConfigParam = ${JSON.stringify({ name: "config", ...structParam("Config", covered) })} as const;\n\n`;
+  g += `export const reservedConfigParam = ${JSON.stringify({ name: "config", ...structParam("Config", reserved) })} as const;\n\n`;
+  writeFileSync(resolve(import.meta.dirname, "../src/configStructs.gen.ts"), g);
+  console.log("wrote src/configStructs.gen.ts from AST (throwaway build)");
+} finally {
+  rmSync(astOut, { recursive: true, force: true });
 }
-function structParam(name: string, structs: Map<string, AstNode>): { type: "tuple"; components: unknown[] } {
-  const s = structs.get(name);
-  if (!s?.members) throw new Error(`Struct ${name} not found in AST.`);
-  return {
-    type: "tuple",
-    components: s.members.map((m) => {
-      const t = m.typeName?.typeDescriptions?.typeString ?? m.typeDescriptions?.typeString;
-      if (!t) throw new Error(`No type for member ${m.name}.`);
-      return { name: m.name, ...abiType(t, structs) };
-    }),
-  };
-}
-
-const exchange = structsOf("ExchangeAction.sol/ExchangeAction");
-const covered = structsOf("CoveredNFTPurchase.sol/CoveredNFTPurchase");
-const reserved = structsOf("ReservedAction.sol/ReservedAction");
-const named = (name: string, p: object) => `export const ${name} = ${JSON.stringify({ name: p && "name" in p ? (p as { name: string }).name : undefined, ...p })} as const;\n\n`;
-let g = "// Generated by scripts/gen-abis.ts from the contract AST (forge build --ast). Do not edit.\n// A protocol struct change here changes these params and breaks config.ts's typecheck.\n\n";
-g += `export const scheduleParam = ${JSON.stringify({ name: "schedule", ...structParam("Schedule", exchange) })} as const;\n\n`;
-g += `export const exchangeConfigParam = ${JSON.stringify({ name: "config", ...structParam("Config", exchange) })} as const;\n\n`;
-g += `export const saleTermsParam = ${JSON.stringify({ name: "saleTerms", ...structParam("SaleTerms", exchange) })} as const;\n\n`;
-g += `export const bidTermsParam = ${JSON.stringify({ name: "bidTerms", ...structParam("BidTerms", exchange) })} as const;\n\n`;
-g += `export const coveredConfigParam = ${JSON.stringify({ name: "config", ...structParam("Config", covered) })} as const;\n\n`;
-g += `export const reservedConfigParam = ${JSON.stringify({ name: "config", ...structParam("Config", reserved) })} as const;\n\n`;
-void named;
-writeFileSync(resolve(import.meta.dirname, "../src/configStructs.gen.ts"), g);
-console.log("wrote src/configStructs.gen.ts from AST");

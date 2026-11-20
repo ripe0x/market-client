@@ -40,6 +40,7 @@ const status = (at: bigint) => sql<OrderStatus>`(CASE
   WHEN ${o.state} = 2 AND ${o.kind} = 'sale' THEN 'sold'
   WHEN ${o.state} = 2 AND ${o.kind} = 'bid' THEN 'sold_out'
   WHEN ${o.state} = 2 AND ${o.kind} = 'covered' THEN 'exercised'
+  WHEN ${o.state} = 2 AND ${o.kind} = 'reserved' THEN 'exercised'
   WHEN ${o.state} = 2 THEN 'sold'
   WHEN ${o.state} = 3 THEN 'cancelled'
   WHEN ${o.state} = 5 THEN 'surrendered'

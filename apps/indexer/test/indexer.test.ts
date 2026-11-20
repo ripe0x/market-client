@@ -5,8 +5,8 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { mkdtempSync, rmSync, createWriteStream } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { priceAt, toSchedule, type ApiOrder, type ApiPositions, type ApiStatus, type Page } from "./imports";
-import { freePort, startChain, type Chain } from "@market/protocol/devchain";
+import { marketAbi, priceAt, toSchedule, type ApiAccount, type ApiOrder, type ApiPositions, type ApiStatus, type Page } from "./imports";
+import { ACCOUNTS, freePort, startChain, type Chain } from "@market/protocol/devchain";
 import { seed, ME } from "@market/protocol/devchain/seed";
 import { afterAll, beforeAll, expect, test } from "vitest";
 
@@ -131,4 +131,57 @@ test("a settled sale is recorded as a fill with the right split", async () => {
   // price 0.85 ETH, 1% fee, 5% royalty (driftlines).
   expect(f!.price).toBe((85n * 10n ** 16n).toString());
   expect(BigInt(f!.fee) + BigInt(f!.royalty) + BigInt(f!.proceeds)).toBe(BigInt(f!.price));
+});
+
+test("a covered purchase right is indexed, exercised, with credits", async () => {
+  const a = s.accounts;
+  const covered = await get<ApiOrder>(`/api/orders/${a.covered}`);
+  expect(covered.kind).toBe("covered");
+  expect(covered.state).toBe(2);
+  expect(covered.status).toBe("exercised");
+  const acct = await get<ApiAccount>(`/api/accounts/${a.covered}`);
+  // royalty (2.5% of 0.5) + proceeds == price, held as credits.
+  expect(acct.totalCredits).toBe(a.executionPrice.toString());
+  expect(acct.credits.length).toBe(2);
+});
+
+test("the Actions-token premium fill is separate from the covered execution price", async () => {
+  const a = s.accounts;
+  const premiumTok = await get<{ fills: { price: string; nft: string }[] }>(`/api/tokens/${c.deployment.actions}/${a.actionTokenId}`);
+  const execTok = await get<{ fills: { price: string; nft: string }[] }>(`/api/tokens/${s.collections.meridian}/${a.coveredNftId}`);
+  const premium = premiumTok.fills.find((f) => f.price === a.premium.toString());
+  const exec = execTok.fills.find((f) => f.price === a.executionPrice.toString());
+  expect(premium).toBeDefined(); // 0.2 ETH entitlement resale on the Actions collection
+  expect(exec).toBeDefined(); // 0.5 ETH NFT execution on the underlying collection
+  expect(premium!.nft.toLowerCase()).toBe(c.deployment.actions!.toLowerCase());
+  expect(exec!.nft.toLowerCase()).toBe(s.collections.meridian.toLowerCase());
+  expect(a.premium).not.toBe(a.executionPrice);
+});
+
+test("a reserved Artwork action is indexed with an action_performed event and surplus credit", async () => {
+  const a = s.accounts;
+  if (!a.reserved) return; // Artwork example not deployed
+  const reserved = await get<ApiOrder>(`/api/orders/${a.reserved}`);
+  expect(reserved.kind).toBe("reserved");
+  expect(reserved.state).toBe(2);
+  expect(reserved.status).toBe("exercised");
+  const acct = await get<ApiAccount>(`/api/accounts/${a.reserved}`);
+  expect(acct.history.some((e) => e.kind === "action_performed")).toBe(true);
+  expect(acct.credits.some((cr) => cr.amount === (5n * 10n ** 16n).toString())).toBe(true); // 0.05 ETH surplus
+});
+
+test("a foreign Order clone created outside Market is never indexed", async () => {
+  const impl = c.deployment.orderImplementation!;
+  // Minimal ERC-1167 proxy of the real Order implementation, deployed by a plain CREATE (not Market).
+  const initCode = `0x3d602d80600a3d3981f3363d3d373d3d3d363d73${impl.slice(2).toLowerCase()}5af43d82803e903d91602b57fd5bf3` as `0x${string}`;
+  const hash = await c.wallet(ACCOUNTS[0]).sendTransaction({ data: initCode, account: ACCOUNTS[0], chain: c.chain });
+  const receipt = await c.pub.waitForTransactionReceipt({ hash });
+  const clone = receipt.contractAddress!;
+  // It runs Order bytecode but Market never announced it.
+  expect(await c.pub.readContract({ address: c.deployment.market, abi: marketAbi, functionName: "isOrder", args: [clone] })).toBe(false);
+  await pollCycle();
+  const r = await fetch(api + `/api/orders/${clone}`);
+  expect(r.status).toBe(404);
+  const live = await get<Page<ApiOrder>>("/api/listings?limit=200");
+  expect(live.items.some((o) => o.address.toLowerCase() === clone.toLowerCase())).toBe(false);
 });

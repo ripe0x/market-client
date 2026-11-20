@@ -28,6 +28,16 @@ Nothing was deployed, broadcast, or pushed. No secrets written. The lead will pr
 
 ---
 
+## Seed/indexer gap-closing + build reproducibility fix (actions-v1), 2026-11-19
+
+Additive follow-up to the indexer slice (protocol stays pinned `152bf41`; the lead froze the protocol at `9f50355`, production byte-identical, and re-pins after both client agents finish).
+
+- **Seed (`devchain/seed.ts`), additive only** (existing seeded orders/addresses untouched): adds a Holder covered-purchase right, its Actions-token resale listing (0.2 ETH premium), bought and exercised by the buyer for its separate 0.5 ETH execution price; and a reserved Artwork palette change (issued + executed). New mints/orders only.
+- **Indexer test** extended to **12/12**: covered right indexed + exercised with credits (royalty 0.0125 + proceeds 0.4875 = 0.5 ETH); the Actions-token **premium fill is a separate fill on the Actions collection, distinct from the execution price** on the underlying collection; reserved action indexed with an `action_performed` event and a 0.05 ETH surplus credit; and a **provenance test**: a foreign ERC-1167 clone of the Order implementation deployed outside Market is never indexed (`isOrder` false, `/api/orders/:clone` 404, absent from listings). Added a `reserved` → `exercised` status case. Evidence refreshed in `apps/indexer/evidence/indexer-api.json` (now includes the covered right + account and the reserved account).
+- **Build reproducibility fix:** `forge build --ast` changes the embedded metadata and therefore the deployed bytecode / CREATE2 addresses, so it must never be the deployment build. `build:contracts` is reverted to plain `forge build`; `scripts/gen-abis.ts` now builds `--ast` into a throwaway out dir purely to extract the config/terms struct ASTs, leaving the canonical `out/` untouched. The generated `configStructs.gen.ts` is byte-identical to before. The `actions-v1` manifest codehashes were regenerated from the canonical build (the earlier committed values predated the local lib resolution); `verifyDeployment` (live code vs manifest) passes in the indexer test, and the codehash is stable across regenerations.
+
+**Reproducibility note for the final re-pin:** manifest codehashes and CREATE2 addresses come from Foundry's metadata-ipfs build and depend on the exact resolved library bytes; this worktree's nested libs were copied locally (no network). At the lead's re-pin to `9f50355`, regenerate authoritatively with `git submodule update --init --recursive` then `pnpm build:contracts && pnpm --filter @market/protocol gen`.
+
 ## Indexer migration + config drift guard (actions-v1), 2026-11-19
 
 Branch `claude/unified-actions`, protocol pin `152bf41`. Continues the foundation slice; `apps/web` is being migrated concurrently by another agent (not touched here).

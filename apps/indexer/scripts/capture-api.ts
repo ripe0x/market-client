@@ -34,6 +34,9 @@ try {
     "GET /api/collections": await get("/api/collections"),
     [`GET /api/collections/${col}/offers`]: await get(`/api/collections/${col}/offers`),
     [`GET /api/orders/${s.orders.fixed}`]: await get(`/api/orders/${s.orders.fixed}`),
+    [`GET /api/orders/${s.accounts.covered} (covered right)`]: await get(`/api/orders/${s.accounts.covered}`),
+    [`GET /api/accounts/${s.accounts.covered} (credits+history)`]: await get(`/api/accounts/${s.accounts.covered}`),
+    ...(s.accounts.reserved ? { [`GET /api/accounts/${s.accounts.reserved} (reserved action)`]: await get(`/api/accounts/${s.accounts.reserved}`) } : {}),
     [`GET /api/accounts/${ME}/positions`]: await get(`/api/accounts/${ME}/positions`),
   };
   writeFileSync(resolve(import.meta.dirname, "../evidence/indexer-api.json"), JSON.stringify(out, null, 2) + "\n");
