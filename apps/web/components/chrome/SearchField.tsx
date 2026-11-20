@@ -5,16 +5,22 @@ import Link from "next/link";
 import type { ApiSearch } from "@market/protocol";
 import { useIndexer } from "@/data/hooks";
 import { paths } from "@/data/indexer";
+import { isActionsCollection } from "@/lib/deployment";
 import { cx } from "@/lib/cx";
 import styles from "./SearchField.module.css";
 
 // 520×42 desktop / full-width 44px mobile, 1px #333 (README). Results dropdown: Collections and
-// Tokens groups matching name, symbol, address and `name #id` (DECISIONS D19).
+// Tokens groups matching name, symbol, address and `name #id` (DECISIONS D19). The Actions ERC721
+// and its tokens are excluded — they are reached through their own action/resale views, not search.
 export function SearchField({ mobile }: { mobile?: boolean }) {
   const [q, setQ] = useState("");
   const [focused, setFocused] = useState(false);
   const term = q.trim();
-  const { data } = useIndexer<ApiSearch>(term.length >= 2 ? paths.search(term) : null);
+  const { data: raw } = useIndexer<ApiSearch>(term.length >= 2 ? paths.search(term) : null);
+  const data = raw && {
+    collections: raw.collections.filter((c) => !isActionsCollection(c.address)),
+    tokens: raw.tokens.filter((t) => !isActionsCollection(t.nft)),
+  };
   const open = focused && term.length >= 2 && !!data;
   const hasResults = !!data && (data.collections.length > 0 || data.tokens.length > 0);
 

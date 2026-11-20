@@ -9,11 +9,14 @@ import { useIndexer } from "@/data/hooks";
 import { paths } from "@/data/indexer";
 import { LagBanner } from "@/components/app/Trading";
 import { withParams } from "@/lib/href";
+import { isActionsCollection } from "@/lib/deployment";
 
 export function CollectionsView({ period = "7d" }: { period?: Period }) {
   const router = useRouter();
   const { data, isLoading } = useIndexer<ApiCollection[]>(paths.collections({ period }));
-  const cols = data ?? [];
+  // The Actions ERC721 is not an ordinary collection: keep it out of browse (its tokens show
+  // through their own action/resale views, and its stats are never aggregated here).
+  const cols = (data ?? []).filter((c) => !isActionsCollection(c.address));
   const [owners, setOwners] = useState<Record<string, number | null>>({});
 
   // Owners come from the NFT API, not the indexer (DECISIONS D30).

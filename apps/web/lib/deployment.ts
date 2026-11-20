@@ -1,4 +1,4 @@
-import { deploymentFor } from "@market/protocol";
+import { deploymentFor, sameAddress } from "@market/protocol";
 import { CHAIN_ID, RELEASE_ID } from "./env";
 
 export const DEPLOYMENT = deploymentFor(CHAIN_ID, RELEASE_ID);
@@ -12,3 +12,13 @@ export const CHAIN_NAME = DEPLOYMENT.name;
  * reads, builders or UI. `exchange` is the discriminator — present only in actions-v1.
  */
 export const IS_ACTIONS = DEPLOYMENT.releaseId === "actions-v1" && !!DEPLOYMENT.exchange;
+
+/**
+ * The canonical Actions ERC721. The indexer surfaces it in /api/collections, but it is not an
+ * ordinary collection: its tokens are tradable orders, with a resale premium separate from the
+ * price the underlying action charges, and its fills must never be aggregated into a collection's
+ * stats. Browse and search filter it out with this; Actions tokens are shown through their own
+ * action/resale views instead.
+ */
+export const isActionsCollection = (addr?: string | null): boolean =>
+  IS_ACTIONS && !!addr && !!DEPLOYMENT.actions && sameAddress(addr, DEPLOYMENT.actions);

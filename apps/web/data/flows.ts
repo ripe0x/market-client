@@ -7,8 +7,8 @@
 import {
   Side, decodeCoveredConfig, decodeExchangeConfig, decodeSaleTerms, isExpiredAt, newOrderFeeBps,
   orderFeeBps, predictOrderAddress, quoteExchange, readOrder, refusesEth, royaltyOf, sameAddress,
-  saleInput, bidInput, split, tx, erc721Abi, decodeRevert,
-  type ActionKind, type ApiOrder, type Deployment, type OrderSpec, type Quote, type Schedule,
+  saleInput, bidInput, split, tx, erc721Abi, decodeRevert, reservedActionTargetAbi,
+  type ActionKind, type ApiOrder, type ContractCall, type Deployment, type OrderSpec, type Quote, type Schedule,
 } from "@market/protocol";
 import type { Address, Hex, PublicClient } from "viem";
 import { DEPLOYMENT as d, IS_ACTIONS } from "@/lib/deployment";
@@ -314,15 +314,29 @@ export function cancelSteps(o: ApiOrder): Step[] {
   }
   const nft = o.nft!;
   const tokenId = BigInt(o.tokenId ?? "0");
+  const listedIsActions = !!d.actions && sameAddress(nft, d.actions);
+  // A canonical Actions token can move only while its own underlying order is live; once that
+  // order ends, `release` reverts ActionNotLive by design and the token is stranded in this order
+  // (ACTIONS.md). The listed Actions token id IS its underlying order address, so we read that
+  // order's liveness and, when it is dead, skip the release step (cancel still runs).
+  const underlyingDead = async (pub: PublicClient) => {
+    if (!listedIsActions) return false;
+    const underlying = `0x${tokenId.toString(16).padStart(40, "0")}` as Address;
+    const info = await readOrder(pub, d, underlying).catch(() => null);
+    return !!info && !info.isLive;
+  };
   const release: Step = {
     key: "release",
     label: `Recover ${o.collectionName ?? ""} #${o.tokenId}`.replace("  ", " "),
-    done: async ({ pub }) => !sameAddress(await ownerOf(pub, nft, tokenId), o.address),
-    skippedNote: "The token is no longer held by this order, so no recovery is required.",
+    done: async ({ pub }) => !sameAddress(await ownerOf(pub, nft, tokenId), o.address) || (await underlyingDead(pub)),
+    skippedNote: listedIsActions
+      ? "This Actions token's underlying order is no longer live, so nothing can be returned. The listing is still cancelled."
+      : "The token is no longer held by this order, so no recovery is required.",
     call: async ({ pub, account }) => {
       const info = await readOrder(pub, d, o.address, { issuer: account });
       if (info.isLive) throw new Stop("Cancel the order before recovering its token.");
       if (!sameAddress(await ownerOf(pub, nft, tokenId), o.address)) throw new Stop("This order no longer holds the token.");
+      if (await underlyingDead(pub)) throw new Stop("This Actions token's underlying order is no longer live, so nothing can be returned. The listing stays cancelled.");
       return tx.release(o.address, account);
     },
   };
@@ -421,6 +435,71 @@ export function topUpSteps(o: ApiOrder, value: bigint): Step[] {
 /** Transfer an Actions token directly (only while its underlying order is live). */
 export function transferActionSteps(from: Address, to: Address, tokenId: bigint): Step[] {
   return [{ key: "transfer", label: "Transfer the Actions token", call: async () => { requireActions(); return tx.transferAction(d, from, to, tokenId); } }];
+}
+
+/** Whether `target` currently holds a Reserved (state 1) reservation for `executor`. */
+const reservedFor = async (pub: PublicClient, target: Address, executor: Address): Promise<boolean> => {
+  const r = await pub.readContract({ address: target, abi: reservedActionTargetAbi, functionName: "reservationOf", args: [executor] }).catch(() => null);
+  return !!r && Number(r[3]) === 1;
+};
+
+/**
+ * Create a ReservedAction order, have the target reserve the operation for it, then activate.
+ *
+ * A reservation record is permanent per executor address, so a third party who front-runs a
+ * reserve on a *predicted* (undeployed) order address can poison it (no funds lost, address made
+ * unusable). Two defences, both satisfied here:
+ *  - `salt` must be freshly random per order (the caller passes `randomSalt()`); on a poisoned
+ *    address the activate step reverts `ReservationMismatch`/`ExecutorUsed`, and retrying with a
+ *    new salt gives a fresh, unpredictable order address.
+ *  - The steps are ordered create -> reserve -> activate, so in the staged path the order is
+ *    created first and the reservation targets its *real* deployed address, never a predicted one.
+ *    Only an EIP-5792 atomic batch reserves the predicted address, which is safe because the whole
+ *    bundle lands in one transaction with no gap for a front-run (the txflow engine batches when
+ *    the wallet supports it).
+ * `reserve(order)` builds the target's reservation call for the order address (e.g. Artwork.reserve).
+ */
+export function reservedIssuanceSteps(
+  spec: OrderSpec,
+  salt: Hex,
+  target: { address: Address; reserve: (order: Address) => ContractCall },
+): Step[] {
+  const orderOf = (pub: PublicClient, issuer: Address) => predict(pub, issuer, spec, salt);
+  return [
+    {
+      key: "create",
+      label: "Create the reserved action",
+      done: async ({ pub, account }) => codeExists(pub, await orderOf(pub, account)),
+      call: async () => { requireActions(); return tx.create(d, spec, salt); },
+    },
+    {
+      key: "reserve",
+      label: "Reserve the operation for it",
+      done: async ({ pub, account }) => reservedFor(pub, target.address, await orderOf(pub, account)),
+      call: async ({ pub, account }) => { requireActions(); return target.reserve(await orderOf(pub, account)); },
+    },
+    {
+      key: "activate",
+      label: "Activate it",
+      done: async ({ pub, account }) => {
+        const order = await orderOf(pub, account);
+        if (!(await codeExists(pub, order))) return false;
+        const info = await readOrder(pub, d, order).catch(() => null);
+        return !!info && info.state !== 0;
+      },
+      call: async ({ pub, account, batch }) => {
+        requireActions();
+        const order = await orderOf(pub, account);
+        if (!batch) {
+          const info = await readOrder(pub, d, order, { kind: "reserved", issuer: account });
+          if (info.state !== 0) throw new Stop("This order is no longer pending.");
+          if (isExpiredAt(info.deadline, await head(pub))) throw new Stop("This order has already reached its deadline.");
+          if (!(await reservedFor(pub, target.address, order))) throw new Stop("The target has no live reservation for this order. If its address was taken, start again with a fresh salt.");
+        }
+        return tx.activate(order);
+      },
+    },
+  ];
 }
 
 export function revokeTokenSteps(nft: Address, tokenId: bigint, label: string): Step[] {
