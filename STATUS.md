@@ -1,5 +1,22 @@
 # Status
 
+## Unified Actions candidate (actions-v1): frozen protocol pin and full client verification, 2026-11-19
+
+Protocol submodule pinned to `9f50355aef855241654eb3e8c6ae808a0e38c64f` (ripe0x/market `claude/unified-actions`, draft PR #18). Its production contracts are byte-identical to `152bf41`; regeneration (`pnpm build:contracts && pnpm --filter @market/protocol gen`) changed only `protocolCommit` in both manifests, no ABI or code hash. The nine Sepolia CREATE2 addresses in `deployments/actions-sepolia.json` match the protocol's `docs/DEPLOYMENT.md`. Undeployed local candidate; public Sepolia still defaults to `legacy-v1`.
+
+Run at this pin:
+- `pnpm typecheck`: protocol, indexer and web pass.
+- `CANDIDATE_RUN=1 pnpm test`: protocol 32/32, indexer 13/13, web 2/2.
+- `pnpm --filter @market/protocol rehearse:actions`: exit 0, 36 signed local transactions, 5 flows, 2 genuine reverts. Evidence `packages/protocol/evidence/actions-local.json`.
+- Playwright, desktop and mobile, on a fresh `dev:chain` (port 8745), fresh `ponder start` schema (42269) and a production `next build` served with `next start` (3200): **32/32**. The first full run gave 30/32; both failures were `reserved.spec.ts` because the build lacked `NEXT_PUBLIC_ARTWORK` (a setup omission, documented in `apps/web/.env.example`). After rebuilding with the local Artwork address, `reserved.spec.ts` passed 2/2. The other 30 specs ran on the first build, which differs only by that variable.
+- New specs: `acquire.spec.ts` (atomic buy-and-execute of a listed Actions token to an explicit recipient; listing discovered on chain; asserts delivery, Completed state and burned token) and `reserved.spec.ts` (Artwork palette then renderer change through `/reserved`, asserts on-chain values and no horizontal overflow).
+
+Not verified:
+- No real wallet extension; signing is simulated with local disposable keys.
+- No public deployment, Sepolia indexing or hosted build.
+- A line-by-line review of the covered-purchase and acquire payment code in the web app was requested but not completed; it is covered by the e2e and rehearsal amount assertions only.
+- Earlier sections below describe intermediate slices at pin `152bf41`; their "not done" lists are superseded by this section.
+
 ## Unified Actions candidate (actions-v1) — protocol-package foundation, 2026-11-19
 
 Branch `claude/unified-actions`. Protocol submodule re-pinned to the unified Order/Action model at `152bf41532a6f7f57539aa2819511ae7103521e7` (ripe0x/market `claude/unified-actions`). This is an **undeployed local candidate**. The legacy `legacy-v1` and historical `rights-v1` manifests are untouched; the new release has its own id `actions-v1` and manifests `deployments/actions-local.json` (local, deployed) and `deployments/actions-sepolia.json` (Sepolia, candidate, `startBlock: null`, deterministic CREATE2 addresses, not deployed). Public Sepolia still defaults to `legacy-v1`. ABI, codehash and manifest generation are reproducible from the pinned submodule: `pnpm build:contracts && pnpm --filter @market/protocol gen`.

@@ -3,7 +3,7 @@
   "releaseId": "actions-v1",
   "chainId": 11155111,
   "name": "Sepolia",
-  "protocolCommit": "152bf41532a6f7f57539aa2819511ae7103521e7",
+  "protocolCommit": "9f50355aef855241654eb3e8c6ae808a0e38c64f",
   "status": "candidate",
   "startBlock": null,
   "contracts": {

@@ -2,9 +2,9 @@
 
 Web app and indexer for ordinary NFT trading and transferable execution rights on the [Market protocol](https://github.com/ripe0x/market). Plan: [PLAN.md](PLAN.md) · decisions: [DECISIONS.md](DECISIONS.md) · status: [STATUS.md](STATUS.md) · [deployment runbook](DEPLOYMENT.md) · original design: `handoff/`.
 
-The verified public Sepolia release is **legacy order-only**. A new **unified Order/Action** candidate (`actions-v1`) pins protocol `152bf41`; its Sepolia addresses are calculated (deterministic CREATE2), with no deployment block or public contracts. Public Sepolia still selects `legacy-v1` by default. Each release has separate manifests and indexer identities.
+The verified public Sepolia release is **legacy order-only**. A new **unified Order/Action** candidate (`actions-v1`) pins protocol `9f50355`; its Sepolia addresses are calculated (deterministic CREATE2), with no deployment block or public contracts. Public Sepolia still selects `legacy-v1` by default. Each release has separate manifests and indexer identities.
 
-> **Migration in progress (branch `claude/unified-actions`).** As of 2026-11-19 only the **protocol package** (`packages/protocol`: ABIs, manifests, codecs, builders, reads, pricing, errors, and a signed local Anvil rehearsal) has been migrated and verified against the new model. The **indexer** (`apps/indexer`) and **web app** (`apps/web`) still target the old `fill`/handler/Rights model and do not yet compile against the new package, so workspace-wide typecheck/build currently fails. See [STATUS.md](STATUS.md) for the verified foundation, the rehearsal evidence, and the explicit list of what is not yet done. The rights-specific sections below are historical. To run the new rehearsal: `pnpm --filter @market/protocol rehearse:actions`.
+> **Unified actions candidate (branch `claude/unified-actions`).** The protocol package, indexer and web app all target the unified Order/Action model at protocol `9f50355`. It is an undeployed local candidate; see [STATUS.md](STATUS.md) for what was run and what remains unverified. Rights-specific sections below are historical. Signed local rehearsal: `pnpm --filter @market/protocol rehearse:actions`.
 
 ```
 apps/web            Next.js app (Netlify)
@@ -31,7 +31,7 @@ pnpm dev:chain
 ```
 
 ```bash
-cd apps/indexer && PONDER_CHAIN_ID=31337 PONDER_RELEASE_ID=rights-v1 npx ponder dev --port 42169
+cd apps/indexer && PONDER_CHAIN_ID=31337 PONDER_RELEASE_ID=actions-v1 npx ponder dev --port 42169
 ```
 
 ```bash
