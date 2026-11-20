@@ -33,9 +33,9 @@ export const artColor = (id: bigint) => pub.readContract({ address: artworkAddr(
 export const artRenderer = (id: bigint) => pub.readContract({ address: artworkAddr(), abi: artworkAbi, functionName: "rendererOf", args: [id] }) as Promise<number>;
 
 /** List the Actions token for a covered right (id == backing account) as a fixed-price resale. */
-export async function listActionsForResale(seller: Address, account: Address, premiumWei: bigint): Promise<Address> {
+export async function listActionsForResale(seller: Address, account: Address, premiumWei: bigint, proceedsTo: Address = seller): Promise<Address> {
   const tokenId = BigInt(account);
-  const spec = tx.saleSpec(D, { issuer: seller, nft: D.actions!, tokenId, schedule: fixedSchedule(premiumWei), proceedsTo: seller, maxRoyaltyBps: 0 });
+  const spec = tx.saleSpec(D, { issuer: seller, nft: D.actions!, tokenId, schedule: fixedSchedule(premiumWei), proceedsTo, maxRoyaltyBps: 0 });
   const salt = randomSalt();
   const order = await predictOrderAddress(pub, D, seller, spec, salt) as Address;
   await send(seller, tx.create(D, spec, salt));

@@ -202,7 +202,8 @@ export function RightDetailView({ account }: { account: Address }) {
                     { key: "Exercise price", value: `${eth(a.executionPrice, "up")} ETH` },
                     { key: "Exercise royalty credit", value: a.royalty > 0n ? `${eth(a.royalty)} ETH` : "None" },
                     { key: "Royalty recipient", value: <span className={styles.mono}>{a.royalty > 0n ? a.royaltyTo : "None"}</span> },
-                    { key: "Premium recipient", value: <span className={styles.mono}>{a.proceedsTo}</span> },
+                    { key: "Premium recipient", value: <span className={styles.mono}>{a.premiumTo}</span> },
+                    { key: "Exercise proceeds recipient", value: <span className={styles.mono}>{a.proceedsTo}</span> },
                     { key: "You pay at most", value: `${eth(a.maxPremium + a.executionPrice, "up")} ETH`, total: true },
                   ]} />
                   <label className={styles.label}>NFT recipient<InputAddress value={acquireRecipient} onChange={setAcquireRecipient} placeholder={address} /></label>

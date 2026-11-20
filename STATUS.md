@@ -11,10 +11,11 @@ Run at this pin:
 - Playwright, desktop and mobile, on a fresh `dev:chain` (port 8745), fresh `ponder start` schema (42269) and a production `next build` served with `next start` (3200): **32/32**. The first full run gave 30/32; both failures were `reserved.spec.ts` because the build lacked `NEXT_PUBLIC_ARTWORK` (a setup omission, documented in `apps/web/.env.example`). After rebuilding with the local Artwork address, `reserved.spec.ts` passed 2/2. The other 30 specs ran on the first build, which differs only by that variable.
 - New specs: `acquire.spec.ts` (atomic buy-and-execute of a listed Actions token to an explicit recipient; listing discovered on chain; asserts delivery, Completed state and burned token) and `reserved.spec.ts` (Artwork palette then renderer change through `/reserved`, asserts on-chain values and no horizontal overflow).
 
+Payment code review (2026-11-20): read `exerciseSteps`, `discoverAcquire`, `acquireParams`, `acquireSteps`, `RightsView` buy-and-exercise and `coveredSpec`/`exerciseCovered`/`acquireAndExecute` builders against `CoveredNFTPurchase` and `AcquireAndExecute`. One defect fixed: the buy-and-exercise panel labelled the covered right's exercise `proceedsTo` as "Premium recipient"; the premium actually goes to the resale listing's own `SaleTerms.proceedsTo`. Discovery now returns both and the panel shows both. `acquire.spec.ts` now lists with a distinct premium payee, asserts the UI shows it and that it received exactly 0.198 ETH (0.2 premium less the 1% local fee). `acquire.spec.ts` + `covered.spec.ts`: 8/8 desktop and mobile. The new assertion was not run against the pre-fix build. No other discrepancy found.
+
 Not verified:
 - No real wallet extension; signing is simulated with local disposable keys.
 - No public deployment, Sepolia indexing or hosted build.
-- A line-by-line review of the covered-purchase and acquire payment code in the web app was requested but not completed; it is covered by the e2e and rehearsal amount assertions only.
 - Earlier sections below describe intermediate slices at pin `152bf41`; their "not done" lists are superseded by this section.
 
 ## Unified Actions candidate (actions-v1) — protocol-package foundation, 2026-11-19

@@ -530,7 +530,10 @@ export type AcquireDiscovery = {
   /** Royalty the exercise credits, snapshotted at the covered order's activation. */
   royalty: bigint;
   royaltyTo: Address;
+  /** Receives the exercise proceeds (the covered order's `proceedsTo`). */
   proceedsTo: Address;
+  /** Receives the resale premium net of fee (the listing's own `SaleTerms.proceedsTo`). */
+  premiumTo: Address;
   /** keccak256 of the covered order's on-chain activation terms (binds the account, A&E checks it). */
   activationTermsHash: Hex;
 };
@@ -556,14 +559,15 @@ export async function discoverAcquire(pub: PublicClient, account: Address): Prom
   if (!listing || !listing.isLive) return null;
   const lc = decodeExchangeConfig(listing.config);
   if (lc.side !== Side.Sale || !sameAddress(lc.nft, d.actions!)) return null;
-  if (decodeSaleTokenId(listing.config) !== underlyingId) return null;
+  const saleTerms = decodeSaleTerms(lc.terms as Hex);
+  if (saleTerms.tokenId !== underlyingId) return null;
   const now = await head(pub);
   const [royaltyTo, royalty] = decodeAbiParameters([{ type: "address" }, { type: "uint256" }], covered.activationTerms) as [Address, bigint];
   return {
     account, listing: owner, nft: cfg.nft, tokenId: cfg.tokenId,
     premiumNow: priceAt(lc.schedule, now), maxPremium: buyMaxPrice(lc.schedule, now),
     executionPrice: cfg.price, feeBps: orderFeeBps(listing), royalty, royaltyTo,
-    proceedsTo: cfg.proceedsTo, activationTermsHash: keccak256(covered.activationTerms),
+    proceedsTo: cfg.proceedsTo, premiumTo: saleTerms.proceedsTo, activationTermsHash: keccak256(covered.activationTerms),
   };
 }
 

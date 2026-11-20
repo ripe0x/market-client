@@ -11,6 +11,7 @@ import { listActionsForResale, actionsOwner } from "./actions";
 
 const lower = (a?: string | null) => (a ?? "").toLowerCase();
 const RECIPIENT = "0x90F79bf6EB2c4f870365E785982E1f101E93b906"; // anvil account 3 — explicit, != payer
+const PREMIUM_TO = "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"; // anvil account 4 — listing payee, != issuer's proceedsTo
 
 test("buy and exercise a listed right in one transaction, delivering to an explicit recipient", async ({ page }) => {
   const c = await collections();
@@ -21,7 +22,8 @@ test("buy and exercise a listed right in one transaction, delivering to an expli
   await waitFor(() => readOrder(pub, D, account).then((i) => i.state), (s) => s === OrderState.Live);
 
   // List its Actions token for resale (premium 0.2), held by a separate sale order.
-  await listActionsForResale(ACC.other, account, eth("0.2"));
+  await listActionsForResale(ACC.other, account, eth("0.2"), PREMIUM_TO);
+  const premiumToBefore = await pub.getBalance({ address: PREMIUM_TO });
 
   await injectWallet(page); // connects as ME (account 1), the non-holder buyer
   await page.goto(`/rights/${account}`);
@@ -34,6 +36,8 @@ test("buy and exercise a listed right in one transaction, delivering to an expli
     await expect(page.getByText(key, { exact: true }).first()).toBeVisible();
   }
 
+  // The premium payee shown is the listing's own proceedsTo, not the right's exercise payee.
+  await expect(page.getByText(PREMIUM_TO, { exact: true })).toBeVisible();
   await page.getByLabel("NFT recipient", { exact: true }).fill(RECIPIENT);
   await page.getByRole("button", { name: "Buy and exercise", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: /^Buy and exercise for up to/ }).click();
@@ -43,4 +47,6 @@ test("buy and exercise a listed right in one transaction, delivering to an expli
   expect(lower(await ownerOf(c.meridian, id))).toBe(lower(RECIPIENT));
   expect(await readOrder(pub, D, account).then((i) => i.state)).toBe(OrderState.Completed);
   expect(await actionsOwner(BigInt(account))).toBeNull(); // Actions token burned
+  // The listing payee received the premium less the 1% local trading fee: 0.2 - 0.002.
+  expect(await pub.getBalance({ address: PREMIUM_TO }) - premiumToBefore).toBe(eth("0.198"));
 });
