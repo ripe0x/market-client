@@ -87,7 +87,15 @@ export async function startChain(opts: { port?: number; collections?: boolean; b
     ["script", "script/Deploy.s.sol", "--rpc-url", rpcUrl, "--unlocked", "--sender", ACCOUNTS[0], "--broadcast"],
     { cwd: resolve(ROOT, "contracts/market"), maxBuffer: 1 << 24, env:{...process.env,FOUNDRY_BROADCAST:broadcastDir} },
   );
-  const names = {market:"Market",orderImplementation:"Order implementation",rightImplementation:"Right implementation",rights:"Rights ERC721",feeConfig:"FeeConfig",nftSale:"NFTSale",nftBid:"NFTBid",coveredNFTPurchase:"CoveredNFTPurchase",fillVerifier:"FillVerifier"} as const;
+  // Deploy the Artwork reservation-target example too (its own script entrypoint).
+  const examplesRun = await exec(
+    "forge",
+    ["script", "script/Deploy.s.sol", "--sig", "examples()", "--rpc-url", rpcUrl, "--unlocked", "--sender", ACCOUNTS[0], "--broadcast"],
+    { cwd: resolve(ROOT, "contracts/market"), maxBuffer: 1 << 24, env:{...process.env,FOUNDRY_BROADCAST:broadcastDir} },
+  );
+  const names = {market:"Market",orderImplementation:"Order implementation",actions:"Actions ERC721",feeConfig:"FeeConfig",exchange:"ExchangeAction",coveredNFTPurchase:"CoveredNFTPurchase",reservedAction:"ReservedAction",acquireAndExecute:"AcquireAndExecute",fillVerifier:"FillVerifier"} as const;
+  const artworkMatch = examplesRun.stdout.match(/Artwork \(example\) (0x[0-9a-fA-F]{40})/);
+  const artwork = artworkMatch ? getAddress(artworkMatch[1]!) : undefined;
   const broadcast=JSON.parse(readFileSync(resolve(broadcastDir,"Deploy.s.sol/31337/run-latest.json"),"utf8")) as {receipts:{transactionHash:Hex}[]};
   const deploymentReceipts=await Promise.all(broadcast.receipts.map(r=>pub.getTransactionReceipt({hash:r.transactionHash})));
   const deployedAt=deploymentReceipts.reduce((m,r)=>r.blockNumber<m?r.blockNumber:m,deploymentReceipts[0]!.blockNumber);
@@ -97,12 +105,12 @@ export async function startChain(opts: { port?: number; collections?: boolean; b
     const match=deploymentRun.stdout.match(new RegExp(`${label} (0x[0-9a-fA-F]{40})`));
     if(match) actual[key as ContractName]=getAddress(match[1]!);
   }
-  if(!actual.market || !actual.rights) throw new Error("Deploy script did not report the rights release identity");
+  if(!actual.market || !actual.exchange) throw new Error("Deploy script did not report the actions release identity");
   const codehash:Deployment["codehash"]={};
   for(const [name,address] of Object.entries(actual)) codehash[name as ContractName]=keccak256((await pub.getCode({address}))!);
-  const deployment = { ...deploymentFor(31337,"rights-v1"), ...actual, rpcUrl, codehash, startBlock:deployedAt, protocolCommit:source.trim(), status:"deployed" as const, deploymentId:`31337:rights-v1:${actual.market.toLowerCase()}` };
-  for (const a of [deployment.market, deployment.feeConfig, deployment.nftSale, deployment.nftBid]) {
-    if (!(await pub.getCode({ address: a }))) throw new Error(`protocol not deployed at ${a}`);
+  const deployment = { ...deploymentFor(31337,"actions-v1"), ...actual, rpcUrl, codehash, startBlock:deployedAt, protocolCommit:source.trim(), status:"deployed" as const, deploymentId:`31337:actions-v1:${actual.market.toLowerCase()}` };
+  for (const a of [deployment.market, deployment.feeConfig, deployment.exchange, deployment.coveredNFTPurchase, deployment.actions]) {
+    if (!a || !(await pub.getCode({ address: a }))) throw new Error(`protocol not deployed at ${a}`);
   }
 
   const collections = opts.collections === false ? null : await deployCollections(pub, wallet(ACCOUNTS[0]));
@@ -117,6 +125,7 @@ export async function startChain(opts: { port?: number; collections?: boolean; b
     deployment,
     deploymentReceipts,
     collections,
+    artwork,
     stop: () => anvil.kill(),
   };
 }

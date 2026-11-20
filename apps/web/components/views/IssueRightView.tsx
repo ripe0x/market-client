@@ -12,7 +12,7 @@ import { FlowButton, useFlowUi } from "@/components/tx/Flow";
 import { useIndexer, useApi } from "@/data/hooks";
 import { paths } from "@/data/indexer";
 import { issuanceSteps, predictedRight, rightDraftKey, type RightDraft } from "@/data/rightsFlows";
-import { DEPLOYMENT as d } from "@/lib/deployment";
+import { IS_ACTIONS } from "@/lib/deployment";
 import type { ExecutionMode } from "@/data/txflow";
 import styles from "./Rights.module.css";
 
@@ -43,19 +43,19 @@ export function IssueRightView() {
       draft = { nft: getAddress(form.nft), tokenId: form.tokenId, price: parseEther(form.priceEth).toString(), deadline: BigInt(Math.floor(Date.parse(`${form.deadline}Z`) / 1000)).toString(), maxRoyaltyBps: form.maxRoyaltyBps, salt: form.salt };
   } catch {}
   const serialized = draft ? JSON.stringify(draft) : null;
-  const steps = useMemo(() => serialized ? issuanceSteps(JSON.parse(serialized)) : [], [serialized]);
-  const { flow, uiSteps } = useFlowUi(steps, { kind: "right" }, mode);
+  const steps = useMemo(() => serialized && address ? issuanceSteps(JSON.parse(serialized), address) : [], [serialized, address]);
+  const { flow, uiSteps } = useFlowUi(steps, { kind: "covered" }, mode);
   useEffect(() => {
     if (!pub || !address || !serialized) return setPredicted(null);
     let live = true;
-    predictedRight({ pub, account: address, results: {} }, JSON.parse(serialized)).then(a => live && setPredicted(a)).catch(() => live && setPredicted(null));
+    predictedRight({ pub, account: address }, JSON.parse(serialized)).then(a => live && setPredicted(a)).catch(() => live && setPredicted(null));
     return () => { live = false; };
   }, [pub, address, serialized]);
   const frozen = flow.running || flow.states[0] === "done";
   const field = (name: keyof Form, value: string | number) => setForm(f => ({ ...f, [name]: value }));
   return <>
     <header className={styles.header}><Link href="/rights">← Rights</Link><h1>Issue a right</h1><p>Commit an nft to a fixed exercise price. The holder can sell the right or pay that price before the deadline to receive the nft.</p></header>
-    {!d.rights ? <ErrorNote>This release doesn't support native rights.</ErrorNote> : !address ? <ErrorNote>Connect your wallet to issue a right.</ErrorNote> : <div className={styles.layout}>
+    {!IS_ACTIONS ? <ErrorNote>This release doesn't support covered purchase rights.</ErrorNote> : !address ? <ErrorNote>Connect your wallet to issue a right.</ErrorNote> : <div className={styles.layout}>
       <div className={styles.main}>
         <label className={styles.label}>Owned nft<select aria-label="Owned nft" disabled={frozen} value="" onChange={e => { const [nft = "", tokenId = ""] = e.target.value.split(":"); setForm(f => ({ ...f, nft, tokenId })); }}><option value="">Choose an owned nft, or enter its address below</option>{owned.data?.map(n => <option key={`${n.nft}:${n.tokenId}`} value={`${n.nft}:${n.tokenId}`}>{n.collectionName ?? n.nft} #{n.tokenId}</option>)}</select></label>
         <label className={styles.label}>Collection address<input aria-label="nft collection address" value={form.nft} disabled={frozen} onChange={e => field("nft", e.target.value)} /></label>

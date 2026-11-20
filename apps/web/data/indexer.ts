@@ -17,7 +17,7 @@ export async function indexer<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(`${base}${path}`, { ...init, cache: "no-store" });
   if (!r.ok) throw new IndexerError(r.status, `${path}: ${r.status}`);
   const identity = r.headers.get("x-market-deployment");
-  if ((DEPLOYMENT.releaseId === "rights-v1" && identity !== DEPLOYMENT.deploymentId) || (identity && identity !== DEPLOYMENT.deploymentId))
+  if (identity && identity !== DEPLOYMENT.deploymentId)
     throw new IndexerError(409, "This indexer serves a different Market release.");
   return r.json() as Promise<T>;
 }

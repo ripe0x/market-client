@@ -70,7 +70,6 @@ export function CreateListingForm(props: CreateListingFormProps) {
     endPrice: value.changeOverTime ? parse(value.endPrice) : parse(value.startPrice),
     startTime: now,
     endTime: value.changeOverTime ? now + DURATION_SECONDS[value.duration] : now,
-    expiry: 0n,
   };
 
   const tok = sel ? `#${sel.tokenId}` : "#—";

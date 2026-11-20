@@ -1,5 +1,198 @@
 # Status
 
+## Unified Actions candidate (actions-v1): frozen protocol pin and full client verification, 2026-11-19
+
+Protocol submodule pinned to `9f50355aef855241654eb3e8c6ae808a0e38c64f` (ripe0x/market `claude/unified-actions`, draft PR #18). Its production contracts are byte-identical to `152bf41`; regeneration (`pnpm build:contracts && pnpm --filter @market/protocol gen`) changed only `protocolCommit` in both manifests, no ABI or code hash. The nine Sepolia CREATE2 addresses in `deployments/actions-sepolia.json` match the protocol's `docs/DEPLOYMENT.md`. Undeployed local candidate; public Sepolia still defaults to `legacy-v1`.
+
+Run at this pin:
+- `pnpm typecheck`: protocol, indexer and web pass.
+- `CANDIDATE_RUN=1 pnpm test`: protocol 32/32, indexer 13/13, web 2/2.
+- `pnpm --filter @market/protocol rehearse:actions`: exit 0, 36 signed local transactions, 5 flows, 2 genuine reverts. Evidence `packages/protocol/evidence/actions-local.json`.
+- Playwright, desktop and mobile, on a fresh `dev:chain` (port 8745), fresh `ponder start` schema (42269) and a production `next build` served with `next start` (3200): **32/32**. The first full run gave 30/32; both failures were `reserved.spec.ts` because the build lacked `NEXT_PUBLIC_ARTWORK` (a setup omission, documented in `apps/web/.env.example`). After rebuilding with the local Artwork address, `reserved.spec.ts` passed 2/2. The other 30 specs ran on the first build, which differs only by that variable.
+- New specs: `acquire.spec.ts` (atomic buy-and-execute of a listed Actions token to an explicit recipient; listing discovered on chain; asserts delivery, Completed state and burned token) and `reserved.spec.ts` (Artwork palette then renderer change through `/reserved`, asserts on-chain values and no horizontal overflow).
+
+Payment code review (2026-11-20): read `exerciseSteps`, `discoverAcquire`, `acquireParams`, `acquireSteps`, `RightsView` buy-and-exercise and `coveredSpec`/`exerciseCovered`/`acquireAndExecute` builders against `CoveredNFTPurchase` and `AcquireAndExecute`. One defect fixed: the buy-and-exercise panel labelled the covered right's exercise `proceedsTo` as "Premium recipient"; the premium actually goes to the resale listing's own `SaleTerms.proceedsTo`. Discovery now returns both and the panel shows both. `acquire.spec.ts` now lists with a distinct premium payee, asserts the UI shows it and that it received exactly 0.198 ETH (0.2 premium less the 1% local fee). `acquire.spec.ts` + `covered.spec.ts`: 8/8 desktop and mobile. The new assertion was not run against the pre-fix build. No other discrepancy found.
+
+Not verified:
+- No real wallet extension; signing is simulated with local disposable keys.
+- No public deployment, Sepolia indexing or hosted build.
+- Earlier sections below describe intermediate slices at pin `152bf41`; their "not done" lists are superseded by this section.
+
+## Unified Actions candidate (actions-v1) — protocol-package foundation, 2026-11-19
+
+Branch `claude/unified-actions`. Protocol submodule re-pinned to the unified Order/Action model at `152bf41532a6f7f57539aa2819511ae7103521e7` (ripe0x/market `claude/unified-actions`). This is an **undeployed local candidate**. The legacy `legacy-v1` and historical `rights-v1` manifests are untouched; the new release has its own id `actions-v1` and manifests `deployments/actions-local.json` (local, deployed) and `deployments/actions-sepolia.json` (Sepolia, candidate, `startBlock: null`, deterministic CREATE2 addresses, not deployed). Public Sepolia still defaults to `legacy-v1`. ABI, codehash and manifest generation are reproducible from the pinned submodule: `pnpm build:contracts && pnpm --filter @market/protocol gen`.
+
+**Done and verified (protocol package `packages/protocol`):**
+- `scripts/gen-abis.ts` regenerated for the new contract set (Market, Order, Actions, ExchangeAction, CoveredNFTPurchase, ReservedAction, FeeConfig, AcquireAndExecute, FillVerifier, Artwork target, ERC721 errors).
+- Codecs (`src/config.ts`): `OrderSpec`, ExchangeAction `Config`/`SaleTerms`/`BidTerms`, covered and reserved configs, sale/bid/covered/reserved execution inputs. `Schedule` and `Quote` are ABI-derived (drift-proof); the action configs travel as `bytes`, so their struct shapes are hand-written and checked on chain by the rehearsal.
+- Pricing/split (`src/split.ts`): royalty capped at `price - fee`; sale `maxRoyaltyBps` checked against the **capped** royalty (ExchangeAction `_quote`, confirmed by the lead).
+- Reads (`src/orders.ts`): `readOrder` authenticates provenance against `Market.isOrder`, reads `config()` on chain, and requires `actionCodehash` to equal the hash of the action's deployed code; `verifyDeployment` checks the new wiring; `quoteExchange`, `predictOrderAddress`, `isExpiredAt(deadline, now)` for the deadline boundary.
+- Call builders + presets (`src/tx.ts`): create/createAndActivate/activate/execute(sale,bid)/exercise covered/execute reserved/cancel/surrender/finalizeExpiry/release/withdrawSurplus/releaseCredit/withdrawCredit/bid funding/action transfer/acquireAndExecute/artwork reserve, with trust-boundary validation (contradictory token selection, invalid window, empty operation, `minActionTimeLeft` 0 for ordinary bids). Incoming bid approval targets **ExchangeAction**, never the order.
+- Error decoding/copy (`src/errors.ts`) for the new custom errors; sale/bid/covered/reserved contexts.
+- `src/api.ts` redefines the indexer↔client contract for the unified model (sets the shape the indexer rewrite targets).
+
+**Verification run (local, this candidate):**
+- `pnpm --filter @market/protocol typecheck`: pass. Unit suite (`test/codecs|split|schedule|errors`): **32/32**. (No chain, no mocks — pure codec/pricing/error logic.)
+- Signed local Anvil rehearsal `pnpm --filter @market/protocol rehearse:actions` at pin `152bf41`: **36 signed transactions across 5 flows and 2 genuine on-chain reverts**, all absolute-amount assertions held. Evidence: `packages/protocol/evidence/actions-local.json`. Measured results: sale fee 0.01 / royalty 0.05 / proceeds 0.94 with 0.2 refunded; bid fee 0.005 / royalty 0.0125 / proceeds 0.4825; covered+acquire premium (fee 0.002, proceeds 0.198) and execution credited (royalty 0.0125, proceeds 0.4875, withdrawn); artwork reserved surplus credit 0.05; recovery 0.5 ETH via cancel+withdrawSurplus and NFT via surrender+release. Reverts: `ERC721InsufficientApproval` (approval must target ExchangeAction) and `AboveMaxPrice`, both actual reverted transactions. Example prices and 1%/5%/2.5% rates are local test conditions, not launch settings.
+
+**NOT done in this slice (explicit lost/untested coverage):**
+- **Indexer (`apps/indexer`) is not migrated.** It still indexes the old `fill`/handler/Rights model and will not compile or run against the new package. No new-model event handlers, schema, or REST API yet.
+- **Web app (`apps/web`) is not migrated.** All UI (creation, activation, sale, bid, resale, execution, surrender, expiry, credit/collateral recovery, artwork example, atomic covered purchase), the Playwright e2e suite, and the production build still target the old model and will fail to typecheck/build against the new package.
+- Because of the above, **workspace-wide `pnpm -r typecheck` and the web/indexer builds currently fail.** This commit is a clearly-labelled checkpoint of a verified package foundation, not a release-ready state.
+- No real wallet-extension verification was done (not possible here); only simulated local signing with disposable keys.
+- `devchain/seed.ts` was rewritten for the new model (compiles, used by `pnpm dev:chain`) but its downstream consumers (indexer, e2e) are not migrated, so it is not exercised end to end.
+
+Nothing was deployed, broadcast, or pushed. No secrets written. The lead will provide the final protocol pin at freeze; regeneration is reproducible from the submodule.
+
+---
+
+## Indexer fix: apply sale maxRoyaltyBps in the poll, 2026-11-19
+
+`ExchangeAction.quote()` is advisory and does not apply a sale's `maxRoyaltyBps`, so a listing whose capped royalty exceeds its limit was served as `live` with `quoteError` null (a buy would revert). The head poll now, for a live sale, compares the quote's royalty (already `min(ERC2981, price - fee)`) against `mulDiv(price, maxRoyaltyBps, 10000)` and sets `quoteError = RoyaltyAboveLimit` when it exceeds, so the sale shows `blocked` and is excluded from live listings. Seeded a `maxRoyaltyBps=0` driftlines (5% royalty) listing additively; indexer test now **13/13** (asserts the blocked status + exclusion). `apps/indexer` only.
+
+## Seed/indexer gap-closing + build reproducibility fix (actions-v1), 2026-11-19
+
+Additive follow-up to the indexer slice (protocol stays pinned `152bf41`; the lead froze the protocol at `9f50355`, production byte-identical, and re-pins after both client agents finish).
+
+- **Seed (`devchain/seed.ts`), additive only** (existing seeded orders/addresses untouched): adds a Holder covered-purchase right, its Actions-token resale listing (0.2 ETH premium), bought and exercised by the buyer for its separate 0.5 ETH execution price; and a reserved Artwork palette change (issued + executed). New mints/orders only.
+- **Indexer test** extended to **12/12**: covered right indexed + exercised with credits (royalty 0.0125 + proceeds 0.4875 = 0.5 ETH); the Actions-token **premium fill is a separate fill on the Actions collection, distinct from the execution price** on the underlying collection; reserved action indexed with an `action_performed` event and a 0.05 ETH surplus credit; and a **provenance test**: a foreign ERC-1167 clone of the Order implementation deployed outside Market is never indexed (`isOrder` false, `/api/orders/:clone` 404, absent from listings). Added a `reserved` → `exercised` status case. Evidence refreshed in `apps/indexer/evidence/indexer-api.json` (now includes the covered right + account and the reserved account).
+- **Build reproducibility fix:** `forge build --ast` changes the embedded metadata and therefore the deployed bytecode / CREATE2 addresses, so it must never be the deployment build. `build:contracts` is reverted to plain `forge build`; `scripts/gen-abis.ts` now builds `--ast` into a throwaway out dir purely to extract the config/terms struct ASTs, leaving the canonical `out/` untouched. The generated `configStructs.gen.ts` is byte-identical to before. The `actions-v1` manifest codehashes were regenerated from the canonical build (the earlier committed values predated the local lib resolution); `verifyDeployment` (live code vs manifest) passes in the indexer test, and the codehash is stable across regenerations.
+
+**Reproducibility note for the final re-pin:** manifest codehashes and CREATE2 addresses come from Foundry's metadata-ipfs build and depend on the exact resolved library bytes; this worktree's nested libs were copied locally (no network). At the lead's re-pin to `9f50355`, regenerate authoritatively with `git submodule update --init --recursive` then `pnpm build:contracts && pnpm --filter @market/protocol gen`.
+
+## Indexer migration + config drift guard (actions-v1), 2026-11-19
+
+Branch `claude/unified-actions`, protocol pin `152bf41`. Continues the foundation slice; `apps/web` is being migrated concurrently by another agent (not touched here).
+
+**Indexer (`apps/indexer`) migrated to the unified Order/Action model, verified:**
+- `ponder.config.ts` indexes Market.Created (factory source for Order), Order lifecycle (Activated/Executed/Canceled/Surrendered/Expired/Released/Credited/CreditWithdrawn/SurplusWithdrawn), Actions.Transfer (Holder-order ownership), ExchangeAction.Exchanged, CoveredNFTPurchase.Purchased, ReservedAction.ActionPerformed. `ponder.schema.ts` redesigned (order/fill/collection/token/meta/credit/account_event). `src/index.ts` decodes known action configs on Created and records settlements and credits. `src/api/index.ts` serves the `api.ts` shapes.
+- **Effective liveness** uses the EXCLUSIVE deadline at query time: `now >= deadline` is `expired` even with no `finalizeExpiry` event indexed (verified by a test that queries a still-Live order past its deadline).
+- All index-sourced addresses are documented as **unauthenticated hints**; clients must verify via `readOrder` (Market.isOrder + actionCodehash vs deployed code).
+- **Legacy handling:** the new build serves only `actions-v1`; `src/deployment.ts` refuses `legacy-v1`/`rights-v1` (their old ABIs were removed from `@market/protocol`), directing them to their own historical indexer at the old commit. New ABIs are never pointed at legacy addresses.
+- Verification: `apps/indexer` typecheck clean; `vitest run test/indexer.test.ts` = **8/8** against a real Anvil + Ponder + REST round trip (status/actions-v1, live vs sold vs awaiting-NFT, SQL priceNow parity with the contract, effective-deadline expiry, collection offers, positions, fill split). Live API responses captured in `apps/indexer/evidence/indexer-api.json` via `apps/indexer/scripts/capture-api.ts`.
+
+**Config struct drift guard (task 2), verified:** `scripts/gen-abis.ts` now derives the ExchangeAction/CoveredNFTPurchase/ReservedAction config, terms and schedule ABI params from the compiler AST (`forge build --ast`) into `src/configStructs.gen.ts`, which `src/config.ts` consumes. A protocol struct change now changes the generated params and breaks `config.ts`'s typecheck instead of drifting silently (the old "configs are opaque bytes so they can't be ABI-derived" gap). `config.ts`'s public exports are unchanged (the concurrent web migration is unaffected). `build:contracts` now passes `--ast`. Protocol package typecheck clean; 32/32 unit tests (incl. the schedule-vs-config drift assertion).
+
+**Lost / not done this slice:** the old indexer's rogue-clone-rejection and reorg tests were not reproduced (the new suite covers provenance via the factory source and the deployment-identity `setup` check, and statuses/parity/positions, but not a fabricated-event rejection or a reorg). Artwork reservation-target events are not indexed (Artwork is an example target, not in the manifest); the ReservedAction.ActionPerformed core event is. `apps/web` is mid-migration by another agent; workspace-wide build still depends on it.
+
+
+## Web app migration to unified Order/Action (actions-v1), 2026-11-19
+
+Branch `claude/unified-actions`, protocol pin `152bf41`. The Next.js client (`apps/web`) migrated off
+the removed fill/handler/Rights model onto the unified Order/Action protocol. Scope: `apps/web`
+(plus `apps/web/e2e` and `docs/screenshots`). Builds on the migrated `apps/indexer` (`b927205`) and
+`packages/protocol` (actions-v1). **Wallet support is simulated locally** (an injected EIP-1193
+provider forwarding to Anvil's unlocked accounts); no real wallet extension (MetaMask/Coinbase) was
+tested.
+
+### What changed
+- Release guard `IS_ACTIONS` (`lib/deployment.ts`): discriminated by `exchange` (present only in
+  actions-v1). Legacy/rights manifests lack the new contracts, so every unified-model read, builder
+  and UI guards on it; a legacy selection never reaches new-model code.
+- Unified flows library (`data/flows.ts`): creation+activation (sale/covered escrow create → deposit
+  → activate, resumable + atomic-batch-collapsible; bid funded `createAndActivate`), sale listing
+  (fixed/declining/increasing schedules), bid (funding + `topUp` replenishment), Actions-token resale
+  and direct transfer, execution (buy; bid accept with approval to **ExchangeAction**, never the
+  order — A1; covered exercise with explicit NFT recipient; reserved execution), surrender, expiry
+  finalization, credit release/withdraw, surplus withdrawal, authenticated collateral `release`, and
+  the atomic covered purchase (`acquireSteps`). Every step re-authenticates via `readOrder`
+  (Market.isOrder + onchain `config()` + action codehash) and checks eligibility against chain block
+  time with the exclusive `now >= deadline` boundary, never the indexer.
+- Independent eligibility (owner spec): a royalty-over-limit sale is detected in `TokenDetailView`
+  from the **on-chain** royalty vs the order's committed limit, so Buy is withheld even when the
+  indexer still reports the order `live` (the migrated indexer does not flag royalty-blocked sales —
+  see Things that don't make sense).
+- Covered purchase rights reworked as covered orders (`RightsView`/`RightDetailView`/`IssueRightView`
+  + `CoveredSection`); premium / exercise price / deadline / backing / recipients shown separately;
+  no "option" wording.
+- Mobile (375px): uint160-size Actions token ids middle-truncated in token cells (`shortId`) with a
+  `TokenCell` clip safety net; `Hero`/`Toolbar` wrap and `StatBlock` scrolls on narrow screens. The
+  e2e mobile run and the screenshot pass assert zero horizontal overflow at 375px.
+- Display/listing helpers on the new `ApiOrder` (issuer/holder, maxExecutions/executions, deadline,
+  closedAt); schedule carries price only.
+- e2e migrated to the unified model + migrated indexer; six obsolete separate-Rights specs replaced
+  by `covered.spec.ts` (issue → exercise → credit release, surrender + recover, finalize + recover).
+
+### Verification (commands, exit status, result)
+| Check | Command | Result |
+| --- | --- | --- |
+| Typecheck | `cd apps/web && pnpm typecheck` | exit 0, 0 errors |
+| Unit | `cd apps/web && npx vitest run lib/orderDisplay.test.ts` | exit 0, 1 passed (price-direction wording) |
+| Build | `pnpm --filter @market/web build` | exit 0, compiled + TypeScript + 13 routes generated |
+| E2E desktop+mobile | `cd apps/web && npx playwright test` (stack: `pnpm dev:chain`; indexer `ponder dev --port 42169 PONDER_RELEASE_ID=actions-v1`; `pnpm dev`) | exit 0, **28/28 passed** (14 flows x desktop 1440 + mobile 390; covered issue/exercise/credit, surrender, finalize; buy, accept, batch, create, offer, manage; all mobile pages 0 horizontal overflow at 375px) |
+
+Screenshots (desktop 1440 + mobile 375) in `docs/screenshots/{desktop,mobile}-*`: listings,
+collections, collection, token-detail, make-offer, sell, positions, rights, issue-right. (The older
+`docs/screenshots/*-{desktop,mobile}.png` files are from the removed Rights UI and are superseded.)
+
+### Lost / untested coverage
+- AcquireAndExecute (atomic buy-and-exercise of a listed Actions token): flow builder exists
+  (`acquireSteps`) but has no UI entry — it needs an indexer lookup of the resale listing's address +
+  activation-terms hash, which the indexer does not yet expose. Documented TODO in `RightDetailView`.
+  The Actions-token resale itself is exercised by the ordinary sale/buy flow.
+- Reserved action + Artwork example: `executeReservedSteps` / `reservedSpec` / `artworkReserve`
+  builders exist and are exercise-ready, but no dedicated screen or e2e was built this slice.
+- Credit list in `RightDetailView` is driven by release-by-address + withdraw-your-own, not an
+  enumerated beneficiaries list (no indexer `/api/accounts/:account` credits endpoint yet).
+- Dropped from the old Rights specs (removed contract / generic flow mechanics): canonical
+  separate-Rights-collection scenarios, atomic-wallet issuance + staged resume/cancel, manual
+  encoded-config recovery, credit-withdraw to an alternate recipient, mid-form competing-transfer
+  re-check, zero-price exercise. See `e2e/covered.spec.ts` header.
+
+### Limitations
+- No real wallet extension tested; wallet is a local injected provider over Anvil.
+- Alchemy NFT API path untested (no key); the chain fallback for metadata/holdings is what ran.
+- e2e ran against the just-migrated indexer (`b927205`), itself an unverified candidate.
+- No human audit; the protocol itself is unaudited.
+
+### Things that don't make sense
+- **The migrated indexer does not flag royalty-blocked sales.** `ExchangeAction.quote()` is advisory
+  and does not enforce `maxRoyaltyBps`, so a sale whose royalty exceeds the seller's limit is indexed
+  `live` with `quoteError = null` (observed: seeded `maxRoyaltyBps=0` listings report `live`). The
+  client now computes this itself from the on-chain royalty, but the indexer status is misleading;
+  the indexer should compare the quote's capped royalty against the order's `maxRoyaltyBps` (apps/indexer).
+- **`totalCredits` is per-beneficiary, not per-order.** Covered exercise credits BOTH the proceeds
+  (to the issuer) and the royalty (to the collection's receiver), so releasing one beneficiary's
+  credit does not zero `totalCredits`. An initial e2e assertion assumed a single credit; corrected to
+  assert the released beneficiary's own credit clears.
+- **Three read-only pages overflowed at 375px before this slice** (uint160 Actions ids in token
+  cells, the collections period toggle, the collection StatBlock). Fixed here, but it means the prior
+  mobile-overflow guarantees did not cover the collections/collection stats pages or Actions-token ids.
+- **AcquireAndExecute can't be driven from the UI** until the indexer exposes the resale listing for
+  an Actions token (address + activation-terms hash). The builder is ready; the discovery is missing.
+
+### Follow-up: lead-review fixes (actions-v1 web), 2026-11-19 — commit `e21b688`
+
+Three safety/correctness notes from the protocol/lead review, applied to `apps/web` only:
+- **Reserved-action front-running.** A target's reservation record is permanent per executor address,
+  so a third party can front-run `reserve(predictedOrder, …)` and poison that order address (no funds
+  lost; address unusable). `data/flows.ts` now has `reservedIssuanceSteps` ordered create → reserve →
+  activate with a **fresh per-order salt** (caller passes `randomSalt()`): the staged path reserves the
+  *real deployed* order address (never a predicted one); an EIP-5792 batch reserves the predicted
+  address atomically (no gap to front-run — the txflow engine batches when the wallet supports it); a
+  poisoned address reverts at activation and the fix is to retry with a new salt.
+- **Actions-token sale release.** When cancelling a sale of an Actions token whose underlying order is
+  no longer live, `release` reverts `ActionNotLive` by design. `cancelSteps` now detects this (the
+  listed Actions-token id is its underlying order address) and skips the release step with a plain
+  explanation that nothing can be returned; `cancel` still runs.
+- **Actions ERC721 kept out of ordinary browse/search.** The indexer lists the Actions collection in
+  `/api/collections`; `isActionsCollection` (lib/deployment) now filters it from `CollectionsView`,
+  `CollectionMenu` and `SearchField`, so it is never presented as an ordinary collection and its stats
+  are not aggregated. Its tokens are reached through their own action/resale views.
+
+Verification of this commit: `cd apps/web && pnpm typecheck` → **exit 0, 0 errors**; `pnpm --filter
+@market/web build` → **exit 0**; `npx vitest run apps/web/lib/orderDisplay.test.ts` → **exit 0, 1
+passed**. No existing e2e spec exercises the three changed branches (Actions-collection browse,
+Actions-token-sale cancel, reserved issuance — see below), so the integrated 28/28 run above still
+covers their preserved behaviour; these specific deltas are **not** themselves covered by e2e.
+
+Untested / known gaps from this follow-up:
+- `reservedIssuanceSteps` has no dedicated screen yet (no Artwork/reserved-action UI this slice), so
+  the front-run mitigation is verified by construction and typecheck, not by a live run.
+- The Actions-token-sale `ActionNotLive` release skip is not seeded in e2e (no seeded dead-underlying
+  Actions resale), so it is verified by code inspection + typecheck, not a live revert.
+
+
 ## Focused improvements candidate, 2026-11-18
 
 Verified implementation: `578e1b163ac1f458b7a6547ed9b90125da0800f1`; final protocol/submodule and artifact source: `c211808cf3dd6ed36f41e92d885e6f866a4b9436`. The complete protocol pin and repeated signed rehearsal are committed in `1d37cd8`; `4c86a5a` records the initial artifact generation. This supersedes the rights metadata-only candidate described in the historical status below. Current rights Market candidate is `0x5796242872BCAA3Fb0e16a4388c70f2e80aB966c`; Sepolia remains candidate/startBlock null. Legacy deployment and production selection remain unchanged.

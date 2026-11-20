@@ -1,21 +1,27 @@
-import { ago, eth, priceAt, toSchedule, fillLimit, type ApiOrder } from "@market/protocol";
+import { ago, eth, priceAt, toSchedule, type ApiOrder } from "@market/protocol";
 import { Table, HeaderRow, HeaderCell, Row, GroupHeaderRow, TokenCell, PriceFigure } from "@/components/ui";
+import { shortId } from "@/lib/orderDisplay";
 import { cx } from "@/lib/cx";
 import common from "./common.module.css";
 
 const COLS = "minmax(0,2fr) minmax(0,1.2fr) minmax(0,1.5fr) minmax(0,1fr) 88px";
 
-/** When an order finished: closed, else expired, else created. */
-const finishedAt = (o: ApiOrder) => o.closedAt ?? (o.schedule.expiry || o.createdAt);
+/** When an order finished: closed, else its deadline, else created. */
+const finishedAt = (o: ApiOrder) => o.closedAt ?? (Number(o.deadline) || o.createdAt);
 
-/** A sold listing shows what it sold for; others show their price when they ended. */
+/** The order's price when it ended (the schedule's value at the finishing time). */
 const amountOf = (o: ApiOrder) =>
-  BigInt(o.filled) > 0n && o.kind === "sale" ? BigInt(o.filled) : priceAt(toSchedule(o.schedule), BigInt(finishedAt(o)));
+  o.schedule ? priceAt(toSchedule(o.schedule), BigInt(finishedAt(o))) : 0n;
+
+/** Executions bought vs the order's cap (maxExecutions 0 and 1 both mean one). */
+const boughtOf = (o: ApiOrder) => {
+  const max = o.maxExecutions === undefined || o.maxExecutions === "0" ? 1 : Number(o.maxExecutions);
+  return `${o.executions ?? 0} of ${max} bought`;
+};
 
 function statusOf(o: ApiOrder): string {
-  const limit = fillLimit({ maxFills: BigInt(o.maxFills) });
   if (o.kind === "sale") return o.status === "sold" ? "Sold" : o.status === "expired" ? "Expired" : "Cancelled";
-  const bought = `${o.fills} of ${limit} bought`;
+  const bought = boughtOf(o);
   if (o.status === "sold_out") return `Filled · ${bought}`;
   return `${o.status === "expired" ? "Expired" : "Cancelled"} · ${bought}`;
 }
@@ -44,7 +50,7 @@ export function PastOrdersTable({ orders, title = "Past" }: { orders: ApiOrder[]
           <Row key={o.address} columns={COLS}>
             <TokenCell
               title={o.collectionName ?? "Collection"}
-              meta={any ? "Any token" : `#${o.tokenId}`}
+              meta={any ? "Any token" : `#${shortId(o.tokenId ?? "")}`}
               href={href}
             />
             {/* A finished price is a record, not a bound: show it to 6 decimals, not rounded to 4. */}

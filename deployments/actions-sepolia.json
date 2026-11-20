@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "actions-v1",
+  "chainId": 11155111,
+  "name": "Sepolia",
+  "protocolCommit": "9f50355aef855241654eb3e8c6ae808a0e38c64f",
+  "status": "candidate",
+  "startBlock": null,
+  "contracts": {
+    "market": {
+      "address": "0xE1a93Fae037fB7c609c17c88392d3BD24d4c9762",
+      "codehash": "0xeb6f9958bc3be90da5616546a6ebca6e9ae6291b656f1e44ac872de1314d7b9a"
+    },
+    "orderImplementation": {
+      "address": "0xC3052D0bc6130B6215EbC917cE2fF373ff23e96b",
+      "codehash": "0xa097a6b8984457b00784b562c95ede40783f464dfeb440dd9b691ca47d56965a"
+    },
+    "actions": {
+      "address": "0x63A21B9aB7A8eea6F40cE35a5F7173426A55f575",
+      "codehash": "0x7d27c5bc44844ff685e9811dcc938655169e2a194b7d72778fdbaeac46cc3946"
+    },
+    "feeConfig": {
+      "address": "0xab7494a3Af234eEFC55C6de6D824A9c1ffc7B179",
+      "codehash": "0xb22a316734ba058e071db380bef6d9da389f8ebbf771f14341eb65f7853fa3dd"
+    },
+    "exchange": {
+      "address": "0xE2dB9EcB01D48b3332302E189eA27DE8e6d05b46",
+      "codehash": "0x7f45a8321eb434b2204a1d7d01f20b2a371b24ef39df12433315050855ddcd0d"
+    },
+    "coveredNFTPurchase": {
+      "address": "0x11A989E25B23D565D332469fa0Ceb06C171ca053",
+      "codehash": "0x634c9ef0d0c13d245e6d06e49dc21fe0a820b794d9186499a3976fe7c7bd1fcb"
+    },
+    "reservedAction": {
+      "address": "0x138294386660f95c5A61B5AF78A1c802322aB82b",
+      "codehash": "0x3a1c0ad5732166d7f65d967a4db7ca8c39d7e1bdfde6608f9428f1fa2486038d"
+    },
+    "acquireAndExecute": {
+      "address": "0xDFE0B731734BB27A80a229712b233c3B1431E00d",
+      "codehash": "0xc329565a5fb7966a8c24806e9687b4fa7a16e5ff7a71ea623955e31ed6f73604"
+    },
+    "fillVerifier": {
+      "address": "0x255445e486aFe67a7265470cfA802f0EcFb8c07B",
+      "codehash": "0x5c467510a657e1ae31365a293d1afc917aaa5a7e5fc5d2315c3160015d37734b"
+    }
+  },
+  "relationships": {
+    "market.implementation": "0xC3052D0bc6130B6215EbC917cE2fF373ff23e96b",
+    "market.actions": "0x63A21B9aB7A8eea6F40cE35a5F7173426A55f575",
+    "actions.market": "0xE1a93Fae037fB7c609c17c88392d3BD24d4c9762",
+    "exchange.market": "0xE1a93Fae037fB7c609c17c88392d3BD24d4c9762",
+    "exchange.fees": "0xab7494a3Af234eEFC55C6de6D824A9c1ffc7B179",
+    "exchange.actions": "0x63A21B9aB7A8eea6F40cE35a5F7173426A55f575",
+    "coveredNFTPurchase.market": "0xE1a93Fae037fB7c609c17c88392d3BD24d4c9762",
+    "reservedAction.market": "0xE1a93Fae037fB7c609c17c88392d3BD24d4c9762",
+    "acquireAndExecute.market": "0xE1a93Fae037fB7c609c17c88392d3BD24d4c9762",
+    "acquireAndExecute.exchange": "0xE2dB9EcB01D48b3332302E189eA27DE8e6d05b46",
+    "acquireAndExecute.covered": "0x11A989E25B23D565D332469fa0Ceb06C171ca053"
+  },
+  "rpcUrl": "https://sepolia.gateway.tenderly.co",
+  "explorer": "https://sepolia.etherscan.io"
+}

@@ -4,6 +4,17 @@ Original Market V1 client decisions were made on the owner's instruction "make t
 
 Review order: start with the ones marked **Revisit first**.
 
+## Unified Actions migration (2026-11-19, branch claude/unified-actions)
+
+| # | Decision | Why | Status |
+| --- | --- | --- | --- |
+| DA1 | **New release id `actions-v1` with its own manifests; `legacy-v1` and `rights-v1` untouched.** `deployments/actions-local.json` (deployed, local) and `deployments/actions-sepolia.json` (candidate, undeployed). Public Sepolia still defaults to `legacy-v1`. | Never attach the new ABI to an address running different code; keep historical releases loadable. | Decided |
+| DA2 | **Action configs are hand-written codecs; `Schedule`/`Quote` are ABI-derived.** In the unified model the per-action `config` and execution `input` are opaque `bytes`, so their struct shapes live in `src/config.ts` and are checked on chain by the signed rehearsal. | No ABI function exposes the config structs, so the old "config taken from `quote` inputs" drift guarantee is gone; the on-chain rehearsal replaces it. | Decided |
+| DA3 | **Royalty = min(ERC2981, price − fee); sale `maxRoyaltyBps` checked against the capped royalty.** | Matches ExchangeAction `_quote` (lead confirmation 2026-11-19); a large royalty cannot block trading, and the issuer cap is applied to what is actually paid. | Decided |
+| DA4 | **Incoming bid NFT approval targets ExchangeAction, never the order (prefer single-token approve).** The order never receives a seller's approval. | ExchangeAction moves only the executing actor's selected token inside a genuine execution (finding A1); the rehearsal proves an un-approved sell reverts `ERC721InsufficientApproval`. | Decided |
+| DA5 | **Indexer and web migration deferred to a later slice.** This slice delivers only the verified protocol package; the repo does not build workspace-wide until they are migrated. | A single verified foundation beats a half-wired, unverified vertical; see STATUS lost-coverage list. | Needs follow-up |
+
+
 ## Product and copy
 
 | # | Decision | Why | Status |

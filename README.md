@@ -2,7 +2,9 @@
 
 Web app and indexer for ordinary NFT trading and transferable execution rights on the [Market protocol](https://github.com/ripe0x/market). Plan: [PLAN.md](PLAN.md) · decisions: [DECISIONS.md](DECISIONS.md) · status: [STATUS.md](STATUS.md) · [deployment runbook](DEPLOYMENT.md) · original design: `handoff/`.
 
-The verified public Sepolia release is **legacy order-only**. The rights release is a local candidate pinned to protocol `484223e`; its Sepolia addresses are calculated, with no deployment block or rights-enabled public contracts. Public Sepolia selects `legacy-v1` by default. The two releases have separate manifests and indexer identities.
+The verified public Sepolia release is **legacy order-only**. A new **unified Order/Action** candidate (`actions-v1`) pins protocol `9f50355`; its Sepolia addresses are calculated (deterministic CREATE2), with no deployment block or public contracts. Public Sepolia still selects `legacy-v1` by default. Each release has separate manifests and indexer identities.
+
+> **Unified actions candidate (branch `claude/unified-actions`).** The protocol package, indexer and web app all target the unified Order/Action model at protocol `9f50355`. It is an undeployed local candidate; see [STATUS.md](STATUS.md) for what was run and what remains unverified. Rights-specific sections below are historical. Signed local rehearsal: `pnpm --filter @market/protocol rehearse:actions`.
 
 ```
 apps/web            Next.js app (Netlify)
@@ -29,7 +31,7 @@ pnpm dev:chain
 ```
 
 ```bash
-cd apps/indexer && PONDER_CHAIN_ID=31337 PONDER_RELEASE_ID=rights-v1 npx ponder dev --port 42169
+cd apps/indexer && PONDER_CHAIN_ID=31337 PONDER_RELEASE_ID=actions-v1 npx ponder dev --port 42169
 ```
 
 ```bash

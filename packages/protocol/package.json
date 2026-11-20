@@ -11,7 +11,7 @@
     "gen": "tsx scripts/gen-abis.ts && tsx scripts/codehashes.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "rehearse:rights": "tsx scripts/rehearse-rights.ts"
+    "rehearse:actions": "tsx scripts/rehearse-actions.ts"
   },
   "dependencies": {
     "viem": "2.57.14"

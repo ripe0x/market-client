@@ -20,6 +20,24 @@
 .stats {
   display: flex;
   gap: 44px;
+  flex-wrap: wrap;
+}
+/* Narrow screens: tighten the gaps; keep a wide stat row inside the viewport by scrolling it
+ * horizontally rather than overflowing the page. */
+@media (max-width: 767px) {
+  .block {
+    gap: 20px 24px;
+    max-width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+  .stats {
+    gap: 18px 24px;
+    flex-wrap: nowrap;
+  }
+  .group {
+    flex: none;
+  }
 }
 .statLabel {
   font: 500 12px/1 var(--font-mono), ui-monospace, monospace;
