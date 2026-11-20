@@ -307,8 +307,19 @@ ponder.on("poll:block", async ({ event, context }) => {
     if (balRes.status === "success") { set.balance = balRes.result as bigint; set.balanceBlock = number; }
     if (escRes) { set.escrowed = escRes.status === "success" && isAddressEqual(escRes.result as Address, r.address); set.escrowBlock = number; }
     if (quoteRes) {
-      const name = quoteRes.status === "failure" ? decodeRevert(quoteRes.error).name : null;
-      set.quoteError = name && !DERIVED.has(name) ? name : null;
+      if (quoteRes.status === "failure") {
+        const name = decodeRevert(quoteRes.error).name;
+        set.quoteError = name && !DERIVED.has(name) ? name : null;
+      } else if (r.kind === "sale") {
+        // ExchangeAction.quote() is advisory and does NOT apply the sale's maxRoyaltyBps. Its
+        // returned royalty is already min(ERC2981, price - fee); a buy reverts RoyaltyAboveLimit
+        // when that exceeds mulDiv(price, maxRoyaltyBps, 10000), so flag the sale as blocked here.
+        const q = quoteRes.result as { price: bigint; royalty: bigint };
+        const limit = (q.price * BigInt(r.maxRoyaltyBps)) / 10_000n;
+        set.quoteError = q.royalty > limit ? "RoyaltyAboveLimit" : null;
+      } else {
+        set.quoteError = null;
+      }
       set.quoteBlock = number;
     }
     await context.db.update(order, { address: r.address }).set(set);

@@ -185,3 +185,15 @@ test("a foreign Order clone created outside Market is never indexed", async () =
   const live = await get<Page<ApiOrder>>("/api/listings?limit=200");
   expect(live.items.some((o) => o.address.toLowerCase() === clone.toLowerCase())).toBe(false);
 });
+
+test("a maxRoyaltyBps=0 sale on a royalty collection is marked blocked by the poll", async () => {
+  await pollCycle(); // run the quote poll on the live listing
+  const o = await get<ApiOrder>(`/api/orders/${s.accounts.royaltyBlocked}`);
+  expect(o.kind).toBe("sale");
+  expect(o.maxRoyaltyBps).toBe(0);
+  // quote() is advisory and would show it live; the poll applies maxRoyaltyBps against the capped royalty.
+  expect(o.quoteError).toBe("RoyaltyAboveLimit");
+  expect(o.status).toBe("blocked");
+  const live = await get<Page<ApiOrder>>("/api/listings?limit=200");
+  expect(live.items.some((x) => x.address.toLowerCase() === s.accounts.royaltyBlocked.toLowerCase())).toBe(false);
+});

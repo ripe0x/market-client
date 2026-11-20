@@ -119,7 +119,16 @@ async function seedActionAccounts(c: Chain, col: NonNullable<Chain["collections"
     artworkTokenId = artTokenId;
   }
 
-  return { covered, coveredListing, coveredNftId: nftId, actionTokenId, premium, executionPrice: price, reserved, artwork: c.artwork, artworkTokenId };
+  // A sale with maxRoyaltyBps=0 on a royalty collection (driftlines, 5%). It activates fine, but
+  // every buy reverts RoyaltyAboveLimit, so the indexer poll must mark it blocked (quote() does
+  // not apply maxRoyaltyBps).
+  const blockedNftId = await mint(c, col.driftlines, SELLERS[1], 1n);
+  const blockedSpec = tx.saleSpec(d, { issuer: SELLERS[1], nft: col.driftlines, tokenId: blockedNftId, schedule: fixedSchedule(E("1.3")), proceedsTo: SELLERS[1], maxRoyaltyBps: 0 });
+  const royaltyBlocked = createdOrder((await send(c, SELLERS[1], tx.create(d, blockedSpec, tx.randomSalt()))).receipt);
+  await send(c, SELLERS[1], tx.depositNft(col.driftlines, SELLERS[1], royaltyBlocked, blockedNftId));
+  await send(c, SELLERS[1], tx.activate(royaltyBlocked));
+
+  return { covered, coveredListing, coveredNftId: nftId, actionTokenId, premium, executionPrice: price, reserved, artwork: c.artwork, artworkTokenId, royaltyBlocked };
 }
 
 /** Mint an Artwork token to `to` by impersonating its fixed artist (local setup only). */

@@ -28,6 +28,10 @@ Nothing was deployed, broadcast, or pushed. No secrets written. The lead will pr
 
 ---
 
+## Indexer fix: apply sale maxRoyaltyBps in the poll, 2026-11-19
+
+`ExchangeAction.quote()` is advisory and does not apply a sale's `maxRoyaltyBps`, so a listing whose capped royalty exceeds its limit was served as `live` with `quoteError` null (a buy would revert). The head poll now, for a live sale, compares the quote's royalty (already `min(ERC2981, price - fee)`) against `mulDiv(price, maxRoyaltyBps, 10000)` and sets `quoteError = RoyaltyAboveLimit` when it exceeds, so the sale shows `blocked` and is excluded from live listings. Seeded a `maxRoyaltyBps=0` driftlines (5% royalty) listing additively; indexer test now **13/13** (asserts the blocked status + exclusion). `apps/indexer` only.
+
 ## Seed/indexer gap-closing + build reproducibility fix (actions-v1), 2026-11-19
 
 Additive follow-up to the indexer slice (protocol stays pinned `152bf41`; the lead froze the protocol at `9f50355`, production byte-identical, and re-pins after both client agents finish).
