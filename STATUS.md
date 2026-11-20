@@ -28,6 +28,21 @@ Nothing was deployed, broadcast, or pushed. No secrets written. The lead will pr
 
 ---
 
+## Indexer migration + config drift guard (actions-v1), 2026-11-19
+
+Branch `claude/unified-actions`, protocol pin `152bf41`. Continues the foundation slice; `apps/web` is being migrated concurrently by another agent (not touched here).
+
+**Indexer (`apps/indexer`) migrated to the unified Order/Action model, verified:**
+- `ponder.config.ts` indexes Market.Created (factory source for Order), Order lifecycle (Activated/Executed/Canceled/Surrendered/Expired/Released/Credited/CreditWithdrawn/SurplusWithdrawn), Actions.Transfer (Holder-order ownership), ExchangeAction.Exchanged, CoveredNFTPurchase.Purchased, ReservedAction.ActionPerformed. `ponder.schema.ts` redesigned (order/fill/collection/token/meta/credit/account_event). `src/index.ts` decodes known action configs on Created and records settlements and credits. `src/api/index.ts` serves the `api.ts` shapes.
+- **Effective liveness** uses the EXCLUSIVE deadline at query time: `now >= deadline` is `expired` even with no `finalizeExpiry` event indexed (verified by a test that queries a still-Live order past its deadline).
+- All index-sourced addresses are documented as **unauthenticated hints**; clients must verify via `readOrder` (Market.isOrder + actionCodehash vs deployed code).
+- **Legacy handling:** the new build serves only `actions-v1`; `src/deployment.ts` refuses `legacy-v1`/`rights-v1` (their old ABIs were removed from `@market/protocol`), directing them to their own historical indexer at the old commit. New ABIs are never pointed at legacy addresses.
+- Verification: `apps/indexer` typecheck clean; `vitest run test/indexer.test.ts` = **8/8** against a real Anvil + Ponder + REST round trip (status/actions-v1, live vs sold vs awaiting-NFT, SQL priceNow parity with the contract, effective-deadline expiry, collection offers, positions, fill split). Live API responses captured in `apps/indexer/evidence/indexer-api.json` via `apps/indexer/scripts/capture-api.ts`.
+
+**Config struct drift guard (task 2), verified:** `scripts/gen-abis.ts` now derives the ExchangeAction/CoveredNFTPurchase/ReservedAction config, terms and schedule ABI params from the compiler AST (`forge build --ast`) into `src/configStructs.gen.ts`, which `src/config.ts` consumes. A protocol struct change now changes the generated params and breaks `config.ts`'s typecheck instead of drifting silently (the old "configs are opaque bytes so they can't be ABI-derived" gap). `config.ts`'s public exports are unchanged (the concurrent web migration is unaffected). `build:contracts` now passes `--ast`. Protocol package typecheck clean; 32/32 unit tests (incl. the schedule-vs-config drift assertion).
+
+**Lost / not done this slice:** the old indexer's rogue-clone-rejection and reorg tests were not reproduced (the new suite covers provenance via the factory source and the deployment-identity `setup` check, and statuses/parity/positions, but not a fabricated-event rejection or a reorg). Artwork reservation-target events are not indexed (Artwork is an example target, not in the manifest); the ReservedAction.ActionPerformed core event is. `apps/web` is mid-migration by another agent; workspace-wide build still depends on it.
+
 
 ## Focused improvements candidate, 2026-11-18
 
