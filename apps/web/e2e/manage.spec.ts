@@ -11,7 +11,7 @@ import {
   ownerOf,
   isApprovedForAll,
   setApprovalForAll,
-  NFTBID,
+  EXCHANGE,
   mineBlocks,
   waitFor,
   connect,
@@ -85,10 +85,10 @@ test("add funds to an underfunded offer", async ({ page }) => {
   expect(await balance(order)).toBeGreaterThan(eth("1.5"));
 });
 
-test("remove an approve-all approval to the offer contract", async ({ page }) => {
+test("remove an approve-all approval to the exchange", async ({ page }) => {
   const c = await collections();
-  await setApprovalForAll(ACC.me, c.driftlines, NFTBID, true);
-  expect(await isApprovedForAll(c.driftlines, ACC.me, NFTBID)).toBe(true);
+  await setApprovalForAll(ACC.me, c.driftlines, EXCHANGE, true);
+  expect(await isApprovedForAll(c.driftlines, ACC.me, EXCHANGE)).toBe(true);
 
   await injectWallet(page);
   await page.goto("/positions");
@@ -98,6 +98,6 @@ test("remove an approve-all approval to the offer contract", async ({ page }) =>
   await item.getByRole("button", { name: "Remove" }).click();
   await page.getByRole("dialog").getByRole("button", { name: /Remove approval/ }).click();
 
-  await waitFor(() => isApprovedForAll(c.driftlines, ACC.me, NFTBID), (v) => v === false);
-  expect(await isApprovedForAll(c.driftlines, ACC.me, NFTBID)).toBe(false);
+  await waitFor(() => isApprovedForAll(c.driftlines, ACC.me, EXCHANGE), (v) => v === false);
+  expect(await isApprovedForAll(c.driftlines, ACC.me, EXCHANGE)).toBe(false);
 });

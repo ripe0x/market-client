@@ -1,16 +1,13 @@
-/** `NFTTrade.Schedule`. All values are uint256 on chain; times are unix seconds. */
-export type Schedule = {
-  startPrice: bigint;
-  endPrice: bigint;
-  startTime: bigint;
-  endTime: bigint;
-  /** 0 = never expires. */
-  expiry: bigint;
-};
+// Price schedule math, mirroring ExchangeAction's `priceAt`. In the unified model a schedule
+// carries only price movement (startPrice/endPrice over startTime..endTime); expiry lives on the
+// order's own `deadline`, not here.
+import type { Schedule } from "./config";
+export type { Schedule };
 
 /**
- * Exactly `NFTTrade.priceAt`: the same branch order and integer division, so a falling price
- * rounds up and a rising one rounds down. Parity is tested against the contract.
+ * Exactly `ExchangeAction.priceAt`: `Math.mulDiv` floors the moved amount, so a falling price
+ * rounds up and a rising one rounds down. It never moves further from `startPrice` than the line.
+ * Parity is tested against the contract.
  */
 export function priceAt(s: Schedule, t: bigint): bigint {
   if (t >= s.endTime) return s.endPrice;
@@ -22,10 +19,8 @@ export function priceAt(s: Schedule, t: bigint): bigint {
     : s.startPrice + ((s.endPrice - s.startPrice) * elapsed) / duration;
 }
 
-/** Fills revert before `startTime` (`NotStarted`). */
+/** Executions revert before `startTime` (`NotStarted`). */
 export const notStarted = (s: Schedule, t: bigint) => t < s.startTime;
-/** Fills revert from `expiry` on (`Expired`). */
-export const expired = (s: Schedule, t: bigint) => s.expiry !== 0n && t >= s.expiry;
 export const isFixed = (s: Schedule) => s.startPrice === s.endPrice;
 export const isRising = (s: Schedule) => s.endPrice > s.startPrice;
 export const isFalling = (s: Schedule) => s.endPrice < s.startPrice;
@@ -52,10 +47,9 @@ export function progress(s: Schedule, t: bigint): number {
 }
 
 /** A fixed price with no start time, so clock skew never makes it `NotStarted`. */
-export const fixedSchedule = (price: bigint, expiry: bigint = 0n): Schedule => ({
+export const fixedSchedule = (price: bigint): Schedule => ({
   startPrice: price,
   endPrice: price,
   startTime: 0n,
   endTime: 0n,
-  expiry,
 });

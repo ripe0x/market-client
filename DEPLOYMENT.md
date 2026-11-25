@@ -4,6 +4,8 @@
 
 **Rights candidate:** `rights-v1` pins protocol `484223e`. `deployments/rights-sepolia.json` contains deterministic CREATE2 address and hash predictions but has `status: "candidate"` and `startBlock: null`. No right-enabled contract is deployed on public Sepolia. `deployments/rights-local.json` is the actual isolated Anvil deployment record. Never copy its `deployed` status to the public manifest without public receipts and readbacks.
 
+**Unified Actions candidate:** `actions-v1` pins protocol `9f50355` (unified Order/Action model). `deployments/actions-sepolia.json` is `status: "candidate"`, `startBlock: null`, with deterministic CREATE2 addresses that are **not** deployed on public Sepolia. `deployments/actions-local.json` is the local Anvil record. Regenerate both reproducibly from the pinned submodule with `pnpm build:contracts && pnpm --filter @market/protocol gen`. The local signed rehearsal is `pnpm --filter @market/protocol rehearse:actions` (evidence `packages/protocol/evidence/actions-local.json`). The indexer and web app target this release; see STATUS.md for verification and limits.
+
 ## Reproduce the local lifecycle
 
 From this repository root, with Node 22, pnpm 9 and Foundry installed:
@@ -26,14 +28,14 @@ forge script script/RightsLifecycle.s.sol:RightsLifecycle --sig 'run()'
 
 That Foundry script is a simulation, separate from the signed Anvil receipt file above.
 
-To inspect the app against a persistent local chain, run `pnpm dev:chain`, the indexer with `apps/indexer/.env.example` and `PONDER_RELEASE_ID=rights-v1`, then the web app with `apps/web/.env.example`. The local indexer uses `market_rights_local`; `/api/status` should identify `31337:rights-v1:<market>`. The browser's rights pages require the real local deployment and use onchain readbacks for actions. A right-token premium sale transfers the entitlement only; backing stays in the Right account. A listing cancellation returns the token without ending the right.
+To inspect the app against a persistent local chain, run `pnpm dev:chain`, the indexer with `apps/indexer/.env.example` (`PONDER_RELEASE_ID=actions-v1`), then the web app with `apps/web/.env.example`. The local indexer uses `market_actions_local`; `/api/status` should identify `31337:actions-v1:<market>`. This branch's indexer refuses `legacy-v1` and `rights-v1`; run those from their own historical commits.
 
 For browser verification, use separate terminals for the chain, indexer and web app. Start with a fresh local chain and schema after any long block-mining test. With the chain from `pnpm dev:chain` still running, use the fixed indexer command below in its own terminal:
 
 ```bash
 cd apps/indexer
-PONDER_CHAIN_ID=31337 PONDER_RELEASE_ID=rights-v1 PONDER_RPC_URL=http://127.0.0.1:8645 \
-  DATABASE_SCHEMA=market_rights_local pnpm exec ponder start --port 42169
+PONDER_CHAIN_ID=31337 PONDER_RELEASE_ID=actions-v1 PONDER_RPC_URL=http://127.0.0.1:8645 \
+  DATABASE_SCHEMA=market_actions_local pnpm exec ponder start --port 42169
 ```
 
 Build the web app after setting `apps/web/.env.local` from its example, then run `pnpm --filter @market/web build` and `pnpm --filter @market/web start` in another terminal. With those services on their example ports, run `CANDIDATE_RUN=1 pnpm --filter @market/web e2e`. The candidate run recorded in [STATUS.md](STATUS.md) used explicit `E2E_RPC_URL`, `E2E_INDEXER_URL` and `E2E_BASE_URL` overrides and a fixed production build; `pnpm test` is the separate unit/integration runner.

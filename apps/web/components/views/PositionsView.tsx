@@ -3,19 +3,22 @@
 import { useEffect, useState } from "react";
 import { useAccount, usePublicClient } from "wagmi";
 import type { Address } from "viem";
-import { eth, sameAddress, erc721Abi, type ApiPositions, type ApiFill, type ApiOrder, type Page, type ErrorContext } from "@market/protocol";
+import { eth, sameAddress, erc721Abi, type ApiPositions, type ApiFill, type ApiOrder, type Page, type ErrorContext, type ActionKind } from "@market/protocol";
 import { Positions, ApprovalsRow, Loading, ErrorNote } from "@/components/screens";
 import { useHead, useIndexer } from "@/data/hooks";
 import { paths } from "@/data/indexer";
 import { LagBanner } from "@/components/app/Trading";
-import { RightsSection } from "./RightsView";
+import { CoveredSection } from "./RightsView";
 import { FlowModal } from "./FlowModal";
 import { cancelSteps, depositStep, topUpSteps, revokeAllSteps } from "@/data/flows";
 import type { Step as FlowStep } from "@/data/txflow";
-import { priceNow } from "@/lib/orderDisplay";
-import { DEPLOYMENT } from "@/lib/deployment";
+import { priceNow, remaining } from "@/lib/orderDisplay";
+import { DEPLOYMENT, IS_ACTIONS } from "@/lib/deployment";
 
 type FlowAction = { title: string; label: string; steps: FlowStep[]; ctx: ErrorContext };
+
+/** The ErrorContext kind for an order; an unrecognized action falls back to the generic "action". */
+const ctxKind = (k: ActionKind): ErrorContext["kind"] => (k === "unknown" ? "action" : k);
 
 export function PositionsView() {
   const now = useHead();
@@ -29,15 +32,16 @@ export function PositionsView() {
   const [action, setAction] = useState<FlowAction | null>(null);
   const [topUp, setTopUp] = useState<ApiOrder | null>(null);
 
-  // Approve-all approvals to NFTBid, by collection (PLAN.md §8.1).
+  // Approve-all approvals a seller may have granted ExchangeAction for incoming bids (A1 — the
+  // approval target is ExchangeAction, never an order), listed by collection so they can be revoked.
   const [approvals, setApprovals] = useState<{ nft: Address; name: string | null }[]>([]);
   useEffect(() => {
-    if (!pub || !address || collections.length === 0) return;
+    if (!pub || !address || !IS_ACTIONS || collections.length === 0) return;
     let live = true;
     Promise.all(
       collections.map(async (c) => {
         const ok = await pub
-          .readContract({ address: c.address, abi: erc721Abi, functionName: "isApprovedForAll", args: [address, DEPLOYMENT.nftBid] })
+          .readContract({ address: c.address, abi: erc721Abi, functionName: "isApprovedForAll", args: [address, DEPLOYMENT.exchange!] })
           .catch(() => false);
         return ok ? { nft: c.address, name: c.name } : null;
       }),
@@ -50,21 +54,20 @@ export function PositionsView() {
   if (!address) return <ErrorNote>Connect your wallet to see your positions.</ErrorNote>;
   if (!positions) return <Loading />;
 
-  const ctxOf = (o: ApiOrder): ErrorContext => ({ kind: o.kind, owner: true, token: `#${o.tokenId}` });
+  const ctxOf = (o: ApiOrder): ErrorContext => ({ kind: ctxKind(o.kind), owner: true, token: `#${o.tokenId}` });
 
-  const closeOnly = (o: ApiOrder) => !!o.rightAccount && o.rightTransferable === false;
   const onCancel = (o: ApiOrder) =>
     setAction({
-      title: closeOnly(o) ? "Close stale listing" : o.kind === "sale" ? "Cancel and withdraw" : "Cancel offer",
-      label: closeOnly(o) ? "Close stale listing" : o.kind === "sale" ? "Cancel and withdraw" : `Cancel and refund ${eth(BigInt(o.balance))}`,
-      steps: cancelSteps(o, `#${o.tokenId}`),
+      title: o.kind === "sale" ? "Cancel and withdraw" : "Cancel offer",
+      label: o.kind === "sale" ? "Cancel and withdraw" : `Cancel and refund ${eth(BigInt(o.balance))}`,
+      steps: cancelSteps(o),
       ctx: ctxOf(o),
     });
   const onWithdraw = (o: ApiOrder) =>
     setAction({
-      title: "Withdraw",
-      label: o.kind === "sale" ? `Withdraw #${o.tokenId}` : `Withdraw ${eth(BigInt(o.balance))} ETH`,
-      steps: cancelSteps(o, `#${o.tokenId}`),
+      title: "Recover",
+      label: o.kind === "sale" ? `Recover #${o.tokenId}` : `Withdraw ${eth(BigInt(o.balance))} ETH`,
+      steps: cancelSteps(o),
       ctx: ctxOf(o),
     });
   const onMoveNft = (o: ApiOrder) =>
@@ -72,8 +75,7 @@ export function PositionsView() {
 
   const suggested = topUp
     ? (() => {
-        const rem = (topUp.maxFills === "0" ? 1n : BigInt(topUp.maxFills)) - BigInt(topUp.fills);
-        const need = priceNow(topUp, now) * rem - BigInt(topUp.balance);
+        const need = priceNow(topUp, now) * BigInt(remaining(topUp)) - BigInt(topUp.balance);
         return need > 0n ? need : 0n;
       })()
     : undefined;
@@ -83,10 +85,7 @@ export function PositionsView() {
       <LagBanner />
       <Positions
         viewer={address}
-        listings={positions.listings.map(o => {
-          const r = positions.rights?.find(r => sameAddress(r.account, o.rightAccount));
-          return r ? { ...o, rightTransferable: r.state === 1 && (r.deadline === "0" || now < BigInt(r.deadline)) } : o;
-        })}
+        listings={positions.listings}
         offers={positions.offers}
         activity={activity?.items ?? []}
         now={now}
@@ -95,7 +94,9 @@ export function PositionsView() {
         onMoveNft={onMoveNft}
         onAddFunds={(o) => setTopUp(o)}
       />
-      {DEPLOYMENT.rights ? <div className="gutter"><RightsSection items={positions.rights ?? []} /></div> : null}
+      {IS_ACTIONS && positions.rights && positions.rights.length ? (
+        <div className="gutter"><CoveredSection items={positions.rights} viewer={address} /></div>
+      ) : null}
       <ApprovalsRow
         items={approvals.map((a) => ({
           label: `Approval for all ${a.name ?? "this collection"}`,

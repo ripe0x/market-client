@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { injectWallet } from "./wallet";
-import { ACC, collections, mint, balance, ownerOf, isApprovedForAll, NFTBID, waitFor, getToken, connect, eth, offerOnChain } from "./helpers";
+import { ACC, collections, mint, balance, ownerOf, isApprovedForAll, EXCHANGE, waitFor, getToken, connect, eth, offerOnChain } from "./helpers";
 
 const lower = (a: string) => a.toLowerCase();
 // Each run makes its own funded collection offer (account 2 bids), so runs never share state.
@@ -39,7 +39,7 @@ test("accept an offer: approve + sell; seller receives the proceeds, token deliv
   expect(delta <= proceeds).toBeTruthy();
   expect(delta > proceeds - eth("0.02")).toBeTruthy();
 
-  // The per-token approval clears itself on the sale.
-  expect(await isApprovedForAll(c.driftlines, ACC.me, NFTBID)).toBe(false);
+  // The per-token approval clears itself on the sale; no approval-for-all leaked to ExchangeAction.
+  expect(await isApprovedForAll(c.driftlines, ACC.me, EXCHANGE)).toBe(false);
   void getToken;
 });

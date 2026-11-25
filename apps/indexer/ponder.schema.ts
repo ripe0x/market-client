@@ -1,57 +1,72 @@
 import { index, onchainTable, primaryKey } from "ponder";
 
-/** One row per order Market created for NFTSale or NFTBid. Time-based states are never stored. */
+/** One row per order Market created. Time-based and deadline-effective states are computed at
+ * query time, never stored. All addresses here are unauthenticated hints: a client must verify an
+ * order via readOrder (Market.isOrder + actionCodehash vs deployed code) before trusting it. */
 export const order = onchainTable(
   "order",
   (t) => ({
     address: t.hex().primaryKey(),
-    kind: t.text().notNull(), // "sale" | "bid"
-    owner: t.hex().notNull(),
+    kind: t.text().notNull(), // sale | bid | covered | reserved | unknown
+    issuer: t.hex().notNull(),
+    action: t.hex().notNull(),
+    actionCodehash: t.hex().notNull(),
+    admission: t.integer().notNull(), // 0 Public, 1 Holder
     salt: t.hex().notNull(),
     config: t.hex().notNull(),
-    /** Decodes, has a nonzero payee and an ERC721 collection. Invalid rows show only to their owner. */
+    deadline: t.bigint().notNull(), // exclusive; 0 never expires
+    residual: t.hex().notNull(),
+    state: t.integer().notNull(), // 0 Pending 1 Live 2 Completed 3 Canceled 4 Expired 5 Surrendered
+    /** Decodes to a known action with usable terms. Invalid rows show only to their issuer. */
     valid: t.boolean().notNull(),
+    // Decoded ExchangeAction / CoveredNFTPurchase terms (zero/empty for other actions).
     nft: t.hex().notNull(),
     tokenId: t.bigint().notNull(),
     anyToken: t.boolean().notNull(),
+    isActionsCollection: t.boolean().notNull(),
     startPrice: t.bigint().notNull(),
     endPrice: t.bigint().notNull(),
     startTime: t.bigint().notNull(),
     endTime: t.bigint().notNull(),
-    expiry: t.bigint().notNull(),
-    maxFills: t.bigint().notNull(),
+    maxExecutions: t.bigint().notNull(),
     maxRoyaltyBps: t.integer().notNull(),
-    /** Sale proceedsTo, bid recipient. */
+    maxFeeBps: t.integer().notNull(),
+    /** Fixed covered-purchase price (covered only). */
+    price: t.bigint().notNull(),
+    /** Sale/covered proceedsTo, bid recipient. */
     payee: t.hex().notNull(),
     createdAt: t.bigint().notNull(),
     createdBlock: t.bigint().notNull(),
     createdTx: t.hex().notNull(),
-    /** FeeConfig.feeBpsOf(order) at creation; never changes afterwards. */
+    /** Fee rate snapshotted at activation (ExchangeAction activationTerms); -1 before activation. */
     feeBps: t.integer().notNull(),
-    closed: t.boolean().notNull(),
-    closedAt: t.bigint(),
-    closedTx: t.hex(),
-    closedByFill: t.boolean().notNull(),
-    fills: t.integer().notNull(),
+    activationTerms: t.hex().notNull(),
+    /** Current Actions-token holder for a Holder order; null when burned/non-holder. */
+    holder: t.hex(),
+    executions: t.integer().notNull(),
     balance: t.bigint().notNull(),
     balanceBlock: t.bigint().notNull(),
+    totalCredits: t.bigint().notNull(),
     escrowed: t.boolean().notNull(),
     escrowBlock: t.bigint().notNull(),
     quoteError: t.text(),
     quoteBlock: t.bigint(),
+    closedAt: t.bigint(),
+    closedTx: t.hex(),
   }),
   (t) => ({
     nftKind: index().on(t.nft, t.kind),
-    owner: index().on(t.owner),
+    issuer: index().on(t.issuer),
+    holder: index().on(t.holder),
     token: index().on(t.nft, t.tokenId),
   }),
 );
 
-/** One row per genuine fill (Sold/Bought) of a Market-created order. */
+/** One row per settlement (Exchanged / Purchased) of a Market-created order. */
 export const fill = onchainTable(
   "fill",
   (t) => ({
-    id: t.text().primaryKey(), // `${tx}-${order}`: one fill per order per transaction (Reentrant)
+    id: t.text().primaryKey(), // `${tx}-${order}-${logIndex}`
     order: t.hex().notNull(),
     kind: t.text().notNull(),
     nft: t.hex().notNull(),
@@ -63,14 +78,12 @@ export const fill = onchainTable(
     buyer: t.hex().notNull(),
     seller: t.hex().notNull(),
     recipient: t.hex().notNull(),
-    /** ETH sent with the fill (from Order.Filled); value − price was refunded. */
-    value: t.bigint(),
     selfTrade: t.boolean().notNull(),
     timestamp: t.bigint().notNull(),
     block: t.bigint().notNull(),
     tx: t.hex().notNull(),
   }),
-  (t) => ({ nftTime: index().on(t.nft, t.timestamp), buyer: index().on(t.buyer), seller: index().on(t.seller) }),
+  (t) => ({ nftTime: index().on(t.nft, t.timestamp), buyer: index().on(t.buyer), seller: index().on(t.seller), order: index().on(t.order) }),
 );
 
 export const collection = onchainTable("collection", (t) => ({
@@ -92,52 +105,29 @@ export const token = onchainTable(
 /** Chain head as last seen by the poll; the API's default `at`. */
 export const meta = onchainTable("meta", (t) => ({ id: t.integer().primaryKey(), block: t.bigint().notNull(), timestamp: t.bigint().notNull() }));
 
-/** Factory-authenticated accounts survive token burning for payment and recovery history. */
-export const right = onchainTable("right", (t) => ({
-  address: t.hex().primaryKey(),
-  tokenId: t.bigint().notNull(),
-  issuer: t.hex().notNull(),
-  holder: t.hex(),
-  residual: t.hex().notNull(),
-  handler: t.hex().notNull(),
-  config: t.hex().notNull(),
-  configHash: t.hex().notNull(),
-  activationTerms: t.hex().notNull(),
-  deadline: t.bigint().notNull(),
-  state: t.integer().notNull(),
-  supported: t.boolean().notNull(),
-  configError: t.text(),
-  nft: t.hex(),
-  assetId: t.bigint(),
-  price: t.bigint(),
-  proceedsTo: t.hex(),
-  royaltyTo: t.hex(),
-  royalty: t.bigint(),
-  backingOwner: t.hex(),
-  balance: t.bigint().notNull(),
-  createdAt: t.bigint().notNull(),
-  createdBlock: t.bigint().notNull(),
-  createdTx: t.hex().notNull(),
-  updatedBlock: t.bigint().notNull(),
-}), (t) => ({ issuer: index().on(t.issuer), holder: index().on(t.holder), token: index().on(t.tokenId) }));
+/** Reserved ETH owed to a beneficiary by an order account; survives token burning. */
+export const credit = onchainTable(
+  "credit",
+  (t) => ({ account: t.hex().notNull(), beneficiary: t.hex().notNull(), amount: t.bigint().notNull() }),
+  (t) => ({ pk: primaryKey({ columns: [t.account, t.beneficiary] }), beneficiary: index().on(t.beneficiary) }),
+);
 
-export const rightCredit = onchainTable("right_credit", (t) => ({
-  account: t.hex().notNull(),
-  beneficiary: t.hex().notNull(),
-  amount: t.bigint().notNull(),
-}), (t) => ({ pk: primaryKey({ columns: [t.account, t.beneficiary] }), beneficiary: index().on(t.beneficiary) }));
-
-export const rightEvent = onchainTable("right_event", (t) => ({
-  id: t.text().primaryKey(),
-  account: t.hex().notNull(),
-  kind: t.text().notNull(),
-  timestamp: t.bigint().notNull(),
-  block: t.bigint().notNull(),
-  tx: t.hex().notNull(),
-  from: t.hex(),
-  to: t.hex(),
-  beneficiary: t.hex(),
-  recipient: t.hex(),
-  amount: t.bigint(),
-  order: t.hex(),
-}), (t) => ({ account: index().on(t.account) }));
+/** Lifecycle, settlement and payment history of an order account. */
+export const accountEvent = onchainTable(
+  "account_event",
+  (t) => ({
+    id: t.text().primaryKey(),
+    account: t.hex().notNull(),
+    kind: t.text().notNull(),
+    timestamp: t.bigint().notNull(),
+    block: t.bigint().notNull(),
+    tx: t.hex().notNull(),
+    actor: t.hex(),
+    from: t.hex(),
+    to: t.hex(),
+    beneficiary: t.hex(),
+    recipient: t.hex(),
+    amount: t.bigint(),
+  }),
+  (t) => ({ account: index().on(t.account) }),
+);

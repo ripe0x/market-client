@@ -1,9 +1,8 @@
 import { expect, test } from "vitest";
-import type { ApiOrder } from "@market/protocol";
 import { pricingShort, pricingText } from "./orderDisplay";
 
 const order = (startPrice: string, endPrice: string, startTime: number, endTime: number) =>
-  ({ schedule: { startPrice, endPrice, startTime, endTime, expiry: 0 } }) as ApiOrder;
+  ({ schedule: { startPrice, endPrice, startTime, endTime } });
 const E = (n: string) => (BigInt(Math.round(Number(n) * 100)) * 10n ** 16n).toString();
 
 test("direction is stated for falling and rising prices, past tense once ended", () => {

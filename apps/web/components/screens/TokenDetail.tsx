@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Address as Addr } from "viem";
-import { eth, pct, until, when, isFixed, buyMaxPrice, type ApiOrder } from "@market/protocol";
+import { eth, pct, until, when, isFixed, type ApiOrder } from "@market/protocol";
 import {
   TokenMedia,
   PriceFigure,
@@ -10,7 +10,7 @@ import {
   Button,
   Address,
 } from "@/components/ui";
-import { scheduleOf, priceNow, moveWords } from "@/lib/orderDisplay";
+import { scheduleOf, priceNow, moveWords, buyMaxPrice, isClosed, deadlineOf } from "@/lib/orderDisplay";
 import { EXPLORER } from "@/lib/deployment";
 import styles from "./TokenDetail.module.css";
 
@@ -43,12 +43,12 @@ export function TokenDetail(props: TokenDetailProps) {
   const royaltyText = royaltyBps ? `${pct(royaltyBps)}, paid from the sale` : "No royalty";
   const offerHref = `/c/${nft}/${tokenId}/offer`;
 
-  const listed = order && !order.closed && order.status !== "sold" && order.status !== "cancelled";
+  const listed = order && !isClosed(order) && order.status !== "sold" && order.status !== "cancelled";
   const s = order ? scheduleOf(order) : null;
   const changing = s ? !isFixed(s) : false;
 
   const metaRows: KeyValueRow[] = [];
-  if (order) metaRows.push({ key: "Seller", value: <Address value={order.owner} explorer={EXPLORER} /> });
+  if (order) metaRows.push({ key: "Seller", value: <Address value={order.issuer} explorer={EXPLORER} /> });
   metaRows.push({ key: "Artist royalty", value: royaltyText });
   if (order)
     metaRows.push({
@@ -60,7 +60,7 @@ export function TokenDetail(props: TokenDetailProps) {
       ),
     });
   if (order)
-    metaRows.push({ key: "Expires", value: until(BigInt(order.schedule.expiry), now) });
+    metaRows.push({ key: "Expires", value: until(deadlineOf(order), now) });
   metaRows.push({
     key: "Contract and token",
     value: "",

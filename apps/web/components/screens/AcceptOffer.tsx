@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { eth, pct, until, shortAddress, type ApiOrder } from "@market/protocol";
 import { TokenMedia, StepList, type Step, Button } from "@/components/ui";
+import { remaining as remainingOf, deadlineOf } from "@/lib/orderDisplay";
 import styles from "./AcceptOffer.module.css";
 
 export type EligibleNft = { tokenId: string; mediaSrc?: string | null; note?: string };
@@ -51,8 +52,8 @@ export function AcceptOffer({
   };
 
   const target = offer.anyToken ? `any ${offer.collectionName ?? "collection"}` : `#${offer.tokenId}`;
-  const remaining = (offer.maxFills === "0" ? 1 : Number(offer.maxFills)) - offer.fills;
-  const exp = BigInt(offer.schedule.expiry);
+  const remaining = remainingOf(offer);
+  const exp = deadlineOf(offer);
   const expText = exp === 0n ? "never expires" : `expires in ${until(exp, now)}`;
   const tok = selected ? `#${selected}` : "the NFT";
 
@@ -68,7 +69,7 @@ export function AcceptOffer({
         <span className={styles.num}>{eth(breakdown.offer)}</span> <span className={styles.unit}>ETH</span>
       </div>
       <div className={styles.from}>
-        From <span className={styles.mono}>{shortAddress(offer.owner)}</span> · {remaining} remaining · {expText}
+        From <span className={styles.mono}>{shortAddress(offer.issuer)}</span> · {remaining} remaining · {expText}
       </div>
 
       <div className={styles.chooseLabel}>Choose an NFT</div>

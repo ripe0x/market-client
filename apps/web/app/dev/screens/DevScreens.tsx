@@ -129,7 +129,7 @@ export function DevScreens() {
         <OffersTable
           offers={fx.OFFERS}
           now={now}
-          eligibleOf={(o) => o.anyToken}
+          eligibleOf={(o) => !!o.anyToken}
           sellHrefOf={(o) => `/c/${o.nft}/offers/${o.address}/sell`}
           moreLabel="Show all"
           moreHref="#"

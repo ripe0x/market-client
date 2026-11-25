@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { eth, when, shortAddress, sameAddress, type ApiOrder, type ApiFill, type OrderStatus } from "@market/protocol";
 import { Row, HeaderRow, HeaderCell, TokenCell, PriceFigure, ProgressBar, Button, Sheet, Address } from "@/components/ui";
-import { priceNow, pricingText, pricingProgress, isChanging } from "@/lib/orderDisplay";
+import { priceNow, pricingText, pricingProgress, isChanging, isClosed, deadlineOf, remaining, shortId } from "@/lib/orderDisplay";
 import { EXPLORER } from "@/lib/deployment";
 import { cx } from "@/lib/cx";
 import common from "./common.module.css";
@@ -37,25 +37,23 @@ const LISTING_STATUS: Record<OrderStatus, string> = {
   underfunded: "Underfunded",
   sold: "Sold",
   sold_out: "Sold out",
+  exercised: "Exercised",
+  surrendered: "Surrendered",
   cancelled: "Cancelled",
   invalid: "Invalid",
 };
 
 function listingActions(o: ApiOrder, cb: PositionsCallbacks): Action[] {
   const tok = `#${o.tokenId}`;
-  if (o.rightAccount && o.rightTransferable === false) return [
-    ...(!o.closed ? [{ label: "Close stale listing", onClick: () => cb.onCancel?.(o) }] : []),
-    { label: "Inspect right", href: `/rights/${o.rightAccount}` },
-  ];
-  if (o.closed && !o.withdrawable) return [];
+  if (isClosed(o) && !o.withdrawable) return [];
   if (o.withdrawable) return [{ label: `Withdraw ${tok}`, primary: true, onClick: () => cb.onWithdraw?.(o) }];
-  if (o.status === "sold") return [];
+  if (o.status === "sold" || o.status === "exercised") return [];
   if (o.status === "awaiting_nft")
     return [
       { label: `Move ${tok} into it`, primary: true, onClick: () => cb.onMoveNft?.(o) },
       { label: "Cancel", onClick: () => cb.onCancel?.(o) },
     ];
-  // live, expired, blocked, not_started — close then withdraw (DECISIONS D15).
+  // live, expired, blocked, not_started — cancel then recover (DECISIONS D15).
   return [{ label: "Cancel and withdraw", onClick: () => cb.onCancel?.(o) }];
 }
 
@@ -107,7 +105,7 @@ export function Positions(props: PositionsProps) {
           const attn = acts.some((a) => a.primary);
           return (
             <Row key={o.address} columns={LISTING_COLS} height={76} className={styles.positionRow}>
-              <TokenCell src={mediaOf?.(o)} title={o.collectionName ?? "Collection"} meta={`#${o.tokenId}`} size={48} />
+              <TokenCell src={mediaOf?.(o)} title={o.collectionName ?? "Collection"} meta={`#${shortId(o.tokenId ?? "")}`} size={48} />
               <PriceFigure wei={priceNow(o, now)} size={20} />
               <div className={common.pricing}>
                 <span>{pricingText(o, now) ?? ""}</span>
@@ -133,8 +131,9 @@ export function Positions(props: PositionsProps) {
         </HeaderRow>
         {offers.map((o) => {
           const acts = offerActions(o, props);
-          const max = o.maxFills === "0" ? 1 : Number(o.maxFills);
-          const exp = BigInt(o.schedule.expiry);
+          const bought = o.executions ?? 0;
+          const max = bought + remaining(o);
+          const exp = deadlineOf(o);
           const expired = o.status === "expired";
           const expText = expired ? `Expired ${when(exp, now)}` : exp === 0n ? "Never" : when(exp, now);
           return (
@@ -144,7 +143,7 @@ export function Positions(props: PositionsProps) {
               </span>
               <span className={common.ink}>{o.anyToken ? `Any ${o.collectionName ?? "collection"}` : `#${o.tokenId}`}</span>
               <span className={common.right}>
-                {o.fills} of {max}
+                {bought} of {max}
               </span>
               <span className={cx(common.right, common.ink)}>{eth(BigInt(o.balance))} ETH</span>
               <span className={cx(common.right, expired && common.ink)}>{expText}</span>
@@ -220,7 +219,7 @@ function Actions({ actions }: { actions: Action[] }) {
   );
 }
 
-// Live approvals to NFTBid, with Remove (PLAN.md §8.1 / §6.4).
+// Live approvals to ExchangeAction, with Remove (PLAN.md §8.1 / §6.4).
 export function ApprovalsRow({ items }: { items: { label: string; onRemove?: () => void }[] }) {
   if (!items.length) return null;
   return (

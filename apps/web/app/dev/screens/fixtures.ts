@@ -18,7 +18,8 @@ export const COLL = {
   tessellate: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
 } as const;
 
-const fixed = (p: number): ApiSchedule => ({ startPrice: wei(p), endPrice: wei(p), startTime: 0, endTime: 0, expiry: 0 });
+// In the unified model the schedule carries price movement only; expiry is the order's `deadline`.
+const fixed = (p: number): ApiSchedule => ({ startPrice: wei(p), endPrice: wei(p), startTime: 0, endTime: 0 });
 
 // Falling/rising schedule placed so the current price sits at `frac` of the way through.
 const moving = (start: number, end: number, frac: number, remaining: number): ApiSchedule => {
@@ -28,13 +29,13 @@ const moving = (start: number, end: number, frac: number, remaining: number): Ap
     endPrice: wei(end),
     startTime: nowN - Math.round(dur * frac),
     endTime: nowN + remaining,
-    expiry: 0,
   };
 };
 
 let seq = 0;
 const addr = (): `0x${string}` => `0x${(++seq).toString(16).padStart(40, "0")}` as `0x${string}`;
 const tx = (): `0x${string}` => `0x${seq.toString(16).padStart(64, "f")}` as `0x${string}`;
+const codehash = (): `0x${string}` => `0x${"ac".repeat(32)}` as `0x${string}`;
 
 type SaleOverrides = Partial<ApiOrder> & {
   nft: string;
@@ -44,28 +45,35 @@ type SaleOverrides = Partial<ApiOrder> & {
 };
 
 function sale(o: SaleOverrides): ApiOrder {
+  const issuer = (o.issuer ?? OWNER) as `0x${string}`;
   return {
     address: addr(),
     kind: "sale",
-    owner: OWNER as `0x${string}`,
+    issuer,
+    action: addr(),
+    actionCodehash: codehash(),
+    admission: "public",
+    holder: null,
+    residual: issuer,
     config: "0x",
+    deadline: "0",
+    state: 1,
     anyToken: false,
-    maxFills: "1",
-    fills: 0,
+    maxExecutions: "1",
+    executions: 0,
     maxRoyaltyBps: 500,
-    payee: OWNER as `0x${string}`,
+    payee: issuer,
     createdAt: nowN - 240,
     createdTx: tx(),
     feeBps: 100,
-    closed: false,
-    closedByFill: false,
     balance: "0",
+    totalCredits: "0",
     escrowed: true,
     quoteError: null,
     status: "live",
     priceNow: o.schedule.startPrice,
     withdrawable: false,
-    lastSalePrice: null,
+    closedAt: null,
     ...o,
   } as ApiOrder;
 }
@@ -77,52 +85,58 @@ type BidOverrides = Partial<ApiOrder> & {
 };
 
 function bid(o: BidOverrides): ApiOrder {
-  const owner = (o.owner ?? "0x5100000000000000000000000000000000020a9b") as `0x${string}`;
+  const issuer = (o.issuer ?? "0x5100000000000000000000000000000000020a9b") as `0x${string}`;
   return {
     address: addr(),
     kind: "bid",
+    action: addr(),
+    actionCodehash: codehash(),
+    admission: "public",
+    holder: null,
+    residual: issuer,
     config: "0x",
+    deadline: "0",
+    state: 1,
     tokenId: "0",
     anyToken: true,
-    maxFills: "5",
-    fills: 0,
+    maxExecutions: "5",
+    executions: 0,
     maxRoyaltyBps: 10000,
     createdAt: nowN - 3600,
     createdTx: tx(),
     feeBps: 100,
-    closed: false,
-    closedByFill: false,
     balance: wei(2.75),
+    totalCredits: "0",
     escrowed: false,
     quoteError: null,
     status: "live",
     withdrawable: false,
-    lastSalePrice: null,
+    closedAt: null,
     ...o,
-    owner,
-    payee: owner,
+    issuer,
+    payee: issuer,
     priceNow: o.schedule.startPrice,
   } as ApiOrder;
 }
 
 // --- Listings (screen 01 / 03) ---
 export const LISTINGS: ApiOrder[] = [
-  sale({ nft: COLL.driftlines, collectionName: "Driftlines", tokenId: "212", schedule: moving(2.4, 0.8, 0.61, 86400), lastSalePrice: wei(1.25) }),
-  sale({ nft: COLL.meridian, collectionName: "Pixel Folk", tokenId: "4410", schedule: fixed(0.19), lastSalePrice: wei(0.17) }),
-  sale({ nft: COLL.tessellate, collectionName: "Tessellate", tokenId: "887", schedule: moving(0.9, 0.6, 0.3, 50000), lastSalePrice: wei(0.39) }),
-  sale({ nft: COLL.driftlines, collectionName: "Orbitals", tokenId: "12", schedule: fixed(4.6), lastSalePrice: wei(4.4) }),
-  sale({ nft: COLL.meridian, collectionName: "Kiln", tokenId: "4", schedule: fixed(1.95), lastSalePrice: wei(1.8) }),
-  sale({ nft: COLL.tessellate, collectionName: "Low Tide", tokenId: "63", schedule: fixed(0.52), lastSalePrice: null }),
-  sale({ nft: COLL.driftlines, collectionName: "Weave", tokenId: "31", schedule: moving(2.2, 1.4, 0.45, 70000), lastSalePrice: wei(1.7) }),
-  sale({ nft: COLL.driftlines, collectionName: "Driftlines", tokenId: "87", schedule: moving(1.2, 2.0, 0.35, 90000), lastSalePrice: wei(1.4) }),
+  sale({ nft: COLL.driftlines, collectionName: "Driftlines", tokenId: "212", schedule: moving(2.4, 0.8, 0.61, 86400) }),
+  sale({ nft: COLL.meridian, collectionName: "Pixel Folk", tokenId: "4410", schedule: fixed(0.19) }),
+  sale({ nft: COLL.tessellate, collectionName: "Tessellate", tokenId: "887", schedule: moving(0.9, 0.6, 0.3, 50000) }),
+  sale({ nft: COLL.driftlines, collectionName: "Orbitals", tokenId: "12", schedule: fixed(4.6) }),
+  sale({ nft: COLL.meridian, collectionName: "Kiln", tokenId: "4", schedule: fixed(1.95) }),
+  sale({ nft: COLL.tessellate, collectionName: "Low Tide", tokenId: "63", schedule: fixed(0.52) }),
+  sale({ nft: COLL.driftlines, collectionName: "Weave", tokenId: "31", schedule: moving(2.2, 1.4, 0.45, 70000) }),
+  sale({ nft: COLL.driftlines, collectionName: "Driftlines", tokenId: "87", schedule: moving(1.2, 2.0, 0.35, 90000) }),
 ];
 
 // Collection listings (screen 03): #id only, varied sellers.
 export const COLLECTION_LISTINGS: ApiOrder[] = [
-  sale({ nft: COLL.driftlines, collectionName: "Driftlines", tokenId: "274", schedule: moving(0.72, 0.5, 0.83, 40000), owner: "0x9c000000000000000000000000000000000011a2" as `0x${string}`, lastSalePrice: wei(0.58) }),
-  sale({ nft: COLL.driftlines, collectionName: "Driftlines", tokenId: "156", schedule: fixed(0.85), owner: "0x4100000000000000000000000000000000b07e00" as `0x${string}`, lastSalePrice: wei(0.9) }),
-  sale({ nft: COLL.driftlines, collectionName: "Driftlines", tokenId: "212", schedule: moving(2.4, 0.8, 0.61, 86400), owner: "0x3a00000000000000000000000000000000091c40" as `0x${string}`, lastSalePrice: wei(1.25) }),
-  sale({ nft: COLL.driftlines, collectionName: "Driftlines", tokenId: "331", schedule: fixed(1.68), owner: "0x0500000000000000000000000000000000aa6b00" as `0x${string}`, lastSalePrice: wei(1.8) }),
+  sale({ nft: COLL.driftlines, collectionName: "Driftlines", tokenId: "274", schedule: moving(0.72, 0.5, 0.83, 40000), issuer: "0x9c000000000000000000000000000000000011a2" as `0x${string}` }),
+  sale({ nft: COLL.driftlines, collectionName: "Driftlines", tokenId: "156", schedule: fixed(0.85), issuer: "0x4100000000000000000000000000000000b07e00" as `0x${string}` }),
+  sale({ nft: COLL.driftlines, collectionName: "Driftlines", tokenId: "212", schedule: moving(2.4, 0.8, 0.61, 86400), issuer: "0x3a00000000000000000000000000000000091c40" as `0x${string}` }),
+  sale({ nft: COLL.driftlines, collectionName: "Driftlines", tokenId: "331", schedule: fixed(1.68), issuer: "0x0500000000000000000000000000000000aa6b00" as `0x${string}` }),
 ];
 
 // --- Collections (screen 02) ---
@@ -162,11 +176,11 @@ export const DRIFTLINES = COLLECTIONS[2]!;
 
 // --- Offers (screen 04) ---
 export const OFFERS: ApiOrder[] = [
-  bid({ nft: COLL.driftlines, collectionName: "Driftlines", anyToken: false, tokenId: "212", schedule: fixed(1.05), maxFills: "1", owner: "0x9100000000000000000000000000000000004e0c" as `0x${string}`, balance: wei(1.05) }),
-  bid({ nft: COLL.driftlines, collectionName: "Driftlines", schedule: fixed(0.55), maxFills: "7", owner: "0x5100000000000000000000000000000000020a9b" as `0x${string}`, balance: wei(3.85) }),
-  bid({ nft: COLL.driftlines, collectionName: "Driftlines", schedule: moving(0.53, 0.6, 0.2, 200000), maxFills: "1", owner: "0xc400000000000000000000000000000000088120" as `0x${string}`, balance: wei(0.6) }),
-  bid({ nft: COLL.driftlines, collectionName: "Driftlines", schedule: fixed(0.5), maxFills: "20", owner: "0x8f000000000000000000000000000000000e2710" as `0x${string}`, balance: wei(10) }),
-  bid({ nft: COLL.driftlines, collectionName: "Driftlines", schedule: fixed(0.4), maxFills: "12", owner: "0xee00000000000000000000000000000000013b80" as `0x${string}`, balance: wei(4.8), status: "underfunded" }),
+  bid({ nft: COLL.driftlines, collectionName: "Driftlines", anyToken: false, tokenId: "212", schedule: fixed(1.05), maxExecutions: "1", issuer: "0x9100000000000000000000000000000000004e0c" as `0x${string}`, balance: wei(1.05) }),
+  bid({ nft: COLL.driftlines, collectionName: "Driftlines", schedule: fixed(0.55), maxExecutions: "7", issuer: "0x5100000000000000000000000000000000020a9b" as `0x${string}`, balance: wei(3.85) }),
+  bid({ nft: COLL.driftlines, collectionName: "Driftlines", schedule: moving(0.53, 0.6, 0.2, 200000), maxExecutions: "1", issuer: "0xc400000000000000000000000000000000088120" as `0x${string}`, balance: wei(0.6) }),
+  bid({ nft: COLL.driftlines, collectionName: "Driftlines", schedule: fixed(0.5), maxExecutions: "20", issuer: "0x8f000000000000000000000000000000000e2710" as `0x${string}`, balance: wei(10) }),
+  bid({ nft: COLL.driftlines, collectionName: "Driftlines", schedule: fixed(0.4), maxExecutions: "12", issuer: "0xee00000000000000000000000000000000013b80" as `0x${string}`, balance: wei(4.8), status: "underfunded" }),
 ];
 
 // --- Accept offer (screen 04) ---
@@ -228,15 +242,15 @@ export const OFFER_LADDER = [
 
 // --- Positions (screen 08) ---
 export const POS_LISTINGS: ApiOrder[] = [
-  sale({ nft: COLL.meridian, collectionName: "Meridian", tokenId: "15", schedule: moving(2.0, 1.0, 0.95, 20000), owner: VIEWER as `0x${string}`, status: "live" }),
-  sale({ nft: COLL.driftlines, collectionName: "Orbitals", tokenId: "8", schedule: fixed(4.8), owner: VIEWER as `0x${string}`, status: "awaiting_nft", escrowed: false }),
-  sale({ nft: COLL.driftlines, collectionName: "Weave", tokenId: "3", schedule: fixed(2.1), owner: VIEWER as `0x${string}`, status: "cancelled", closed: true, withdrawable: true, escrowed: true }),
+  sale({ nft: COLL.meridian, collectionName: "Meridian", tokenId: "15", schedule: moving(2.0, 1.0, 0.95, 20000), issuer: VIEWER as `0x${string}`, status: "live" }),
+  sale({ nft: COLL.driftlines, collectionName: "Orbitals", tokenId: "8", schedule: fixed(4.8), issuer: VIEWER as `0x${string}`, status: "awaiting_nft", escrowed: false }),
+  sale({ nft: COLL.driftlines, collectionName: "Weave", tokenId: "3", schedule: fixed(2.1), issuer: VIEWER as `0x${string}`, status: "cancelled", closedAt: nowN - 600, withdrawable: true, escrowed: true }),
 ];
 
 export const POS_OFFERS: ApiOrder[] = [
-  bid({ nft: COLL.driftlines, collectionName: "Driftlines", schedule: fixed(0.58), maxFills: "5", fills: 2, owner: VIEWER as `0x${string}`, balance: wei(1.74) }),
-  bid({ nft: COLL.driftlines, collectionName: "Driftlines", anyToken: false, tokenId: "212", schedule: fixed(1.1), maxFills: "1", fills: 0, owner: VIEWER as `0x${string}`, balance: wei(1.1) }),
-  bid({ nft: COLL.meridian, collectionName: "Low Tide", schedule: { ...fixed(0.3), expiry: nowN - 20 * 86400 }, maxFills: "6", fills: 4, owner: VIEWER as `0x${string}`, balance: wei(0.6), status: "expired" }),
+  bid({ nft: COLL.driftlines, collectionName: "Driftlines", schedule: fixed(0.58), maxExecutions: "5", executions: 2, issuer: VIEWER as `0x${string}`, balance: wei(1.74) }),
+  bid({ nft: COLL.driftlines, collectionName: "Driftlines", anyToken: false, tokenId: "212", schedule: fixed(1.1), maxExecutions: "1", executions: 0, issuer: VIEWER as `0x${string}`, balance: wei(1.1) }),
+  bid({ nft: COLL.meridian, collectionName: "Low Tide", schedule: fixed(0.3), deadline: String(nowN - 20 * 86400), maxExecutions: "6", executions: 4, issuer: VIEWER as `0x${string}`, balance: wei(0.6), status: "expired" }),
 ];
 
 export const POS_ACTIVITY: ApiFill[] = [

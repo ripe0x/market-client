@@ -1,75 +1,77 @@
-// Response types of the indexer's REST API (apps/indexer/src/api). bigint values travel as
-// decimal strings; addresses are checksummed hex; times are unix seconds as numbers.
+// Response types of the indexer's REST API (apps/indexer/src/api) for the unified Order/Action
+// model. bigint values travel as decimal strings; addresses are checksummed hex; times are unix
+// seconds as numbers. The client always re-checks eligibility against the chain before a write;
+// these shapes are for listing and display only.
 import type { Address, Hex } from "viem";
 import type { Schedule } from "./schedule";
+import type { ActionKind } from "./orders";
 
 export type Wei = string;
 
 /**
- * Status at the `at` time of the request (PLAN.md §4.5).
- * Sales: live, awaiting_nft, not_started, expired, blocked, sold, cancelled, invalid.
- * Bids: live, not_started, expired, underfunded, blocked, sold_out, cancelled, invalid.
+ * Status at the `at` time of the request. Sales: live, awaiting_nft, not_started, expired,
+ * blocked, sold, cancelled, invalid. Bids: live, not_started, expired, underfunded, blocked,
+ * sold_out, cancelled, invalid. Covered: live, awaiting_nft, expired, exercised, surrendered,
+ * cancelled, invalid.
  */
 export type OrderStatus =
-  | "live"
-  | "awaiting_nft"
-  | "not_started"
-  | "expired"
-  | "blocked"
-  | "underfunded"
-  | "sold"
-  | "sold_out"
-  | "cancelled"
-  | "invalid";
+  | "live" | "awaiting_nft" | "not_started" | "expired" | "blocked" | "underfunded"
+  | "sold" | "sold_out" | "exercised" | "surrendered" | "cancelled" | "invalid";
 
-export type ApiSchedule = { startPrice: Wei; endPrice: Wei; startTime: number; endTime: number; expiry: number };
+export type ApiSchedule = { startPrice: Wei; endPrice: Wei; startTime: number; endTime: number };
 
 export type ApiOrder = {
   address: Address;
-  kind: "sale" | "bid";
-  owner: Address;
-  /** Raw `Created.config`; needed for every fill. */
+  kind: ActionKind;
+  issuer: Address;
+  action: Address;
+  actionCodehash: Hex;
+  admission: "public" | "holder";
+  /** Current Actions-token holder for a Holder order; null otherwise. */
+  holder: Address | null;
+  residual: Address;
+  /** Raw `Created.spec.config`; needed for every execution and recovery. */
   config: Hex;
-  nft: Address;
-  collectionName: string | null;
-  tokenId: string;
-  /** Present only for canonical rights authenticated by this deployment's indexer. */
-  rightAccount?: Address;
-  rightTransferable?: boolean;
-  underlyingNft?: Address | null;
-  underlyingTokenId?: string | null;
-  anyToken: boolean;
-  schedule: ApiSchedule;
+  /** Order deadline (exclusive, unix seconds); 0 means perpetual. */
+  deadline: string;
+  state: number;
+  status: OrderStatus;
+  // ExchangeAction / covered fields (absent for unrecognized actions).
+  nft?: Address;
+  collectionName?: string | null;
+  tokenId?: string;
+  anyToken?: boolean;
+  isActionsCollection?: boolean;
+  schedule?: ApiSchedule;
   /** Bids: 0 and 1 both mean one. */
-  maxFills: string;
-  fills: number;
-  maxRoyaltyBps: number;
-  /** Sale `proceedsTo` or bid `recipient`. */
-  payee: Address;
+  maxExecutions?: string;
+  executions?: number;
+  maxRoyaltyBps?: number;
+  maxFeeBps?: number;
+  /** Fee rate the order snapshotted at activation, basis points. */
+  feeBps?: number;
+  /** Sale/covered `proceedsTo` or bid `recipient`. */
+  payee?: Address;
+  /** Fixed covered-purchase price. */
+  price?: Wei;
   createdAt: number;
   createdTx: Hex;
-  feeBps: number;
-  closed: boolean;
-  closedByFill: boolean;
+  /** Free (uncredited) balance. */
   balance: Wei;
+  totalCredits: Wei;
   escrowed: boolean;
   quoteError: string | null;
-  status: OrderStatus;
   /** Price at the request's `at`. */
-  priceNow: Wei;
-  /** Closed and holding recoverable ETH or an NFT whose transfer is still permitted. */
+  priceNow?: Wei;
+  /** Terminal and holding recoverable ETH or an NFT whose transfer is still permitted. */
   withdrawable: boolean;
-  /** Unix seconds the order closed (sold, filled out or cancelled); null while open. */
   closedAt: number | null;
-  /** Total price of this order's fills: a sale's price, or what an offer spent. */
-  filled: Wei;
-  lastSalePrice: Wei | null;
 };
 
 export type ApiFill = {
   id: string;
   order: Address;
-  kind: "sale" | "bid";
+  kind: ActionKind;
   nft: Address;
   collectionName: string | null;
   tokenId: string;
@@ -98,29 +100,21 @@ export type ApiCollection = {
 };
 
 export type Page<T> = { items: T[]; next: string | null; total: number };
-
 export type ApiStatus = { deploymentId?: string; releaseId?: string; chainId: number; block: string; timestamp: number; ready: boolean };
-
-export type ApiPositions = { listings: ApiOrder[]; offers: ApiOrder[]; rights?: ApiRight[] };
-
+export type ApiPositions = { listings: ApiOrder[]; offers: ApiOrder[]; rights: ApiOrder[] };
 export type ApiSearch = {
   collections: Pick<ApiCollection, "address" | "name" | "symbol">[];
   tokens: { nft: Address; collectionName: string | null; tokenId: string }[];
 };
+
+/** Credit balances and history for a backing account, served even after its token burns. */
+export type ApiCredit = { beneficiary: Address; amount: Wei };
+export type ApiAccountEvent = { id: string; kind: string; timestamp: number; block: string; tx: Hex; actor?: Address; recipient?: Address; beneficiary?: Address; amount?: string };
+export type ApiAccount = ApiOrder & { credits: ApiCredit[]; history: ApiAccountEvent[] };
 
 export const toSchedule = (s: ApiSchedule): Schedule => ({
   startPrice: BigInt(s.startPrice),
   endPrice: BigInt(s.endPrice),
   startTime: BigInt(s.startTime),
   endTime: BigInt(s.endTime),
-  expiry: BigInt(s.expiry),
 });
-
-export type ApiRightEvent = { id:string;kind:string;timestamp:number;block:string;tx:Hex;from?:Address;to?:Address;beneficiary?:Address;recipient?:Address;amount?:string;order?:Address };
-export type ApiRight = {
-  deploymentId:string;account:Address;tokenId:string;issuer:Address;holder:Address|null;residual:Address;handler:Address;
-  config:Hex|null;configError:string|null;supported:boolean;state:number;stateName?:import("./rights").RightState;stateCode?:number;isLive:boolean;effectiveExpired:boolean;deadline:string;
-  nft:Address|null;assetId:string|null;price:string|null;proceedsTo:Address|null;royaltyTo:Address|null;royalty:string;royaltyAmount?:string;
-  activationTerms:Hex;backingOwner?:Address|null;backed:boolean;balance:string;totalCredits:string;credits:{beneficiary:Address;amount:string}[];
-  listing?:ApiOrder|null;escrowOrder?:Address;listingSeller?:Address;offers?:ApiOrder[];history?:ApiRightEvent[];
-};
