@@ -23,11 +23,12 @@ import { listingSteps, depositStep } from "@/data/flows";
 import { buildSaleConfig, parseEth } from "@/lib/listingConfig";
 import { CHAIN_ID } from "@/lib/env";
 import { DEPLOYMENT } from "@/lib/deployment";
+import { Button } from "@/components/ui";
 
 type Owned = { nft: Address; tokenId: string; collectionName: string | null; image: string | null };
 
 const DEFAULT: CreateListingValue = { startPrice: "", changeOverTime: false, endPrice: "", duration: "7D", expires: "Never", maxRoyaltyBps: 0 };
-const KEY = (nft: string, id: string) => `market:listing:${CHAIN_ID}:${nft.toLowerCase()}:${id}`;
+const KEY = (wallet: string, nft: string, id: string) => `market:listing:${DEPLOYMENT.deploymentId}:${wallet.toLowerCase()}:${nft.toLowerCase()}:${id}`;
 
 const KIND_COPY: Partial<Record<CollectionKind, string>> = {
   erc1155: "Market trades ERC721 tokens. This collection is ERC1155.",
@@ -77,26 +78,26 @@ export function SellView({ nft, id }: { nft?: string; id?: string }) {
 
   // On token change: restore any saved draft (resume) or start fresh, anchoring the schedule to now.
   useEffect(() => {
-    if (!selNft || !selId) return;
+    if (!address || !selNft || !selId) return;
     royaltyTouched.current = false;
-    let restored: { value?: CreateListingValue; salt?: Hex } = {};
+    let restored: { value?: CreateListingValue; salt?: Hex; anchor?: string } = {};
     try {
-      const raw = localStorage.getItem(KEY(selNft, selId));
+      const raw = localStorage.getItem(KEY(address!, selNft, selId));
       if (raw) restored = JSON.parse(raw);
     } catch {}
     setValue(restored.value ?? DEFAULT);
     setSalt(restored.salt ?? randomSalt());
-    setAnchor(head);
+    setAnchor(restored.anchor ? BigInt(restored.anchor) : head);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selNft, selId]);
+  }, [address, selNft, selId]);
 
   // Persist the draft so a reload resumes step 2.
   useEffect(() => {
-    if (!selNft || !selId || !salt) return;
+    if (!address || !selNft || !selId || !salt) return;
     try {
-      localStorage.setItem(KEY(selNft, selId), JSON.stringify({ value, salt }));
+      localStorage.setItem(KEY(address!, selNft, selId), JSON.stringify({ value, salt, anchor: anchor?.toString() }));
     } catch {}
-  }, [selNft, selId, value, salt]);
+  }, [address, selNft, selId, value, salt, anchor]);
 
   // Collection royalty: default the limit (DECISIONS D3) and label the menu.
   const askedBps = useRoyaltyBps(selNft, selId);
@@ -227,17 +228,17 @@ export function SellView({ nft, id }: { nft?: string; id?: string }) {
                 }
               }}
             />
-            <FlowButton
+            {selNft && DEPLOYMENT.rights && sameAddress(selNft, DEPLOYMENT.rights) ? <><p>This token is an execution right. Open its terms to list a premium with time left for exercise.</p><Button href={selId && BigInt(selId) < 2n ** 160n ? `/rights/0x${BigInt(selId).toString(16).padStart(40, "0")}` : "/rights"}>Open right terms</Button></> : <FlowButton
               flow={flow}
               label={awaiting ? `Move ${tok} into it` : `List ${tok}`}
               disabled={!canList}
               onDone={() => {
                 try {
-                  if (selNft && selId) localStorage.removeItem(KEY(selNft, selId));
+                  if (selNft && selId) localStorage.removeItem(KEY(address!, selNft, selId));
                 } catch {}
                 if (selNft && selId) router.push(`/c/${selNft}/${selId}`);
               }}
-            />
+            />}
           </>
         }
       />

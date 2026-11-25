@@ -155,3 +155,22 @@ contract RogueCloneFactory {
         );
     }
 }
+
+
+/// A genuine owner-controlled account for local atomic batch and rollback tests.
+contract AtomicWallet {
+    address public immutable owner;
+    struct Call { address target; uint256 value; bytes data; }
+    constructor(address owner_) { owner = owner_; }
+    receive() external payable {}
+    function executeBatch(Call[] calldata calls) external payable {
+        require(msg.sender == owner, "only wallet owner");
+        for (uint256 i; i < calls.length; ++i) {
+            (bool ok, bytes memory result) = calls[i].target.call{value:calls[i].value}(calls[i].data);
+            if (!ok) { assembly ("memory-safe") { revert(add(result,32),mload(result)) } }
+        }
+    }
+}
+
+/// Can accept ETH but has no outbound call function.
+contract PassiveReceiver { receive() external payable {} }

@@ -3,6 +3,7 @@
 // re-read from the chain before signing.
 import type { ApiCollection, ApiFill, ApiOrder, ApiPositions, ApiSearch, ApiStatus, Page } from "@market/protocol";
 import type { Address } from "viem";
+import { DEPLOYMENT } from "@/lib/deployment";
 import { INDEXER_URL } from "@/lib/env";
 
 export class IndexerError extends Error {
@@ -15,6 +16,9 @@ export async function indexer<T>(path: string, init?: RequestInit): Promise<T> {
   const base = typeof window === "undefined" ? (process.env.INDEXER_URL ?? INDEXER_URL) : INDEXER_URL;
   const r = await fetch(`${base}${path}`, { ...init, cache: "no-store" });
   if (!r.ok) throw new IndexerError(r.status, `${path}: ${r.status}`);
+  const identity = r.headers.get("x-market-deployment");
+  if ((DEPLOYMENT.releaseId === "rights-v1" && identity !== DEPLOYMENT.deploymentId) || (identity && identity !== DEPLOYMENT.deploymentId))
+    throw new IndexerError(409, "This indexer serves a different Market release.");
   return r.json() as Promise<T>;
 }
 

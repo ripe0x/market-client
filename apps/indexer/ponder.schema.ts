@@ -91,3 +91,53 @@ export const token = onchainTable(
 
 /** Chain head as last seen by the poll; the API's default `at`. */
 export const meta = onchainTable("meta", (t) => ({ id: t.integer().primaryKey(), block: t.bigint().notNull(), timestamp: t.bigint().notNull() }));
+
+/** Factory-authenticated accounts survive token burning for payment and recovery history. */
+export const right = onchainTable("right", (t) => ({
+  address: t.hex().primaryKey(),
+  tokenId: t.bigint().notNull(),
+  issuer: t.hex().notNull(),
+  holder: t.hex(),
+  residual: t.hex().notNull(),
+  handler: t.hex().notNull(),
+  config: t.hex().notNull(),
+  configHash: t.hex().notNull(),
+  activationTerms: t.hex().notNull(),
+  deadline: t.bigint().notNull(),
+  state: t.integer().notNull(),
+  supported: t.boolean().notNull(),
+  configError: t.text(),
+  nft: t.hex(),
+  assetId: t.bigint(),
+  price: t.bigint(),
+  proceedsTo: t.hex(),
+  royaltyTo: t.hex(),
+  royalty: t.bigint(),
+  backingOwner: t.hex(),
+  balance: t.bigint().notNull(),
+  createdAt: t.bigint().notNull(),
+  createdBlock: t.bigint().notNull(),
+  createdTx: t.hex().notNull(),
+  updatedBlock: t.bigint().notNull(),
+}), (t) => ({ issuer: index().on(t.issuer), holder: index().on(t.holder), token: index().on(t.tokenId) }));
+
+export const rightCredit = onchainTable("right_credit", (t) => ({
+  account: t.hex().notNull(),
+  beneficiary: t.hex().notNull(),
+  amount: t.bigint().notNull(),
+}), (t) => ({ pk: primaryKey({ columns: [t.account, t.beneficiary] }), beneficiary: index().on(t.beneficiary) }));
+
+export const rightEvent = onchainTable("right_event", (t) => ({
+  id: t.text().primaryKey(),
+  account: t.hex().notNull(),
+  kind: t.text().notNull(),
+  timestamp: t.bigint().notNull(),
+  block: t.bigint().notNull(),
+  tx: t.hex().notNull(),
+  from: t.hex(),
+  to: t.hex(),
+  beneficiary: t.hex(),
+  recipient: t.hex(),
+  amount: t.bigint(),
+  order: t.hex(),
+}), (t) => ({ account: index().on(t.account) }));

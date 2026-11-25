@@ -33,8 +33,15 @@ test("cancel and withdraw a listing returns the NFT", async ({ page }) => {
   await connect(page);
 
   const row = page.locator('[role="row"]').filter({ hasText: `#${id}` }).first();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await row.getByRole("button", { name: /Cancel and withdraw/ }).click();
-  await page.getByRole("dialog").getByRole("button", { name: /Cancel and withdraw/ }).click();
+  const confirm = page.getByRole("dialog").getByRole("button", { name: /Cancel and withdraw/ });
+  await confirm.scrollIntoViewIfNeeded();
+  expect(await confirm.evaluate(el => {
+    const r = el.getBoundingClientRect();
+    return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+  })).toBe(true);
+  await confirm.click();
 
   await waitFor(() => ownerOf(c.driftlines, id), (o) => lower(o) === lower(ACC.me));
   expect(lower(await ownerOf(c.driftlines, id))).toBe(lower(ACC.me));

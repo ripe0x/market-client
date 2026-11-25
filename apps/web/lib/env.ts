@@ -9,3 +9,7 @@ export const RPC_URL_OVERRIDE = process.env.NEXT_PUBLIC_RPC_URL || undefined;
 export const INDEXER_URL = process.env.NEXT_PUBLIC_INDEXER_URL || "";
 
 export const WALLETCONNECT_PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "";
+
+/** Release selection is independent of chain; production defaults to verified legacy. */
+export const RELEASE_ID = process.env.NEXT_PUBLIC_MARKET_RELEASE || undefined;
+export const LEGACY_MARKET_URL = process.env.NEXT_PUBLIC_LEGACY_MARKET_URL || "https://ripe-market-v1.netlify.app/positions";

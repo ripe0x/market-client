@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import { useState } from "react";
 import { eth, when, shortAddress, sameAddress, type ApiOrder, type ApiFill, type OrderStatus } from "@market/protocol";
@@ -9,7 +10,7 @@ import { cx } from "@/lib/cx";
 import common from "./common.module.css";
 import styles from "./Positions.module.css";
 
-type Action = { label: string; primary?: boolean; onClick?: () => void };
+type Action = { href?: string; label: string; primary?: boolean; onClick?: () => void };
 
 export type PositionsCallbacks = {
   onCancel?: (o: ApiOrder) => void;
@@ -42,6 +43,11 @@ const LISTING_STATUS: Record<OrderStatus, string> = {
 
 function listingActions(o: ApiOrder, cb: PositionsCallbacks): Action[] {
   const tok = `#${o.tokenId}`;
+  if (o.rightAccount && o.rightTransferable === false) return [
+    ...(!o.closed ? [{ label: "Close stale listing", onClick: () => cb.onCancel?.(o) }] : []),
+    { label: "Inspect right", href: `/rights/${o.rightAccount}` },
+  ];
+  if (o.closed && !o.withdrawable) return [];
   if (o.withdrawable) return [{ label: `Withdraw ${tok}`, primary: true, onClick: () => cb.onWithdraw?.(o) }];
   if (o.status === "sold") return [];
   if (o.status === "awaiting_nft")
@@ -88,8 +94,8 @@ export function Positions(props: PositionsProps) {
 
       {/* Listings */}
       <section className={cx(styles.section, tab !== "listings" && styles.hideMobile)}>
-        <SectionHead title={`Listings ${listings.length}`} note="Cancel, then withdraw the NFT: two confirmations" />
-        <HeaderRow columns={LISTING_COLS}>
+        <SectionHead title={`Listings ${listings.length}`} note="Close listings and recover transferable tokens" />
+        <HeaderRow columns={LISTING_COLS} className={styles.tableHead}>
           <HeaderCell>Token</HeaderCell>
           <HeaderCell>Price</HeaderCell>
           <HeaderCell>Pricing</HeaderCell>
@@ -100,7 +106,7 @@ export function Positions(props: PositionsProps) {
           const acts = listingActions(o, props);
           const attn = acts.some((a) => a.primary);
           return (
-            <Row key={o.address} columns={LISTING_COLS} height={76}>
+            <Row key={o.address} columns={LISTING_COLS} height={76} className={styles.positionRow}>
               <TokenCell src={mediaOf?.(o)} title={o.collectionName ?? "Collection"} meta={`#${o.tokenId}`} size={48} />
               <PriceFigure wei={priceNow(o, now)} size={20} />
               <div className={common.pricing}>
@@ -117,7 +123,7 @@ export function Positions(props: PositionsProps) {
       {/* Offers */}
       <section className={cx(styles.section, styles.gap, tab !== "offers" && styles.hideMobile)}>
         <SectionHead title={`Offers ${offers.length}`} note="Cancel, then withdraw unspent ETH: two confirmations" />
-        <HeaderRow columns={OFFER_COLS}>
+        <HeaderRow columns={OFFER_COLS} className={styles.tableHead}>
           <HeaderCell>Offer</HeaderCell>
           <HeaderCell>For</HeaderCell>
           <HeaderCell align="right">Bought</HeaderCell>
@@ -132,7 +138,7 @@ export function Positions(props: PositionsProps) {
           const expired = o.status === "expired";
           const expText = expired ? `Expired ${when(exp, now)}` : exp === 0n ? "Never" : when(exp, now);
           return (
-            <Row key={o.address} columns={OFFER_COLS} height={72}>
+            <Row key={o.address} columns={OFFER_COLS} height={72} className={styles.positionRow}>
               <span>
                 <PriceFigure wei={priceNow(o, now)} size={20} />
               </span>
@@ -151,7 +157,7 @@ export function Positions(props: PositionsProps) {
       {/* Activity */}
       <section className={cx(styles.section, styles.gap, tab !== "activity" && styles.hideMobile)}>
         <SectionHead title="Activity" note="Completed sales and purchases" />
-        <HeaderRow columns={ACT_COLS}>
+        <HeaderRow columns={ACT_COLS} className={styles.tableHead}>
           <HeaderCell>Date</HeaderCell>
           <HeaderCell>Event</HeaderCell>
           <HeaderCell>Token</HeaderCell>
@@ -165,7 +171,7 @@ export function Positions(props: PositionsProps) {
           const amount = seller ? BigInt(f.proceeds) : BigInt(f.price);
           const counterparty = seller ? f.buyer : f.seller;
           return (
-            <Row key={f.id} columns={ACT_COLS} height={60}>
+            <Row key={f.id} columns={ACT_COLS} height={60} className={styles.positionRow}>
               <span className={common.muted}>{when(f.timestamp, now)}</span>
               <span className={common.ink}>{event}</span>
               <span>
@@ -205,7 +211,7 @@ function SectionHead({ title, note }: { title: string; note: string }) {
 function Actions({ actions }: { actions: Action[] }) {
   return (
     <span className={styles.actions}>
-      {actions.map((a, i) => (
+      {actions.map((a, i) => a.href ? <Link key={i} href={a.href} className={common.pill}>{a.label}</Link> : (
         <button key={i} type="button" className={a.primary ? common.pillPrimary : common.pill} onClick={a.onClick}>
           {a.label}
         </button>

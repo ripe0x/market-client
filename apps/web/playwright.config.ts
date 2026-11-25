@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 // Needs `pnpm dev:chain` (Anvil :8645, seeded), the indexer on :42169 and the app on :3100;
-// `e2e/run.sh` starts all three. Each project runs the same flows at the two design widths.
+// README.md documents the three local service commands. Both projects run the same flows.
 export default defineConfig({
   testDir: "e2e",
   timeout: 120_000,

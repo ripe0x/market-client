@@ -1,6 +1,7 @@
 .panel {
   padding: 24px var(--gutter) 40px;
   max-width: 520px;
+  overflow-wrap: anywhere;
 }
 .lead {
   font-size: 14px;
@@ -34,7 +35,7 @@
 }
 .picker {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-top: 12px;
 }
@@ -53,13 +54,16 @@
   display: flex;
   justify-content: space-between;
   margin-top: 10px;
+  gap: 8px;
   font-size: 14px;
 }
 .pickId {
   font-weight: 700;
+  min-width: 0;
 }
 .muted {
   color: var(--ink-3);
+  flex-shrink: 0;
 }
 .breakdown {
   margin-top: 22px;

@@ -1,8 +1,14 @@
-# Market V1 client: build plan
+# Market client: original V1 plan and rights milestone
 
-Status: **plan; open questions decided 2026-11-16 (see [DECISIONS.md](DECISIONS.md)). Nothing scaffolded, installed or deployed.**
-Inputs: `handoff/` (design handoff, copied from `design_handoff_market_v1_protocol`), protocol `ripe0x/market` at `main` = `d6b2073` (2026-11-16).
-Where this plan and the protocol docs disagree, the plan follows the code at that commit.
+The plan below records the 2026-11-16 order-only build and its original decisions. It is historical where it assumes nothing is deployed or the protocol is pinned to `d6b2073`: the legacy order-only Sepolia release is verified, and the current rights client candidate pins protocol `484223e`. Later [decisions](DECISIONS.md), [status](STATUS.md) and the [deployment runbook](DEPLOYMENT.md) control current work. Preserve the original `handoff/` design as its own input.
+
+## Current rights milestone, 2026-11-17
+
+**Outcome:** on the local rights release, a user can issue a collateralized NFT purchase right, sell and resell the entitlement without moving backing, then exercise at its committed price or expire/surrender and recover only as committed. Keep ordinary listings, bids and the verified legacy Sepolia release accessible. The right token and backing account have distinct identities; `Rights.ownerOf` is authoritative. The shared collection's metadata is generic identity and liveness, while the covered handler's config and activation terms determine price and royalty.
+
+**Acceptance:** verify a backed issue, primary premium, secondary premium, exact-price exercise, credit release, listing cancel, deadline boundary, expiry and residual recovery; reject pending, expired and terminal right-token trading. Check a second sequence in which AtomicWallet issuance fails and every effect rolls back. Package, indexer and browser tests must use actual local contracts and the configured release identity. A separate frozen release milestone covers public Sepolia, isolated indexer catch-up, a signed walkthrough and explicit owner broadcast authority.
+
+**Boundaries:** `deployments/legacy-sepolia.json` is historical deployed evidence. `deployments/rights-sepolia.json` is a candidate with `startBlock: null`; its computed addresses are not deployed code. The indexer must refuse that candidate and use a separate schema when rights are deployed. The web app must not enable writes for a missing or mismatched deployment. Public Sepolia still selects `legacy-v1` by default. Do not merge, push or broadcast under this implementation milestone.
 
 ---
 
@@ -548,3 +554,7 @@ Each is one reviewable PR (some may split), verified with the checks named, comm
 6. A rising **listing** is allowed by the protocol and shown in the design, but buying one at the displayed price fails one block later unless `maxPrice` has headroom; the design's "You pay at most 1.42" cannot hold for it.
 7. `FeeConfig`'s admin is still an EOA (`SECURITY.md` residual risk 23). A refusing fee recipient halts every fill; worth moving the admin to a Safe before Sepolia is used by others.
 8. Your global rule fixes mainnet RPC to Tenderly's public gateway; a production indexer may need a keyed provider (Q5).
+
+## Focused reliability follow-up acceptance
+
+Keep both expiry conditions visible; allow listing cleanup without impossible canonical token transfers. Support exact-byte authenticated covered collateral recovery when config discovery fails. Regenerate source-pinned artifacts after Artwork registry authentication, mint-history removal and production comment cleanup. Preserve legacy selection and require separate authority for public deployment or cutover. Validation and signed local evidence are recorded in STATUS.md.

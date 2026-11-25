@@ -1,9 +1,9 @@
 import { decodeErrorResult, type Hex } from "viem";
-import { erc721ErrorsAbi, marketAbi, nftBidAbi, nftSaleAbi, orderAbi } from "./abis";
+import { erc721ErrorsAbi, marketAbi, nftBidAbi, nftSaleAbi, orderAbi, rightAbi, rightsAbi, coveredNFTPurchaseAbi } from "./abis";
 import { eth, pct, when } from "./format";
 
 /** Every custom error a Market transaction can revert with, for decoding raw revert data. */
-export const revertAbi = [...orderAbi, ...marketAbi, ...nftSaleAbi, ...nftBidAbi, ...erc721ErrorsAbi].filter(
+export const revertAbi = [...orderAbi, ...marketAbi, ...nftSaleAbi, ...nftBidAbi, ...erc721ErrorsAbi, ...rightAbi, ...rightsAbi, ...coveredNFTPurchaseAbi].filter(
   (x) => x.type === "error",
 );
 
@@ -45,7 +45,7 @@ export function decodeRevert(err: unknown): Revert {
 }
 
 export type ErrorContext = {
-  kind: "sale" | "bid";
+  kind: "sale" | "bid" | "right";
   /** "#212" */
   token?: string;
   /** Viewer owns the order. */
@@ -57,10 +57,16 @@ export type ErrorContext = {
  * to do. Returns null for a wallet rejection, which the UI shows as a muted reset.
  */
 export function revertCopy(r: Revert, ctx: ErrorContext): string | null {
-  const thing = ctx.kind === "sale" ? "listing" : "offer";
+  const thing = ctx.kind === "right" ? "right" : ctx.kind === "sale" ? "listing" : "offer";
   const a = "args" in r ? r.args : [];
   const big = (i: number) => (typeof a[i] === "bigint" ? (a[i] as bigint) : 0n);
   switch (r.name) {
+    case "WrongPayment": return "Send the exact committed exercise price.";
+    case "DeadlinePassed": return "This right has expired. It cannot be exercised or transferred.";
+    case "WrongState": return "This right is no longer in the required state. Refresh its details.";
+    case "ResidualNotIssuer": return "The covered nft account must return collateral to its issuer.";
+    case "EncumberedBalance": return "This eth is reserved for unpaid beneficiaries.";
+    case "NotARight": return "This is not a canonical right account.";
     case "UserRejected":
       return null;
     case "NotStarted":
@@ -96,7 +102,7 @@ export function revertCopy(r: Revert, ctx: ErrorContext): string | null {
     case "ZeroAddress":
       return ctx.owner ? "This order can never fill. Cancel to recover." : `This ${thing} can't be filled.`;
     case "Unauthorized":
-      return "Only the owner can do this.";
+      return ctx.kind === "right" ? "The connected account cannot perform this right action." : "Only the owner can do this.";
     case "WrongConfig":
       return `This ${thing}'s terms didn't match. Nothing was sent.`;
     case "ERC721InsufficientApproval":

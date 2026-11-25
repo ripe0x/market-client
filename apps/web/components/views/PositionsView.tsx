@@ -8,6 +8,7 @@ import { Positions, ApprovalsRow, Loading, ErrorNote } from "@/components/screen
 import { useHead, useIndexer } from "@/data/hooks";
 import { paths } from "@/data/indexer";
 import { LagBanner } from "@/components/app/Trading";
+import { RightsSection } from "./RightsView";
 import { FlowModal } from "./FlowModal";
 import { cancelSteps, depositStep, topUpSteps, revokeAllSteps } from "@/data/flows";
 import type { Step as FlowStep } from "@/data/txflow";
@@ -51,10 +52,11 @@ export function PositionsView() {
 
   const ctxOf = (o: ApiOrder): ErrorContext => ({ kind: o.kind, owner: true, token: `#${o.tokenId}` });
 
+  const closeOnly = (o: ApiOrder) => !!o.rightAccount && o.rightTransferable === false;
   const onCancel = (o: ApiOrder) =>
     setAction({
-      title: o.kind === "sale" ? "Cancel and withdraw" : "Cancel offer",
-      label: o.kind === "sale" ? "Cancel and withdraw" : `Cancel and refund ${eth(BigInt(o.balance))}`,
+      title: closeOnly(o) ? "Close stale listing" : o.kind === "sale" ? "Cancel and withdraw" : "Cancel offer",
+      label: closeOnly(o) ? "Close stale listing" : o.kind === "sale" ? "Cancel and withdraw" : `Cancel and refund ${eth(BigInt(o.balance))}`,
       steps: cancelSteps(o, `#${o.tokenId}`),
       ctx: ctxOf(o),
     });
@@ -81,7 +83,10 @@ export function PositionsView() {
       <LagBanner />
       <Positions
         viewer={address}
-        listings={positions.listings}
+        listings={positions.listings.map(o => {
+          const r = positions.rights?.find(r => sameAddress(r.account, o.rightAccount));
+          return r ? { ...o, rightTransferable: r.state === 1 && (r.deadline === "0" || now < BigInt(r.deadline)) } : o;
+        })}
         offers={positions.offers}
         activity={activity?.items ?? []}
         now={now}
@@ -90,6 +95,7 @@ export function PositionsView() {
         onMoveNft={onMoveNft}
         onAddFunds={(o) => setTopUp(o)}
       />
+      {DEPLOYMENT.rights ? <div className="gutter"><RightsSection items={positions.rights ?? []} /></div> : null}
       <ApprovalsRow
         items={approvals.map((a) => ({
           label: `Approval for all ${a.name ?? "this collection"}`,
